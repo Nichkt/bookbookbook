@@ -1,0 +1,245 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/literata/opsz.css";
+@import "@fontsource-variable/literata/opsz-italic.css";
+
+/* Themes live on <html data-theme="light|sepia|dark">, set before first paint by public/theme-init.js. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * DESIGN.md §15 "Paper & ink" tokens. Three are renamed because shadcn/ui uses those names for other roles:
+ * --muted → --ink-muted, --border → --line, --accent → --accent-ink.
+ */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f4efe6;
+  --surface: #fbf8f2;
+  --surface-2: #f1ebdf;
+  --page: #fffdf9;
+  --ink: #26241f;
+  --ink-2: #4a463e;
+  --ink-muted: #7a7366;
+  --line: #e3daca;
+  --accent-ink: #2e4a7d;
+  --accent-soft: #e4eaf5;
+  --ai-tint: rgb(46 74 125 / 0.09);
+  --danger: #b23a2b;
+}
+
+[data-theme="sepia"] {
+  color-scheme: light;
+  --bg: #efe4cc;
+  --surface: #f6edd9;
+  --surface-2: #ede1c6;
+  --page: #faf2e0;
+  --ink: #3a2e1f;
+  --ink-2: #574833;
+  --ink-muted: #7c6a50;
+  --line: #e0d0b0;
+  --accent-ink: #2e4a7d;
+  --accent-soft: #e6e3da;
+  --ai-tint: rgb(46 74 125 / 0.1);
+  --danger: #a8402c;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #14161a;
+  --surface: #1b1e24;
+  --surface-2: #22262e;
+  --page: #1e2128;
+  --ink: #e7e2d8;
+  --ink-2: #cfc8ba;
+  --ink-muted: #9a9488;
+  --line: #2c313a;
+  --accent-ink: #8ea8dc;
+  --accent-soft: rgb(142 168 220 / 0.14);
+  --ai-tint: rgb(142 168 220 / 0.14);
+  --danger: #e07a6a;
+}
+
+/* shadcn/ui variables, derived from the tokens above so every theme stays in sync. */
+:root {
+  --background: var(--bg);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--accent-ink);
+  --primary-foreground: var(--page);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--ink-2);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--accent-soft);
+  --accent-foreground: var(--ink);
+  --destructive: var(--danger);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--accent-ink);
+  /* 10px on cards (--radius-lg), 8px on controls (--radius-md). */
+  --radius: 0.625rem;
+  --chart-1: #6b7fa6;
+  --chart-2: #c98a2b;
+  --chart-3: #8a63b8;
+  --chart-4: #3f7d58;
+  --chart-5: #9a9488;
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--accent-ink);
+  --sidebar-primary-foreground: var(--page);
+  --sidebar-accent: var(--accent-soft);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--accent-ink);
+}
+
+@theme {
+  --color-status-idea: #9a9488;
+  --color-status-outlined: #6b7fa6;
+  --color-status-drafting: #c98a2b;
+  --color-status-revising: #8a63b8;
+  --color-status-done: #3f7d58;
+}
+
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Literata Variable", Georgia, serif;
+  --font-heading: var(--font-serif);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-accent-soft: var(--accent-soft);
+  --color-ai-tint: var(--ai-tint);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* The manuscript page: Literata 19px / 1.75, ~66 characters per line, book-style first-line indents. */
+@layer components {
+  .prose-page {
+    max-width: 66ch;
+    font-family: var(--font-serif);
+    font-size: 19px;
+    line-height: 1.75;
+    font-optical-sizing: auto;
+    color: var(--ink);
+  }
+  .prose-page :where(p) {
+    margin: 0;
+  }
+  /* No indent after headings, blockquotes or scene breaks: only paragraph-after-paragraph. */
+  .prose-page :where(p + p) {
+    text-indent: 1.5em;
+  }
+  .prose-page :where(blockquote) {
+    margin: 0.75em 0 0.75em 1.5em;
+    color: var(--ink-2);
+  }
+  .prose-page .ProseMirror {
+    position: relative;
+    min-height: 3.5em;
+    outline: none;
+    caret-color: var(--accent-ink);
+    white-space: pre-wrap;
+  }
+  /* Same focus cue as the prototype: a quiet bar in the margin, hidden in focus mode later. */
+  .prose-page .ProseMirror:focus-visible::after {
+    content: "";
+    position: absolute;
+    top: 0.3em;
+    bottom: 0.3em;
+    left: -16px;
+    width: 2px;
+    border-radius: 1px;
+    background: var(--accent-ink);
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  .prose-page p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    color: var(--ink-muted);
+    pointer-events: none;
+  }
+  .mention-auto {
+    text-decoration-line: underline;
+    text-decoration-style: dotted;
+    text-decoration-color: color-mix(in oklab, var(--accent-ink) 60%, transparent);
+    text-underline-offset: 0.2em;
+  }
+  .ai-generated {
+    background: var(--ai-tint);
+    border-radius: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
