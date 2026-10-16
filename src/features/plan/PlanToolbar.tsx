@@ -1,0 +1,256 @@
+import { FilterIcon, LayoutGridIcon, ListTreeIcon, PlusIcon, SlidersHorizontalIcon } from "lucide-react"
+import { useId } from "react"
+import { Link, useLocation } from "react-router"
+import { announce, attempt } from "@/app/feedback"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Label } from "@/components/ui/label"
+import {
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { formatCount } from "@/lib/numbers"
+import { cn } from "@/lib/utils"
+import { DISPLAY_FIELDS, PLAN_VIEWS, PRESET_NAMES, type PresetName } from "./display"
+import { activeFilterCount } from "./filters"
+import { createAct, createChapter } from "./mutations"
+import { usePlanContext } from "./planContext"
+import { STATUS_OPTIONS } from "./status"
+
+const VIEW_LABELS = { board: "Board", outline: "Outline" } as const
+const VIEW_ICONS = { board: LayoutGridIcon, outline: ListTreeIcon } as const
+const PRESET_LABELS: Record<PresetName, string> = { compact: "Compact", standard: "Standard", detailed: "Detailed" }
+const isPreset = (value: string): value is PresetName => PRESET_NAMES.includes(value as PresetName)
+
+/** Radix Select can't use "" as a value. */
+const ANY = "__any"
+
+export function PlanToolbar() {
+  const { db, bookId, book, plan, view, focusItem, showChapter } = usePlanContext()
+  const location = useLocation()
+
+  const addAct = async () => {
+    const id = await attempt("add act", createAct(db, bookId))
+    if (!id) return
+    focusItem("act", id)
+    announce(plan.hasActs ? "Act added at the end" : "Act added. It holds every chapter for now.")
+  }
+
+  const addChapter = async () => {
+    const id = await attempt("add chapter", createChapter(db, bookId, { actId: null }))
+    if (!id) return
+    if (view === "board") showChapter(id, "title")
+    else focusItem("chapter", id)
+  }
+
+  return (
+    // Taller on touch screens, to fit 44px targets. The docked drawer and the Outline's scroll margins sit below it.
+    <div className="sticky top-14 z-20 flex h-12 items-center gap-1.5 overflow-x-auto border-b bg-background/95 px-4 backdrop-blur sm:gap-2 sm:px-6 pointer-coarse:h-14">
+      <nav aria-label="Plan views" className="flex shrink-0 items-center rounded-lg bg-muted p-0.5">
+        {PLAN_VIEWS.map((name) => {
+          const Icon = VIEW_ICONS[name]
+          const current = name === view
+          return (
+            <Link
+              key={name}
+              to={{ pathname: `/b/${bookId}/plan/${name}`, search: location.search }}
+              state={location.state}
+              replace
+              aria-current={current ? "page" : undefined}
+              className={cn(
+                "flex h-7 items-center justify-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition-colors pointer-coarse:h-11 pointer-coarse:min-w-11",
+                "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                current ? "bg-background text-ink shadow-sm" : "text-ink-2 hover:text-ink",
+              )}
+            >
+              <Icon aria-hidden="true" className="size-4" />
+              {/* Icons alone on phones, so the toolbar fits. */}
+              <span className="sr-only sm:not-sr-only">{VIEW_LABELS[name]}</span>
+            </Link>
+          )
+        })}
+      </nav>
+      <DisplayMenu />
+      <FilterMenu />
+      <p className="ml-auto hidden shrink-0 text-xs text-muted-foreground tabular-nums lg:block">
+        {plan.chapters.length} {plan.chapters.length === 1 ? "chapter" : "chapters"} · {formatCount(plan.words)}
+        {book.target_words ? ` / ${formatCount(book.target_words)}` : ""} words
+      </p>
+      <div className="ml-auto flex shrink-0 items-center gap-1.5 lg:ml-2">
+        <Button variant="outline" size="sm" onClick={() => void addAct()}>
+          <PlusIcon />
+          Act
+        </Button>
+        <Button size="sm" onClick={() => void addChapter()}>
+          <PlusIcon />
+          Chapter
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function DisplayMenu() {
+  const { display, setPreset, toggleField } = usePlanContext()
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" aria-label="Display options" className="shrink-0">
+          <SlidersHorizontalIcon />
+          <span className="hidden sm:inline">Display</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56">
+        <DropdownMenuLabel>Detail</DropdownMenuLabel>
+        <DropdownMenuRadioGroup value={display.preset} onValueChange={(value) => isPreset(value) && setPreset(value)}>
+          {PRESET_NAMES.map((name) => (
+            <DropdownMenuRadioItem key={name} value={name}>
+              {PRESET_LABELS[name]}
+            </DropdownMenuRadioItem>
+          ))}
+          {display.preset === "custom" && (
+            <DropdownMenuRadioItem value="custom" disabled>
+              Custom
+            </DropdownMenuRadioItem>
+          )}
+        </DropdownMenuRadioGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel>Show</DropdownMenuLabel>
+        {DISPLAY_FIELDS.map((field) => (
+          <DropdownMenuCheckboxItem
+            key={field.key}
+            checked={display.fields.has(field.key)}
+            onCheckedChange={() => toggleField(field.key)}
+            // Keep the menu open to toggle several.
+            onSelect={(event) => event.preventDefault()}
+          >
+            {field.label}
+          </DropdownMenuCheckboxItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function FilterMenu() {
+  const { plan, filters, setFilter, clearFilters, filtering, matchCount } = usePlanContext()
+  const count = activeFilterCount(filters)
+  const entryOptions = (typeKey: string) =>
+    (plan.entriesByType.get(typeKey) ?? []).map((entry) => ({ value: entry.id, label: entry.name, color: entry.color }))
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant={filtering ? "secondary" : "ghost"}
+          size="sm"
+          aria-label={count > 0 ? `Filter, ${count} on` : "Filter"}
+          className="shrink-0"
+        >
+          <FilterIcon />
+          <span className="hidden sm:inline">Filter</span>
+          {count > 0 && (
+            <span className="grid size-4 place-items-center rounded-full bg-primary text-[0.625rem] font-semibold text-primary-foreground tabular-nums">
+              {count}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-72">
+        <PopoverHeader>
+          <PopoverTitle>Filter chapters</PopoverTitle>
+          <PopoverDescription>Chapters that don't match are dimmed.</PopoverDescription>
+        </PopoverHeader>
+        <div className="mt-1 grid gap-3">
+          <FilterSelect
+            label="Point of view"
+            value={filters.pov}
+            options={entryOptions("characters")}
+            onChange={(value) => setFilter("pov", value)}
+          />
+          <FilterSelect
+            label="Status"
+            value={filters.status}
+            options={STATUS_OPTIONS.map((option) => ({ value: option.key, label: option.label, dot: option.dot }))}
+            onChange={(value) => setFilter("status", value)}
+          />
+          <FilterSelect
+            label="Thread"
+            value={filters.thread}
+            options={entryOptions("plot_threads")}
+            onChange={(value) => setFilter("thread", value)}
+          />
+        </div>
+        <div className="mt-3 flex items-center justify-between gap-2 border-t pt-3">
+          <p className="text-xs text-muted-foreground tabular-nums">
+            {filtering ? `${matchCount} of ${plan.chapters.length} chapters match` : `${plan.chapters.length} chapters`}
+          </p>
+          <Button variant="ghost" size="sm" disabled={!filtering} onClick={clearFilters}>
+            Clear
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+interface FilterOption {
+  value: string
+  label: string
+  /** A palette color, for entries. */
+  color?: string
+  /** A status dot class. */
+  dot?: string
+}
+
+function FilterSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string
+  value: string | null
+  options: FilterOption[]
+  onChange: (value: string | null) => void
+}) {
+  const id = useId()
+  return (
+    <div className="grid gap-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <Select value={value ?? ANY} onValueChange={(next) => onChange(next === ANY ? null : next)}>
+        <SelectTrigger id={id} size="sm" className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent position="popper">
+          <SelectItem value={ANY}>Any</SelectItem>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {(option.color || option.dot) && (
+                <span
+                  aria-hidden="true"
+                  className={cn("size-2 shrink-0 rounded-full", option.dot)}
+                  style={option.color ? { background: option.color } : undefined}
+                />
+              )}
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+}

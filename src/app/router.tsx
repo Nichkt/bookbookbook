@@ -1,9 +1,10 @@
 import { createBrowserRouter, Navigate } from "react-router"
 import { ImeLab } from "@/features/lab/ImeLab"
+import { PlanIndex, PlanScreen } from "@/features/plan/PlanScreen"
 import { WriteScreen } from "@/features/write/WriteScreen"
 import { AppShell } from "./AppShell"
 import { OpenBook } from "./OpenBook"
-import { CodexScreen, InboxScreen, NotFoundScreen, PlanScreen } from "./PlaceholderScreens"
+import { CodexScreen, InboxScreen, NotFoundScreen } from "./PlaceholderScreens"
 import { RouteError } from "./RouteError"
 
 export const router = createBrowserRouter([
@@ -20,7 +21,8 @@ export const router = createBrowserRouter([
             path: "b/:bookId",
             children: [
               { index: true, element: <Navigate to="write" replace /> },
-              { path: "plan", element: <PlanScreen /> },
+              { path: "plan", element: <PlanIndex /> },
+              { path: "plan/:view", element: <PlanScreen /> },
               { path: "write/:chapterId?", element: <WriteScreen /> },
               { path: "codex", element: <CodexScreen /> },
             ],

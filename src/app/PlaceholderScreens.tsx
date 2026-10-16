@@ -17,14 +17,6 @@ export function PlaceholderScreen({ title, milestone, children }: Props) {
   )
 }
 
-export function PlanScreen() {
-  return (
-    <PlaceholderScreen title="Plan" milestone="Arrives in M1">
-      <p>The Board, Outline and chapter drawer. Matrix, Timeline, Corkboard and templates follow in M5.</p>
-    </PlaceholderScreen>
-  )
-}
-
 export function CodexScreen() {
   return (
     <PlaceholderScreen title="Codex" milestone="Arrives in M3">

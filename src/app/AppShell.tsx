@@ -1,7 +1,16 @@
+import { BookOpenIcon } from "lucide-react"
 import { Link, NavLink, Outlet } from "react-router"
+import { Toaster } from "@/components/ui/sonner"
+import { TooltipProvider } from "@/components/ui/tooltip"
+import { BookDialogs } from "@/features/books/BookDialogs"
+import { BookMenu } from "@/features/books/BookMenu"
 import { cn } from "@/lib/utils"
+import { Announcer } from "./Announcer"
 import { useCurrentBook } from "./books"
 import { ThemeSwitcher } from "./ThemeSwitcher"
+
+// Above the phone tab bar, or the screen edge from md up (--toast-bottom in index.css).
+const TOAST_OFFSET = { bottom: "var(--toast-bottom)" }
 
 interface Screen {
   to: string
@@ -42,31 +51,45 @@ function ScreenLinks({ screens, className, linkClassName }: { screens: Screen[];
 }
 
 export function AppShell() {
-  const { book } = useCurrentBook()
+  const { book, books } = useCurrentBook()
   const screens = screensFor(book?.id)
   return (
-    <div className="flex min-h-svh flex-col">
-      <header className="sticky top-0 z-20 flex h-14 items-center gap-4 border-b bg-surface/95 px-4 backdrop-blur">
-        <div className="flex min-w-0 items-baseline gap-3">
-          <Link to="/" className="shrink-0 font-heading text-xl font-semibold tracking-tight">
-            bookbookbook
-          </Link>
-          {book?.title && <span className="hidden truncate text-sm text-muted-foreground sm:inline">{book.title}</span>}
-        </div>
-        <ScreenLinks screens={screens} className="hidden items-center gap-1 md:flex" linkClassName="px-3 py-1.5" />
-        <div className="ml-auto shrink-0">
-          <ThemeSwitcher />
-        </div>
-      </header>
-      {/* Phones get the bottom tab bar instead (DESIGN.md §16), so leave room for it. */}
-      <main className="flex flex-1 flex-col pb-16 md:pb-0">
-        <Outlet />
-      </main>
-      <ScreenLinks
-        screens={screens}
-        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 gap-1 border-t bg-surface p-1.5 md:hidden"
-        linkClassName="flex min-h-11 items-center justify-center"
-      />
-    </div>
+    <TooltipProvider>
+      <div className="flex min-h-svh flex-col">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-surface/95 px-4 backdrop-blur sm:gap-4">
+          <div className="flex min-w-0 items-center gap-1 sm:gap-2">
+            <Link
+              to="/"
+              aria-label="bookbookbook"
+              className="flex shrink-0 items-center justify-center rounded-md font-heading text-xl font-semibold tracking-tight focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+            >
+              <BookOpenIcon aria-hidden="true" className="size-5 sm:hidden" />
+              <span className="hidden sm:inline">bookbookbook</span>
+            </Link>
+            <BookMenu book={book} books={books} />
+          </div>
+          <ScreenLinks
+            screens={screens}
+            className="hidden items-center gap-1 md:flex"
+            linkClassName="flex items-center px-3 py-1.5 pointer-coarse:min-h-11"
+          />
+          <div className="ml-auto shrink-0">
+            <ThemeSwitcher />
+          </div>
+        </header>
+        {/* Phones get the bottom tab bar instead (DESIGN.md §16), so leave room for it. */}
+        <main className="flex flex-1 flex-col pb-16 md:pb-0">
+          <Outlet />
+        </main>
+        <ScreenLinks
+          screens={screens}
+          className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 gap-1 border-t bg-surface p-1.5 md:hidden"
+          linkClassName="flex min-h-11 items-center justify-center"
+        />
+      </div>
+      <BookDialogs book={book} />
+      <Toaster offset={TOAST_OFFSET} mobileOffset={TOAST_OFFSET} />
+      <Announcer />
+    </TooltipProvider>
   )
 }

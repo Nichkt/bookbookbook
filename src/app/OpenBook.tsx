@@ -1,4 +1,7 @@
+import { PlusIcon } from "lucide-react"
 import { Navigate } from "react-router"
+import { Button } from "@/components/ui/button"
+import { openBookDialog } from "@/features/books/dialogStore"
 import { useCurrentBook } from "./books"
 import { PlaceholderScreen } from "./PlaceholderScreens"
 
@@ -9,7 +12,11 @@ export function OpenBook() {
   if (!book) {
     return (
       <PlaceholderScreen title="No books yet" milestone="Library">
-        <p>Creating books arrives with the planner in M1.</p>
+        <p>Start one, or restore a book from the Trash in the book menu above.</p>
+        <Button className="mt-2" onClick={(event) => openBookDialog("new", event.currentTarget)}>
+          <PlusIcon />
+          New book
+        </Button>
       </PlaceholderScreen>
     )
   }

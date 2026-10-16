@@ -3,7 +3,9 @@ import { expect, flushAll, focusEnd, openFirstChapter, test } from "./fixtures"
 test("opens the sample book at its first chapter, with codex names underlined", async ({ page }) => {
   const editor = await openFirstChapter(page)
   await expect(page.getByRole("heading", { level: 1, name: "The Ferry Home" })).toBeVisible()
-  await expect(page.getByRole("navigation", { name: "Chapters" }).getByRole("link")).toHaveCount(5)
+  const chapters = page.getByRole("navigation", { name: "Chapters" })
+  await expect(chapters.getByRole("link")).toHaveCount(12)
+  await expect(chapters.getByRole("list", { name: "ACT I — Arrival", exact: true }).getByRole("link")).toHaveCount(4)
   await expect(editor.locator(".mention-auto").first()).toBeVisible()
 })
 

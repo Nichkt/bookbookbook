@@ -184,7 +184,7 @@ client in a worker. Prose is never stored as an HTML blob, so offline edits from
 | View | Shows | Interactions |
 |---|---|---|
 | **Board** | Acts as rows, chapter cards left → right | Drag to reorder or move between acts; click → drawer; "+ Chapter" per act |
-| **Outline** | Tree: Act › Chapter › Scene with summaries and beats inline | Keyboard-first: Enter = new item, Tab / Shift+Tab = indent; inline editing |
+| **Outline** | Tree: Act › Chapter › Scene with summaries and beats inline | Keyboard-first: Enter = new item, Tab = fold into the item above, Shift+Tab = split off; inline editing |
 | **Matrix** | Rows = characters and plot threads; columns = chapters (grouped by act) | ★ POV · ● present · blank = absent; click to toggle; warns when a thread goes quiet for ≥ 3 chapters |
 | **Timeline** | Chapters placed by **in-story** time in POV lanes; codex Events as markers | Toggle story order vs reading order; flashbacks visibly out of sequence |
 | **Corkboard** | Index cards (title + summary) | Fast reorder; print/export as cards later |
@@ -225,6 +225,29 @@ Seven-Point · Romance beats (Romancing the Beat-style) · Kishōtenketsu · Sno
 ### Plot threads
 A plot thread is a codex entry (type *Plot thread*) with a color and a question it raises. Threads appear as colored
 tags on cards, as rows in the Matrix and as filters on every view.
+
+### Built in M1
+M1 built the Board, the Outline, the chapter drawer and the Display menu, plus filters, quick create and the Trash.
+The Matrix, Timeline, Corkboard and templates follow in M5. Details it settled:
+- **Outline keys.** Tab folds an item into the one above: a chapter becomes scenes at the end of the previous chapter,
+  and an act's chapters join the previous act. Shift+Tab splits one off: a scene and the scenes after it become a new
+  chapter, and on a chapter a new act starts there. Each shows an Undo toast and has a matching command in the item's
+  ⋯ menu. Alt+↑/↓ moves acts, scenes within their chapter, and chapters, across acts too.
+- **Board.** Cards drag within and between acts (dnd-kit). Alt+arrow keys move the focused card, and screen readers
+  hear where it landed.
+- **Drawer.** From 1024 px up it docks beside the Board or Outline, which stay usable. Narrower screens get a modal
+  sheet, full-screen on phones. `?chapter=` in the URL opens it, so it survives a reload and Back closes it.
+- **Filters** by POV, status and thread dim the chapters that don't match, and live in the URL. The Display preset
+  and fields are saved per book and per view in `ui_prefs`.
+- **Quick create:** "+ Act" and "+ Chapter" in the toolbar, "+" on each act of the Board, Enter in the Outline. The
+  drawer's pickers can create a codex entry from what you typed.
+- **Trash.** Chapters, scenes and books go to the Trash with an Undo toast and stay for 30 days (§12). The book menu's
+  Trash restores them or deletes them for good. Deleting an act can keep its chapters (they join a neighbouring act)
+  or send them to the Trash.
+- **Plot threads** are codex entries of type `plot_threads`, picked in the drawer like POV, location and characters.
+- **Write** lists chapters under their acts. A chapter's Plan link opens its details, and Back returns to writing.
+- **Not yet:** characters present are manual links only. Auto-detected mentions, Summarize with AI and dictating
+  beats come with M3, M4 and M11.
 
 ## 7. Codex
 
@@ -637,6 +660,16 @@ soft layered shadows, nothing loud while writing.
 | 768–1023 px (tablet) | Navigator and right panel are sheets; touch targets ≥ 44 px; drag with long-press |
 | < 768 px (phone) | Bottom tab bar (Plan · Write · Codex · Inbox · More); page-only editor; navigator, Plan, Codex and AI open as **bottom sheets**; chapter drawer is full-screen; Board becomes a vertical list grouped by act; Matrix and Timeline scroll horizontally |
 
+**Touch targets** *(built in M1)*
+- Sizes follow the pointer, not the width: wherever the main pointer is coarse, at any screen size, every control is
+  at least 44 × 44 px. The shared primitives (Button, Toggle, Input, Select, menu and command items, Checkbox, toast
+  actions) carry Tailwind `pointer-coarse:` minimums, so screens get them without extra work.
+- Small marks keep their look and get a 44 px hit area from an `::after` (checkboxes, a label's remove button).
+- The Plan toolbar grows from 48 to 56 px on touch, and the docked drawer's offset and the Outline's scroll margins
+  grow with it. On phones its view tabs and its Display and Filter buttons show icons only.
+- `e2e/touch.spec.ts` opens the Board, its menus and pickers, the drawer, a toast and the Outline on a phone and a
+  tablet, and fails on any control under 44 px.
+
 **Mobile editing specifics**
 - On touch devices the OS selection menu competes with ours. Show our tools in a compact bar **docked above the
   keyboard** instead of a floating bubble.
@@ -749,9 +782,9 @@ LanguageTool or the browser spellchecker. RTL later.
 
 **Immediate next steps:**
 1. Name clearance for "bookbookbook" (trademark, domain, app stores).
-2. Finish M0. The repo is scaffolded and the spike is built and tested ([README](../README.md)). What's left is the
-   phone keyboard test on real devices with Gboard and Samsung Keyboard ([ime-smoke-test.md](ime-smoke-test.md)).
-3. Start M1: Structure & Planner I.
+2. The phone keyboard test on real devices with Gboard and Samsung Keyboard
+   ([ime-smoke-test.md](ime-smoke-test.md)), left over from M0.
+3. M1, Structure & Planner I, is built and tested ([README](../README.md)). Next: M2, Editor core.
 
 ---
 
@@ -809,3 +842,4 @@ LanguageTool or the browser spellchecker. RTL later.
 | 12 | Scope | Free local Beta → paid v1.0 → v1.x → later | Design doc + clickable prototype first |
 | 13 | Speech | Notes, Inbox, beats/summaries, prose; hybrid on-device-first engine; live + memo; commands + AI helpers | Ships in v1.0 |
 | 14 | Name | **Renamed to "bookbookbook"** | Replaces the working name Chapterhouse, which also sidesteps that name's conflicts (Dune novel title, Chapterhouse Studios) |
+| 15 | M1 planner | Outline Tab folds into the item above, Shift+Tab splits off, each with Undo and a ⋯ menu command; drawer docked on wide screens; filters and quick create in M1 | Details in §6, "Built in M1" |

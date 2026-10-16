@@ -35,10 +35,13 @@ export const test = base.extend<{ pageErrors: string[] }>({
 })
 export { expect }
 
+/** The first load seeds the sample book, which can take a while when every worker does it at once. */
+export const FIRST_LOAD_TIMEOUT = 20_000
+
 /** Opens the app at "/" and follows it to the first chapter. Returns the first scene's text box. */
 export async function openFirstChapter(page: Page): Promise<Locator> {
   await page.goto("/")
-  await page.waitForURL(/\/b\/[^/]+\/write\/[^/]+$/)
+  await page.waitForURL(/\/b\/[^/]+\/write\/[^/]+$/, { timeout: FIRST_LOAD_TIMEOUT })
   const editor = page.getByRole("textbox", { name: "Ferry wake" })
   await expect(editor).toBeVisible()
   return editor
@@ -52,3 +55,7 @@ export async function focusEnd(editor: Locator) {
 
 /** Resolves once every edit in the page has been written to SQLite. */
 export const flushAll = (page: Page) => page.evaluate(() => window.__bbb.flushAll())
+
+/** Reads from the page's database. */
+export const queryDb = <T>(page: Page, sql: string, parameters: unknown[] = []) =>
+  page.evaluate(({ sql, parameters }) => window.__bbb.db.getAll<T>(sql, parameters), { sql, parameters })

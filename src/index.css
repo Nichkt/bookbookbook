@@ -158,6 +158,15 @@
 }
 
 @layer base {
+  :root {
+    /* Toasts sit above the phone tab bar (DESIGN.md §16). */
+    --toast-bottom: 80px;
+  }
+  @media (width >= 48rem) {
+    :root {
+      --toast-bottom: 24px;
+    }
+  }
   * {
     @apply border-border outline-ring/50;
   }

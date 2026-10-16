@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures"
+import { expect, FIRST_LOAD_TIMEOUT, test } from "./fixtures"
 
 /**
  * Desktop Chrome can replay a real IME composition through the DevTools protocol: it fires compositionstart,
@@ -9,7 +9,7 @@ import { expect, test } from "./fixtures"
 test("IME lab: composing a word next to a name keeps the underlines in sync", async ({ page }) => {
   await page.goto("/lab/ime")
   const box = page.getByRole("textbox", { name: "IME test text" })
-  await expect(box).toBeVisible()
+  await expect(box).toBeVisible({ timeout: FIRST_LOAD_TIMEOUT })
   await expect(page.getByRole("checkbox", { name: /Composition guard/ })).toBeChecked()
 
   await page.getByRole("button", { name: "Clear text" }).click()

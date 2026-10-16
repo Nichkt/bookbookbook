@@ -6,21 +6,37 @@ takes after NovelCrafter, the writing side after Sudowrite.
 - **Design:** [docs/DESIGN.md](docs/DESIGN.md) covers every product and technical decision and the milestone plan.
 - **Prototype:** [prototype/](prototype/README.md) is a clickable mock of the whole app. Open `prototype/index.html`.
 
-## Status: M0, foundations
+## Status: M1, structure and planner
 
-This is milestone 0 from DESIGN.md §19: the groundwork and the riskiest technical pieces, before any real features.
+Milestones 0 and 1 from DESIGN.md §19 are built. Everything stays on the device; there are no accounts or sync yet.
+The Codex and Inbox tabs are placeholders until M3 and M11.
 
-- **App shell** with Plan, Write and Codex tabs (Plan and Codex are placeholders), responsive down to phone width.
-- **Local-only database:** PowerSync's SQLite in the browser, with the full schema. Nothing leaves the device; there
-  are no accounts or sync yet.
+**M1, Structure & Planner I** (DESIGN.md §6):
+- **Books:** create, switch and edit them (title, genre, target length) from the header's book menu, which also holds
+  the Trash.
+- **Board:** acts as rows of chapter cards. Drag cards within and between acts, or move them with Alt+arrow keys.
+  Display presets (Compact, Standard, Detailed) with per-field toggles, remembered per view. Filters by POV, status
+  and plot thread.
+- **Outline:** acts, chapters, scenes and beats in one keyboard-first tree. Enter adds an item. Tab folds one into the
+  item above and Shift+Tab splits it off, both with Undo. Alt+↑/↓ moves.
+- **Chapter drawer:** status, POV, target, location, story time, threads, characters present, labels, summary, beats,
+  scenes and notes, saved as you type. Pickers can create codex entries. Docked beside the view on wide screens, a
+  sheet on smaller ones.
+- **Trash:** chapters, scenes and books stay for 30 days. Undo right away, or restore from the book menu.
+- **Write:** the navigator lists chapters under their acts, and each chapter links to its details in Plan.
+- **Touch:** every control is at least 44 px on touch screens, and the Board stacks into one column on phones.
+
+**M0, foundations:**
+- **Local-only database:** PowerSync's SQLite in the browser, with the full schema.
 - **Scene editor:** TipTap on a Yjs document per scene. Edits are saved as you type, and open tabs show the same text.
 - **Codex name underlines** that hold still while a phone keyboard is mid-word (see [Phone keyboards](#phone-keyboards)).
 - **Themes:** light, sepia and dark, built on design tokens (DESIGN.md §15).
-- **Sample book,** *The Ferry Home*, created on first run.
+
+The sample book, *The Salt Ledger*, is created on first run.
 
 ## Requirements
 
-- Node.js 22.12 or newer (developed on 24).
+- Node.js 22.13 or newer (developed on 24). The unit tests use `node:sqlite`, which needs no flag from 22.13.
 - Google Chrome, for the end-to-end tests.
 - A **secure origin**: `localhost` or `https://`. PowerSync needs the Web Locks API, which browsers only offer on
   secure origins. A LAN address like `http://192.168.1.20:5173` stops at "Your library couldn't open". To test on a
@@ -49,9 +65,13 @@ Storage → Clear site data) and reload.
 
 ## Tests
 
-**Unit tests** live next to the code (`src/**/*.test.ts`) and run in Node. They cover scene saving and compaction
-(`SceneDocProvider` against an in-memory store), the mention highlighter, codex name matching, word counts, and the
-Yjs helpers.
+**Unit tests** live next to the code (`src/**/*.test.ts`) and run in Node. Tests that write to the database use an
+in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). They cover:
+- scene saving and compaction (`SceneDocProvider` against an in-memory store);
+- the mention highlighter, codex name matching, word counts and the Yjs helpers;
+- the plan's edits (create, move, fold, split, trash) and their exact undo;
+- ordering keys, story time, the Board's drop targets and the Outline's keyboard paths;
+- books, codex entries, the sample book, the Trash and the Write navigator.
 
 **End-to-end tests** (`e2e/`) run in your installed Chrome against a dev server on port 5174, which Playwright starts
 (or reuses if it's already running). Every test gets a fresh browser profile, so each one starts from the sample book.
@@ -62,7 +82,11 @@ They cover:
 - two tabs converging;
 - the theme setting;
 - the phone layout;
-- a phone-style keyboard composition, replayed through the Chrome DevTools Protocol.
+- a phone-style keyboard composition, replayed through the Chrome DevTools Protocol;
+- the planner (`plan.spec.ts`): dragging and keyboard moves on the Board, display presets, filters, the drawer and
+  its URL, the Trash, folding and splitting in the Outline, and the links between Plan and Write;
+- touch targets (`touch.spec.ts`): on a phone and a tablet, every control on the Board, its menus, the drawer, a toast
+  and the Outline must be at least 44 px.
 
 Use `npx playwright test --ui` to debug. A failed test keeps a trace in `test-results/`; open it with
 `npx playwright show-trace <path>`.
@@ -88,12 +112,13 @@ Snapshot-plus-updates is the same layout DESIGN.md §11 plans for syncing betwee
 
 ```text
 src/
-  app/            shell, routes, startup and error screens, theme, dev hooks
-  components/ui/  shadcn components
-  db/             PowerSync schema, queries, sample book and seeding, the SQLite scene store
+  app/            shell, routes, startup and error screens, theme, toasts and announcements, dev hooks
+  components/     fields that save as you type; ui/ holds the shadcn components
+  db/             PowerSync schema, queries, sample book and seeding, ordering, undo, Trash, prefs, the scene store
   editor/         TipTap scene editor, its extensions, codex name matching
-  features/       screens: write/, lab/ (the IME lab)
-  lib/            small helpers (ids, word counts)
+  features/       plan/ (Board, Outline, drawer), write/ (editor screen, navigator), books/, codex/, lab/ (IME lab)
+  lib/            small helpers (ids, word counts, numbers, keys, focus)
+  test/           in-memory SQLite and book builders for unit tests
   yjs/            SceneDocProvider, the scene store interface, Yjs helpers
 e2e/              Playwright tests
 docs/             design doc and the phone keyboard test

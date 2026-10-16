@@ -1,7 +1,9 @@
+import type { CodexTypeKey } from "./codexTypes"
+
 /*
- * The sample book from the prototype (prototype/data.js), seeded on first run so the app opens on real prose.
- * M0 seeds Act I and the first chapter of Act II. Events, plot threads and themes arrive with the planner (M1),
- * once auto-mentions can be scoped per type and "storm" or "mourning" in prose stop counting as mentions.
+ * The sample book from the prototype (prototype/data.js), seeded on first run so the app opens on a real outline:
+ * twelve chapters in three acts, with prose in the first four. Plot threads, events and the theme are codex entries
+ * like the characters; prose mentions of them aren't tracked (see NO_AUTO_MENTION_TYPES).
  */
 
 export interface SampleScene {
@@ -16,19 +18,26 @@ export interface SampleChapter {
   status: "idea" | "outlined" | "drafting" | "revising" | "done"
   summary: string
   pov: string
+  /** A SAMPLE_CODEX key, or "" for nowhere in the codex. */
   place: string
+  /** Free text, stored as a story time (see storyTimeFromText). */
   time: string
+  /** A Save the Cat beat key, or "". */
   beat: string
   target: number
   labels: string[]
   notes?: string
   beats: [text: string, done: boolean][]
+  /** Plot thread keys. */
+  threads: string[]
+  /** Characters present. */
+  present: string[]
   scenes: SampleScene[]
 }
 
 export interface SampleEntry {
   key: string
-  type: string
+  type: CodexTypeKey
   name: string
   aliases: string[]
   tags: string[]
@@ -64,6 +73,8 @@ export const SAMPLE_CHAPTERS: SampleChapter[] = [
     beat: "opening_image",
     target: 3000,
     labels: ["return", "grief"],
+    threads: ["mystery", "grief"],
+    present: ["mara", "jonas", "elias"],
     beats: [
       ["Mara steps off the ferry", true],
       ["Jonas dodges the Harbor Guild", true],
@@ -94,6 +105,8 @@ export const SAMPLE_CHAPTERS: SampleChapter[] = [
     beat: "catalyst",
     target: 3000,
     labels: ["ledger", "father"],
+    threads: ["mystery", "grief"],
+    present: ["mara", "thomas", "agnes"],
     notes: "Thomas's absence should feel physically organized here.",
     beats: [
       ["Unlock the keeper's room", true],
@@ -134,6 +147,8 @@ export const SAMPLE_CHAPTERS: SampleChapter[] = [
     beat: "debate",
     target: 3000,
     labels: ["pub", "choice"],
+    threads: ["mystery", "romance", "debts"],
+    present: ["mara", "jonas", "elias", "agnes"],
     notes: "Keep pub warmth against pressure.",
     beats: [
       ["Ask Agnes about the impossible ships", true],
@@ -174,6 +189,8 @@ export const SAMPLE_CHAPTERS: SampleChapter[] = [
     beat: "break_into_two",
     target: 2500,
     labels: ["debts"],
+    threads: ["debts", "mystery"],
+    present: ["jonas", "mara"],
     beats: [
       ["Jonas meets the Guild collector", false],
       ["Mara follows him to the quay", false],
@@ -201,6 +218,8 @@ export const SAMPLE_CHAPTERS: SampleChapter[] = [
     beat: "b_story",
     target: 3000,
     labels: ["research"],
+    threads: ["mystery", "romance"],
+    present: ["mara", "elias", "agnes"],
     beats: [
       ["Agnes opens the restricted shelf", false],
       ["Elias finds a missing witness", false],
@@ -208,20 +227,148 @@ export const SAMPLE_CHAPTERS: SampleChapter[] = [
     ],
     scenes: [],
   },
-]
-
-const CHARACTER_FIELDS = ["Role", "Age", "Appearance", "Personality", "Goal", "Wound / fear", "Voice & speech", "Arc"]
-
-/** The built-in codex types (DESIGN.md §7); users add fields and custom types later. */
-export const CODEX_TYPES = [
-  { key: "characters", name: "Characters", icon: "user-round", fields: CHARACTER_FIELDS },
-  { key: "locations", name: "Locations", icon: "map-pin", fields: ["Atmosphere", "Senses", "History"] },
-  { key: "objects", name: "Objects", icon: "key-round", fields: ["Description", "Owner", "Secret"] },
-  { key: "factions", name: "Factions", icon: "shield", fields: ["Power", "Public face", "Secret"] },
-  { key: "lore", name: "Lore / Magic / Tech", icon: "sparkles", fields: ["Meaning", "Rules", "Symbol"] },
-  { key: "events", name: "Events", icon: "calendar", fields: ["When", "Where", "Consequences"] },
-  { key: "plot_threads", name: "Plot threads", icon: "spline", fields: ["Question", "Stakes", "Resolution"] },
-  { key: "themes", name: "Themes", icon: "feather", fields: ["Statement", "Motifs"] },
+  {
+    act: 1,
+    title: "Storm Warning",
+    status: "outlined",
+    summary: "A storm traps Mara in the lighthouse where Thomas's marginalia seem to answer the weather.",
+    pov: "mara",
+    place: "light",
+    time: "Day 4 night",
+    beat: "fun_and_games",
+    target: 3000,
+    labels: ["storm"],
+    threads: ["mystery", "grief"],
+    present: ["mara", "thomas"],
+    beats: [
+      ["Storm cuts power", false],
+      ["Lamp Oath mark appears", false],
+      ["Mara decodes a signal", false],
+    ],
+    scenes: [],
+  },
+  {
+    act: 1,
+    title: "What Jonas Owes",
+    status: "outlined",
+    summary: "Jonas reveals his debt began as a favor for Thomas and has become leverage against the Quills.",
+    pov: "jonas",
+    place: "bell",
+    time: "Day 4 night",
+    beat: "",
+    target: 2500,
+    labels: ["debts"],
+    threads: ["debts"],
+    present: ["jonas", "elias"],
+    beats: [
+      ["Guild demand", false],
+      ["Jonas protects Mara", false],
+      ["Elias overhears", false],
+    ],
+    scenes: [],
+  },
+  {
+    act: 1,
+    title: "The Brass Key",
+    status: "outlined",
+    summary: "The brass key opens a sealed lamp-room drawer and turns the ledger from mystery to accusation.",
+    pov: "mara",
+    place: "light",
+    time: "Day 5",
+    beat: "midpoint",
+    target: 3000,
+    labels: ["key"],
+    threads: ["mystery", "romance"],
+    present: ["mara", "elias"],
+    beats: [
+      ["Key opens drawer", false],
+      ["Hidden chart found", false],
+      ["Mara and Elias choose trust", false],
+    ],
+    scenes: [],
+  },
+  {
+    act: 1,
+    title: "The Night Ferry",
+    status: "idea",
+    summary: "Thomas witnesses the Night Ferry disaster and makes the oath that will cost him his peace.",
+    pov: "thomas",
+    place: "",
+    time: "12 years earlier",
+    beat: "",
+    target: 2800,
+    labels: ["flashback"],
+    notes: "At sea, twelve years before the book opens.",
+    threads: ["mystery", "grief"],
+    present: ["thomas", "agnes"],
+    beats: [
+      ["Ferry disappears", false],
+      ["Thomas saves one child", false],
+      ["Oath sworn", false],
+    ],
+    scenes: [],
+  },
+  {
+    act: 2,
+    title: "All Hands",
+    status: "idea",
+    summary: "The Guild corners Jonas and Mara loses the ledger just as a second storm approaches.",
+    pov: "mara",
+    place: "northQuay",
+    time: "Day 7",
+    beat: "all_is_lost",
+    target: 3000,
+    labels: ["crisis"],
+    threads: ["mystery", "debts"],
+    present: ["mara", "jonas", "elias"],
+    beats: [
+      ["Guild takes ledger", false],
+      ["Jonas confesses", false],
+      ["Mara loses Elias's trust", false],
+    ],
+    scenes: [],
+  },
+  {
+    act: 2,
+    title: "The Lamp Oath",
+    status: "idea",
+    summary:
+      "Mara relights the oath signal and gathers the living witnesses before the Harbor Guild can bury the truth.",
+    pov: "mara",
+    place: "light",
+    time: "Day 8 night",
+    beat: "finale",
+    target: 3200,
+    labels: ["finale"],
+    threads: ["mystery", "romance", "grief"],
+    present: ["mara", "elias", "agnes"],
+    beats: [
+      ["Signal lit", false],
+      ["Witnesses gather", false],
+      ["Guild exposed", false],
+    ],
+    scenes: [],
+  },
+  {
+    act: 2,
+    title: "Final Light",
+    status: "idea",
+    summary: "Grayhaven changes hands quietly, and Mara decides what inheritance is worth keeping.",
+    pov: "mara",
+    place: "grayhaven",
+    time: "Day 9",
+    beat: "final_image",
+    target: 2400,
+    labels: ["resolution"],
+    threads: ["romance", "grief"],
+    present: ["mara", "jonas", "elias"],
+    beats: [
+      ["Funeral bell repaired", false],
+      ["Mara maps a new harbor", false],
+      ["Final light burns", false],
+    ],
+    scenes: [],
+  },
 ]
 
 export const SAMPLE_CODEX: SampleEntry[] = [
@@ -448,5 +595,116 @@ export const SAMPLE_CODEX: SampleEntry[] = [
       Symbol: "Three strokes and a circle",
     },
     notes: "A moral inheritance, not just ritual.",
+  },
+  {
+    key: "mystery",
+    type: "plot_threads",
+    name: "Ledger mystery",
+    aliases: ["ledger mystery"],
+    tags: ["main plot"],
+    aiContext: "always",
+    color: "#2A8C8C",
+    fields: {
+      Question: "What ships never existed, and why did Thomas record them?",
+      Stakes: "The island's story of the Night Ferry, and who profited from it",
+    },
+    notes: "Runs through every act.",
+  },
+  {
+    key: "romance",
+    type: "plot_threads",
+    name: "Mara & Elias",
+    aliases: ["old flame", "Mara and Elias"],
+    tags: ["romance"],
+    aiContext: "mentioned",
+    color: "#C2557A",
+    fields: {
+      Question: "Can old trust become action instead of nostalgia?",
+      Stakes: "A second chance, and whose family pays for the truth",
+    },
+    notes: "The romance advances when they choose evidence over self-protection.",
+  },
+  {
+    key: "debts",
+    type: "plot_threads",
+    name: "Jonas's debts",
+    aliases: ["Jonas debt", "Guild debt"],
+    tags: ["subplot"],
+    aiContext: "mentioned",
+    color: "#C98A2B",
+    fields: {
+      Question: "What did Jonas promise the Guild, and for whom?",
+      Stakes: "Jonas's boat, and his place beside Mara",
+    },
+    notes: "This thread should go quiet long enough to feel dangerous, then surface hard.",
+  },
+  {
+    key: "grief",
+    type: "plot_threads",
+    name: "Grief",
+    aliases: ["mourning"],
+    tags: ["inner arc"],
+    aiContext: "mentioned",
+    color: "#6B7FA6",
+    fields: {
+      Question: "What do we owe the dead?",
+      Stakes: "Whether Mara can stay on the island",
+    },
+    notes: "Grief changes from map to weather.",
+  },
+  {
+    key: "nightFerry",
+    type: "events",
+    name: "The Night Ferry sinks",
+    aliases: ["Night Ferry", "Night Ferry disaster"],
+    tags: ["backstory"],
+    aiContext: "always",
+    color: "#2E4A7D",
+    fields: { When: "12 years earlier", Where: "At sea", Consequences: "Witnesses hidden in ledger" },
+    notes: "The buried history under the novel.",
+  },
+  {
+    key: "drowning",
+    type: "events",
+    name: "Thomas drowns",
+    aliases: ["Thomas's drowning", "Thomas drowns"],
+    tags: ["inciting"],
+    aiContext: "always",
+    color: "#7A7366",
+    fields: {
+      When: "Three days before Chapter 1",
+      Where: "Below Grayhaven Light",
+      Consequences: "Mara returns and Jonas inherits pressure from the Guild",
+    },
+    notes: "The inciting absence. It should feel like a question before it feels like an answer.",
+  },
+  {
+    key: "storm",
+    type: "events",
+    name: "The Storm",
+    aliases: ["storm", "Day 4 storm"],
+    tags: ["set piece"],
+    aiContext: "mentioned",
+    color: "#C98A2B",
+    fields: {
+      When: "Day 4 night",
+      Where: "Grayhaven and the lighthouse",
+      Consequences: "Traps Mara in the tower and exposes Thomas's signal code",
+    },
+    notes: "Parallel pressure point for Ch 6 and Ch 7.",
+  },
+  {
+    key: "inheritance",
+    type: "themes",
+    name: "What we inherit",
+    aliases: ["inheritance", "legacy"],
+    tags: ["theme"],
+    aiContext: "mentioned",
+    color: "#2E4A7D",
+    fields: {
+      Statement: "Which debts, duties, and stories are worth carrying forward?",
+      Motifs: "A key hidden in a tide table",
+    },
+    notes: "The book's moral argument: inheritance is chosen as much as received.",
   },
 ]

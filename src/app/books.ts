@@ -28,10 +28,10 @@ export function useBooks() {
  * The book the screen is about: the one in the URL, else the last one opened, else the first. Screens outside
  * `/b/:bookId` (Inbox, the IME lab) use it for their links and codex.
  */
-export function useCurrentBook(): { book: BookListRow | undefined; isLoading: boolean } {
+export function useCurrentBook(): { book: BookListRow | undefined; books: BookListRow[]; isLoading: boolean } {
   const { bookId } = useParams()
   const { data, isLoading } = useBooks()
   const wanted = bookId ?? lastBook()
   const book = data.find((row) => row.id === wanted) ?? (bookId ? undefined : data[0])
-  return { book, isLoading }
+  return { book, books: data, isLoading }
 }

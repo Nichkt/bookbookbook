@@ -39,6 +39,8 @@ const SYNCABLE = {
     location_entry_id: text,
     story_time: text,
     notes: text,
+    // Set while the chapter is in the Trash (DESIGN.md §12); purged 30 days later.
+    deleted_at: text,
   },
   scenes: {
     chapter_id: text,
@@ -50,6 +52,7 @@ const SYNCABLE = {
     story_time: text,
     word_count: integer,
     ai_word_count: integer,
+    deleted_at: text,
   },
   beats: { parent_kind: text, parent_id: text, position: text, text: text, done: integer, template_beat_key: text },
   scene_updates: { scene_id: text, update_b64: text, created_at: text, created_by: text },
@@ -155,8 +158,16 @@ export const tablesBehind = (...views: SyncableName[]) => views.flatMap((view) =
 type Row<C extends ColumnsType> = { id: string } & { [K in keyof C]: ExtractColumnValueType<C[K]> }
 
 export type BookRow = Row<typeof SYNCABLE.books>
+export type ActRow = Row<typeof SYNCABLE.acts>
 export type ChapterRow = Row<typeof SYNCABLE.chapters>
 export type SceneRow = Row<typeof SYNCABLE.scenes>
+export type BeatRow = Row<typeof SYNCABLE.beats>
+export type CodexTypeRow = Row<typeof SYNCABLE.codex_types>
 export type CodexEntryRow = Row<typeof SYNCABLE.codex_entries>
+export type EntityLinkRow = Row<typeof SYNCABLE.entity_links>
 
-export type ChapterStatus = "idea" | "outlined" | "drafting" | "revising" | "done"
+export const CHAPTER_STATUSES = ["idea", "outlined", "drafting", "revising", "done"] as const
+export type ChapterStatus = (typeof CHAPTER_STATUSES)[number]
+
+/** `entity_links.role` values. POV and location are single-valued, so they live on the chapter row instead. */
+export type LinkRole = "pov" | "present" | "thread" | "location"
