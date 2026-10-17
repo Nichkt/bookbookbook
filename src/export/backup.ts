@@ -77,10 +77,16 @@ export async function backupFile(db: Db, bookId: string, readScene: SceneReader,
     [bookId],
   )
   const files: Record<string, Uint8Array> = {}
-  const versions = versionRows.map(({ state_b64, ...meta }) => {
-    if (state_b64) files[`versions/${meta.id}.ystate`] = base64ToBytes(state_b64)
-    return meta
-  })
+  const versions: VersionMeta[] = []
+  for (const { state_b64, ...meta } of versionRows) {
+    try {
+      if (state_b64) files[`versions/${meta.id}.ystate`] = base64ToBytes(state_b64)
+      versions.push(meta)
+    } catch (error) {
+      // Skipped, so one bad row can't stop the whole backup.
+      console.error(`[backup] Skipped unreadable version ${meta.id}`, error)
+    }
+  }
   const data: BackupData = {
     format: BACKUP_FORMAT,
     version: BACKUP_VERSION,
@@ -138,18 +144,27 @@ export async function backupFile(db: Db, bookId: string, readScene: SceneReader,
 const MAX_JSON_BYTES = 64 * 1024 * 1024
 const MAX_FILE_BYTES = 16 * 1024 * 1024
 const MAX_TOTAL_BYTES = 512 * 1024 * 1024
+const MAX_ENTRIES = 20_000
 const ENTRY = /^(scenes\/[^/]+\.(ystate|md)|versions\/[^/]+\.ystate)$/
 
-/** Unpacks only the files a backup has, within sane sizes, so a stray or hostile zip can't eat the memory. */
+/**
+ * Unpacks only the files a backup has, within sane sizes, so a stray or hostile zip can't eat the memory or the
+ * time. Stored files must be the size they claim, and the files unpacked can't share data: their packed sizes add
+ * up to no more than the zip. So the work grows with the zip's size, not with what its directory claims.
+ */
 function readZip(data: Uint8Array): Map<string, Uint8Array> {
-  let total = 0
+  let entries = 0
+  let packed = 0
+  let unpacked = 0
   const wanted = (file: UnzipFileInfo) => {
-    const known =
-      (file.compression === 0 || file.compression === 8) &&
-      (file.name === "book.json" ? file.originalSize <= MAX_JSON_BYTES : ENTRY.test(file.name) && file.originalSize <= MAX_FILE_BYTES)
-    if (known) total += file.originalSize
-    if (total > MAX_TOTAL_BYTES) throw new Error("Too big")
-    return known
+    if (++entries > MAX_ENTRIES) throw new Error("Too many files")
+    const limit = file.name === "book.json" ? MAX_JSON_BYTES : ENTRY.test(file.name) ? MAX_FILE_BYTES : 0
+    if (!limit || (file.compression !== 0 && file.compression !== 8) || file.originalSize > limit) return false
+    if (file.compression === 0 && file.size !== file.originalSize) throw new Error("Bad size")
+    packed += file.size
+    unpacked += file.originalSize
+    if (packed > data.length || unpacked > MAX_TOTAL_BYTES) throw new Error("Too big")
+    return true
   }
   try {
     return new Map(Object.entries(unzipSync(data, { filter: wanted })))

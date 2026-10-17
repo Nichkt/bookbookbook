@@ -25,7 +25,8 @@ import { createBook, DEFAULT_BOOK_TARGET, trashBook, updateBook } from "./mutati
 import { TrashList } from "./TrashList"
 
 const onOpenChange = (open: boolean) => {
-  if (!open) closeBookDialog()
+  // Escape, the close button and Cancel all come here, so a dialog that's busy stays open.
+  if (!open && !useBookDialogs.getState().busy) closeBookDialog()
 }
 
 /** New book, Book settings, Export, Restore and Trash, opened from the header's book menu (DESIGN.md §4, §13). */

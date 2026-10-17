@@ -647,13 +647,17 @@ still to come. Details it settled:
   - Everything in the book: plan, codex, prose, named versions and writing stats.
   - Trashed chapters and scenes come along, still in the Trash.
   - Left out: automatic versions and settings kept per device, such as the view and the export choices.
+  - A stored edit or version that can't be read is skipped and logged, as the editor skips it, so one bad row can't
+    stop an export or a backup.
 - **Restore** is in the book menu and the empty library: choose a backup or drop it on the dialog.
   - It always makes a new book, with new ids, so it can sit beside its original. The title gets " (restored)" if
     the library has one by that name already, and the codex comes as a universe of its own.
   - A file that isn't a backup, or comes from a newer version of the app, is turned away with a message and changes
     nothing.
   - Only the files a backup has are read, within size limits (16 MB a file, 64 MB for `book.json`, 512 MB in
-    all). Rows whose parent is missing are dropped.
+    all, 20,000 files). Files can't share data or misstate a stored size, so a crafted zip can't unpack to more than
+    it holds. Rows whose parent is missing are dropped.
+  - One restore at a time: the dialog stays open until it's done, so a second drop or a retry can't make two books.
 - **Not yet:** choosing chapters, scene-break style, front matter, act headings, a localized "Chapter", comments
   (M6), import, folder auto-backup, the "last backup" indicator and reminder, and AI cards and codex images in
   backups (M4, v1.x). The app already asks the browser to keep its storage (`persist()`) at the first edit.

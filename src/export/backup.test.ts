@@ -1,5 +1,5 @@
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate"
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { insertRow, type Db } from "@/db/tx"
 import { saveVersion } from "@/db/versions"
 import { buildBook, outline } from "@/test/book"
@@ -250,7 +250,75 @@ describe("backupFile", () => {
   it("fails for a missing book", async () => {
     await expect(backupFile(db, "nope", storedSceneReader(db))).rejects.toThrow()
   })
+
+  it("leaves out a version it can't read, rather than fail", async () => {
+    await seed()
+    const errors = vi.spyOn(console, "error").mockImplementation(() => undefined)
+    await insertRow(db, "snapshots", {
+      id: "unreadable",
+      scene_id: "sc-Arrival-1",
+      state_b64: "%%%",
+      word_count: 1,
+      label: "Broken",
+      kind: "manual",
+      created_at: new Date(2025, 1, 3).toISOString(),
+    })
+    const files = unzipSync(await backup())
+    expect(JSON.parse(strFromU8(files["book.json"])).versions.map((version: { id: string }) => version.id)).toEqual([
+      versionId,
+    ])
+    expect(Object.keys(files).filter((name) => name.startsWith("versions/"))).toEqual([`versions/${versionId}.ystate`])
+    expect(errors).toHaveBeenCalledOnce()
+    errors.mockRestore()
+  })
 })
+
+const concat = (...parts: Uint8Array[]) => {
+  const joined = new Uint8Array(parts.reduce((length, part) => length + part.length, 0))
+  parts.reduce((at, part) => (joined.set(part, at), at + part.length), 0)
+  return joined
+}
+
+/** A zip's central directory: where each file's record starts and ends, and the file's name. */
+function directory(zip: Uint8Array) {
+  const view = new DataView(zip.buffer, zip.byteOffset, zip.byteLength)
+  const end = zip.length - 22
+  expect(view.getUint32(end, true)).toBe(0x06054b50)
+  const records: { start: number; end: number; name: string }[] = []
+  for (let i = 0, at = view.getUint32(end + 16, true); i < view.getUint16(end + 10, true); i++) {
+    const nameLength = view.getUint16(at + 28, true)
+    const next = at + 46 + nameLength + view.getUint16(at + 30, true) + view.getUint16(at + 32, true)
+    records.push({ start: at, end: next, name: strFromU8(zip.subarray(at + 46, at + 46 + nameLength)) })
+    at = next
+  }
+  return { view, end, records }
+}
+
+/** The zip, listing `name` again under each of `aliases` (each as long as it), all pointing at its one copy of data. */
+function withAliases(zip: Uint8Array, name: string, aliases: string[]): Uint8Array {
+  const { end, records } = directory(zip)
+  const record = records.find((candidate) => candidate.name === name)!
+  const copies = aliases.map((alias) => {
+    expect(alias.length).toBe(name.length)
+    const copy = zip.slice(record.start, record.end)
+    copy.set(strToU8(alias), 46)
+    return copy
+  })
+  const eocd = zip.slice(end)
+  const view = new DataView(eocd.buffer)
+  view.setUint16(8, records.length + aliases.length, true)
+  view.setUint16(10, records.length + aliases.length, true)
+  view.setUint32(12, view.getUint32(12, true) + aliases.length * (record.end - record.start), true)
+  return concat(zip.subarray(0, end), ...copies, eocd)
+}
+
+/** The zip, with the directory claiming `name` unpacks to `size` bytes. */
+function withClaimedSize(zip: Uint8Array, name: string, size: number): Uint8Array {
+  const copy = zip.slice()
+  const { view, records } = directory(copy)
+  view.setUint32(records.find((record) => record.name === name)!.start + 24, size, true)
+  return copy
+}
 
 describe("restoreBackup", () => {
   it("restores a backup as a new book beside the original", async () => {
@@ -385,6 +453,32 @@ describe("restoreBackup", () => {
     await expect(restoreBackup(db, zipOf({ format: BACKUP_FORMAT, version: 2, book: {} }))).rejects.toThrow(NEWER_BACKUP)
     expect(await db.getAll("SELECT id FROM books")).toEqual([])
     expect(await db.getAll("SELECT id FROM universes")).toEqual([])
+  })
+
+  it("restores a zip of stored files, as other zip tools may make", async () => {
+    await seed()
+    const stored = zipSync(unzipSync(await backup()), { level: 0 })
+    const { bookId } = await restoreBackup(db, stored, NOW)
+    expect(await shape(db, bookId)).toEqual(await shape(db, "book"))
+    expect(await proseByTitle(db, bookId)).toEqual(await proseByTitle(db, "book"))
+  })
+
+  it("refuses a zip whose files share data or misstate their size, and changes nothing", async () => {
+    const json = strToU8(JSON.stringify({ format: BACKUP_FORMAT, version: 1, book: { title: "Bomb" } }))
+    // Words that don't repeat much, so the file stays big when deflated.
+    const words = Array.from({ length: 3000 }, (_, i) => `w${(i * 7919) % 10007}`).join(" ")
+    const prose = strToU8(`---\nid: "a"\n---\n\n${words}\n`)
+    const name = "scenes/a.md"
+    for (const level of [0, 6] as const) {
+      const zip = zipSync({ "book.json": json, [name]: prose }, { level })
+      // Untouched, it restores.
+      expect((await restoreBackup(db, zip, NOW)).title).toMatch(/^Bomb/)
+      const aliases = Array.from({ length: 40 }, (_, i) => `scenes/${String.fromCharCode(98 + (i % 25))}.md`)
+      await expect(restoreBackup(db, withAliases(zip, name, aliases))).rejects.toThrow(NOT_A_BACKUP)
+    }
+    const stored = zipSync({ "book.json": json, [name]: prose }, { level: 0 })
+    await expect(restoreBackup(db, withClaimedSize(stored, name, 0))).rejects.toThrow(NOT_A_BACKUP)
+    expect(await db.getAll("SELECT title FROM books ORDER BY title")).toEqual([{ title: "Bomb" }, { title: "Bomb (restored)" }])
   })
 
   it("names an untitled book", async () => {

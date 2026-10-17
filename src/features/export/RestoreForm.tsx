@@ -8,26 +8,34 @@ import { Button } from "@/components/ui/button"
 import { DialogClose, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { restoreBackup } from "@/export/backup"
 import { ExportError } from "@/export/errors"
-import { closeBookDialog, useBookDialogs } from "@/features/books/dialogStore"
+import { closeBookDialog, setBookDialogBusy, useBookDialogs } from "@/features/books/dialogStore"
 import { cn } from "@/lib/utils"
 
 const FAILED = "Something went wrong, so nothing was restored. Try again?"
 
-/** Restore from backup, from the book menu or the empty library (DESIGN.md §13). The backup becomes a new book. */
+/**
+ * Restore from backup, from the book menu or the empty library (DESIGN.md §13). The backup becomes a new book. One
+ * restore at a time, and the dialog stays open till it's done, so a second drop or a retry can't make two books.
+ */
 export function RestoreForm() {
   const db = usePowerSync()
   const navigate = useNavigate()
   const input = useRef<HTMLInputElement>(null)
+  const restoring = useRef(false)
   const [busy, setBusy] = useState(false)
   const [dragging, setDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const restore = async (file: File) => {
+    if (restoring.current) return
+    restoring.current = true
+    setBookDialogBusy(true)
     setBusy(true)
     setError(null)
     try {
       const restored = await restoreBackup(db, new Uint8Array(await file.arrayBuffer()))
       rememberBook(restored.bookId)
+      setBookDialogBusy(false)
       if (useBookDialogs.getState().dialog === "restore") closeBookDialog()
       navigate(`/b/${restored.bookId}/write`)
       toast(`Restored “${restored.title}”`)
@@ -39,6 +47,9 @@ export function RestoreForm() {
         setError(FAILED)
       }
       setBusy(false)
+    } finally {
+      restoring.current = false
+      setBookDialogBusy(false)
     }
   }
 
@@ -56,8 +67,9 @@ export function RestoreForm() {
         onClick={() => input.current?.click()}
         onDragOver={(event) => {
           event.preventDefault()
-          event.dataTransfer.dropEffect = "copy"
-          setDragging(true)
+          // While a restore runs, a drop does nothing, rather than letting the browser open the file.
+          event.dataTransfer.dropEffect = restoring.current ? "none" : "copy"
+          setDragging(!restoring.current)
         }}
         onDragLeave={() => setDragging(false)}
         onDrop={(event) => {
@@ -102,7 +114,7 @@ export function RestoreForm() {
       )}
       <DialogFooter>
         <DialogClose asChild>
-          <Button type="button" variant="outline">
+          <Button type="button" variant="outline" disabled={busy}>
             Cancel
           </Button>
         </DialogClose>
