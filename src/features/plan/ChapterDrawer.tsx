@@ -1,4 +1,4 @@
-import { EllipsisIcon, PenLineIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react"
+import { EllipsisIcon, LayoutGridIcon, PenLineIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react"
 import { useEffect, useId, useRef, useState, type ReactNode } from "react"
 import { Link } from "react-router"
 import { announce, attempt } from "@/app/feedback"
@@ -23,7 +23,7 @@ import { templateBeatName } from "./display"
 import { EntryPicker } from "./EntryPicker"
 import { LabelsInput } from "./LabelsInput"
 import { createScene, setChapterLinks, updateChapter, updateScene } from "./mutations"
-import { usePlanContext, type FocusItem } from "./planContext"
+import { useChapterDetails, type FocusItem } from "./planContext"
 import type { PlanChapter } from "./planData"
 import { isStatus, STATUS_OPTIONS, UNTITLED_CHAPTER } from "./status"
 import { StoryTimeEditor } from "./StoryTimeEditor"
@@ -33,7 +33,7 @@ const MISSING_DELAY_MS = 600
 
 /** The chapter drawer (DESIGN.md §6): everything the plan holds about one chapter. Changes save as you type. */
 export function ChapterDrawer({ chapterId, onClose }: { chapterId: string; onClose: () => void }) {
-  const { plan } = usePlanContext()
+  const { plan } = useChapterDetails()
   const chapter = plan.chapterById.get(chapterId)
   const [missing, setMissing] = useState(false)
 
@@ -59,7 +59,7 @@ export function ChapterDrawer({ chapterId, onClose }: { chapterId: string; onClo
 }
 
 function ChapterForm({ chapter, onClose }: { chapter: PlanChapter; onClose: () => void }) {
-  const { db, bookId, plan, focusItem } = usePlanContext()
+  const { db, bookId, plan, focusItem, place } = useChapterDetails()
   const id = useId()
   const fieldId = (name: string) => `${id}-${name}`
   const menuRan = useRef(false)
@@ -83,13 +83,23 @@ function ChapterForm({ chapter, onClose }: { chapter: PlanChapter; onClose: () =
         >
           Chapter {chapter.number}
         </h2>
-        <Link
-          to={`/b/${bookId}/write/${chapter.id}`}
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-ink-2")}
-        >
-          <PenLineIcon />
-          Write
-        </Link>
+        {place === "plan" ? (
+          <Link
+            to={`/b/${bookId}/write/${chapter.id}`}
+            className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-ink-2")}
+          >
+            <PenLineIcon />
+            Write
+          </Link>
+        ) : (
+          <Link
+            to={`/b/${bookId}/plan?chapter=${chapter.id}`}
+            className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-ink-2")}
+          >
+            <LayoutGridIcon />
+            Open in Plan
+          </Link>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon-sm" aria-label="More for this chapter" className="text-muted-foreground">
@@ -288,7 +298,7 @@ function Section({
 
 /** The chapter's word target, with separators. Takes "3000" or "3,000"; anything else goes back to the saved value. */
 function TargetField({ chapter, inputId }: { chapter: PlanChapter; inputId: string }) {
-  const { db } = usePlanContext()
+  const { db } = useChapterDetails()
   const stored = chapter.word_target ? formatCount(chapter.word_target) : ""
   const draft = useDraft(stored, (text) => {
     const target = parseCount(text)
@@ -331,7 +341,7 @@ function TargetField({ chapter, inputId }: { chapter: PlanChapter; inputId: stri
 
 /** The scenes the writer made. A chapter written as one piece has none to list. */
 function ScenesList({ chapter, labelId }: { chapter: PlanChapter; labelId: string }) {
-  const { db, plan } = usePlanContext()
+  const { db, plan } = useChapterDetails()
   const scenes = chapter.explicitScenes
   const focusScene = (id: string) => focusSoon(byData("scene-title", id))
   const focusHere: FocusItem = (kind, id) =>

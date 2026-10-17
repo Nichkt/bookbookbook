@@ -44,6 +44,28 @@ export function usePlanContext(): PlanContextValue {
   return value
 }
 
+/** What the chapter details (the drawer and its fields) need, so the Write screen can show them too. */
+export interface ChapterDetailsValue {
+  db: Db
+  bookId: string
+  plan: Plan
+  focusItem: FocusItem
+  /** The screen showing the details. Each links to the other. */
+  place: "plan" | "write"
+}
+
+export const ChapterDetailsContext = createContext<ChapterDetailsValue | null>(null)
+
+/** The Write screen provides the details' context; inside the Plan it's the Plan's own. */
+export function useChapterDetails(): ChapterDetailsValue {
+  const details = useContext(ChapterDetailsContext)
+  const planContext = useContext(PlanContext)
+  if (details) return details
+  if (!planContext) throw new Error("useChapterDetails needs a ChapterDetailsContext or PlanContext provider")
+  const { db, bookId, plan, focusItem } = planContext
+  return { db, bookId, plan, focusItem, place: "plan" }
+}
+
 /** The element focus goes to for an item, per view. The Board has no scene items. */
 export function itemSelector(view: PlanView, kind: ItemKind, id: string): string | null {
   if (view === "outline") return byData("outline-stop", `${kind}:${id}`)

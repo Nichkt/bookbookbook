@@ -2,6 +2,7 @@ import { EditorContent, useEditor, type Editor } from "@tiptap/react"
 import { useEffect } from "react"
 import { cn } from "@/lib/utils"
 import type { SceneDocProvider } from "@/yjs/SceneDocProvider"
+import { editorFocused, registerEditor, unregisterEditor } from "./activeEditor"
 import type { MentionMatcher } from "./mentions"
 import { DEFAULT_FEATURES, sceneExtensions, type SceneEditorFeatures } from "./sceneExtensions"
 
@@ -30,17 +31,10 @@ export function SceneEditor({
   const editor = useEditor(
     {
       extensions: sceneExtensions(provider.doc, matcher, features, placeholder),
-      editorProps: {
-        attributes: {
-          role: "textbox",
-          "aria-multiline": "true",
-          "aria-label": label,
-          spellcheck: "true",
-        },
-      },
+      editorProps: { attributes: editorAttributes(label) },
     },
-    // A new matcher is pushed in below rather than rebuilding the editor.
-    [provider, features.mentions, features.guardComposition, features.typography, placeholder, label],
+    // A new matcher or label is pushed in below rather than rebuilding the editor, which would drop the caret.
+    [provider, features.mentions, features.guardComposition, features.typography, placeholder],
   )
 
   useEffect(() => {
@@ -48,8 +42,30 @@ export function SceneEditor({
   }, [editor, matcher, features.mentions])
 
   useEffect(() => {
+    if (editor.isDestroyed || editor.view.dom.getAttribute("aria-label") === label) return
+    editor.setOptions({ editorProps: { ...editor.options.editorProps, attributes: editorAttributes(label) } })
+  }, [editor, label])
+
+  useEffect(() => {
+    registerEditor(editor, provider.sceneId)
+    const onFocus = () => editorFocused(editor)
+    editor.on("focus", onFocus)
+    return () => {
+      editor.off("focus", onFocus)
+      unregisterEditor(editor)
+    }
+  }, [editor, provider])
+
+  useEffect(() => {
     onEditor?.(editor)
   }, [editor, onEditor])
 
   return <EditorContent editor={editor} className={cn("prose-page mx-auto", className)} />
 }
+
+const editorAttributes = (label: string) => ({
+  role: "textbox",
+  "aria-multiline": "true",
+  "aria-label": label,
+  spellcheck: "true",
+})

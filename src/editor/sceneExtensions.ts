@@ -1,4 +1,5 @@
 import { Collaboration } from "@tiptap/extension-collaboration"
+import { TextAlign } from "@tiptap/extension-text-align"
 import { Typography } from "@tiptap/extension-typography"
 import { Placeholder } from "@tiptap/extensions"
 import { StarterKit } from "@tiptap/starter-kit"
@@ -15,6 +16,16 @@ export interface SceneEditorFeatures {
 }
 
 export const DEFAULT_FEATURES: SceneEditorFeatures = { mentions: true, guardComposition: true, typography: true }
+
+/** Only "center" is stored; left is no attribute at all. Its shortcuts would otherwise pass Ctrl+Shift+R to the browser. */
+const CenterAlign = TextAlign.extend({
+  addKeyboardShortcuts() {
+    return {
+      "Mod-Shift-e": () => this.editor.commands.toggleTextAlign("center"),
+      "Mod-Shift-l": () => this.editor.commands.unsetTextAlign(),
+    }
+  },
+})
 
 /** The scene editor stack (DESIGN.md §8), shared by the Write screen and the IME lab so both test the same thing. */
 export function sceneExtensions(
@@ -35,6 +46,9 @@ export function sceneExtensions(
       trailingNode: false,
       heading: { levels: [2, 3] },
     }),
+    // Prose is left-aligned or centred (epigraphs, letters, signs). The horizontal rule from StarterKit is the
+    // scene break.
+    CenterAlign.configure({ types: ["heading", "paragraph"], alignments: ["center"] }),
     Collaboration.configure({ document: doc, field: PROSE_FIELD }),
     Placeholder.configure({ placeholder }),
     ...(features.typography

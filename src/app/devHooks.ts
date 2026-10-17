@@ -1,5 +1,5 @@
 import { db } from "@/db/powersync"
-import { openSceneDocs } from "@/editor/sceneDocs"
+import { openSceneDocs, settleSceneDocs } from "@/editor/sceneDocs"
 
 /** Handles for the end-to-end tests and the console. Development builds only. */
 export interface DevHooks {
@@ -10,6 +10,8 @@ export interface DevHooks {
   flushAll(): Promise<void>
   /** Folds each open scene's update rows into one snapshot. */
   compactAll(): Promise<void>
+  /** Saves pending word counts and versions now, instead of after their delays. */
+  settleAll(): Promise<void>
 }
 
 declare global {
@@ -28,5 +30,6 @@ export function installDevHooks() {
     async compactAll() {
       await Promise.all(openSceneDocs().map((provider) => provider.compact()))
     },
+    settleAll: settleSceneDocs,
   }
 }

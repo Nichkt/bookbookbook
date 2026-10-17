@@ -1,0 +1,101 @@
+import type { Editor } from "@tiptap/react"
+import { create } from "zustand"
+
+/*
+ * The scene editors on the page, so one toolbar can work on whichever the writer is in (DESIGN.md §8). Before any
+ * has had focus, that's the first one on the page.
+ */
+
+export interface MountedEditor {
+  editor: Editor
+  sceneId: string
+}
+
+interface EditorsState {
+  mounted: MountedEditor[]
+  /** The editor that last had focus, while it's still on the page. */
+  focused: MountedEditor | null
+}
+
+export const useEditors = create<EditorsState>(() => ({ mounted: [], focused: null }))
+
+export function registerEditor(editor: Editor, sceneId: string) {
+  useEditors.setState((state) => ({ mounted: [...state.mounted, { editor, sceneId }] }))
+}
+
+export function unregisterEditor(editor: Editor) {
+  useEditors.setState((state) => ({
+    mounted: state.mounted.filter((entry) => entry.editor !== editor),
+    focused: state.focused?.editor === editor ? null : state.focused,
+  }))
+}
+
+export function editorFocused(editor: Editor) {
+  const entry = useEditors.getState().mounted.find((candidate) => candidate.editor === editor)
+  if (entry && useEditors.getState().focused !== entry) useEditors.setState({ focused: entry })
+}
+
+function firstOnPage(mounted: MountedEditor[]): MountedEditor | null {
+  let first: MountedEditor | null = null
+  for (const entry of mounted) {
+    if (entry.editor.isDestroyed) continue
+    if (!first || first.editor.view.dom.compareDocumentPosition(entry.editor.view.dom) & Node.DOCUMENT_POSITION_PRECEDING) {
+      first = entry
+    }
+  }
+  return first
+}
+
+const activeIn = (state: EditorsState) => state.focused ?? firstOnPage(state.mounted)
+
+/** The editor the toolbar shows the formatting of. */
+export const useActiveEditor = (): MountedEditor | null => useEditors(activeIn)
+
+/**
+ * The editor a toolbar button or shortcut works on, worked out as it runs: the one that last had focus, else the
+ * one filling most of the window below the toolbar (marked `data-write-toolbar`), as when the manuscript has been
+ * scrolled without clicking into the text.
+ */
+export function activeEditor(): MountedEditor | null {
+  const { focused, mounted } = useEditors.getState()
+  return focused ?? mostInView(mounted) ?? firstOnPage(mounted)
+}
+
+function mostInView(mounted: MountedEditor[]): MountedEditor | null {
+  const top = document.querySelector("[data-write-toolbar]")?.getBoundingClientRect().bottom ?? 0
+  let best: MountedEditor | null = null
+  let bestShown = 0
+  for (const entry of mounted) {
+    if (entry.editor.isDestroyed) continue
+    const rect = entry.editor.view.dom.getBoundingClientRect()
+    const shown = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, top)
+    if (shown > bestShown) {
+      best = entry
+      bestShown = shown
+    }
+  }
+  return best
+}
+
+/** The mounted editor of a scene, if it has one. */
+export const editorOf = (sceneId: string): MountedEditor | undefined =>
+  useEditors.getState().mounted.find((entry) => entry.sceneId === sceneId && !entry.editor.isDestroyed)
+
+/**
+ * Runs `work` with a scene's editor once it's on the page, e.g. after navigating to the scene. Returns a cancel
+ * function for effect cleanups.
+ */
+export function whenEditor(sceneId: string, work: (entry: MountedEditor) => void): () => void {
+  const found = editorOf(sceneId)
+  if (found) {
+    work(found)
+    return () => undefined
+  }
+  const unsubscribe = useEditors.subscribe(() => {
+    const entry = editorOf(sceneId)
+    if (!entry) return
+    unsubscribe()
+    work(entry)
+  })
+  return unsubscribe
+}

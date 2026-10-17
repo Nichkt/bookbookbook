@@ -6,6 +6,7 @@ export interface DevHooks {
   openScenes(): string[]
   flushAll(): Promise<void>
   compactAll(): Promise<void>
+  settleAll(): Promise<void>
 }
 
 declare global {
@@ -55,6 +56,9 @@ export async function focusEnd(editor: Locator) {
 
 /** Resolves once every edit in the page has been written to SQLite. */
 export const flushAll = (page: Page) => page.evaluate(() => window.__bbb.flushAll())
+
+/** Saves the pending word counts, daily stats and versions now, instead of after their delays. */
+export const settleAll = (page: Page) => page.evaluate(() => window.__bbb.settleAll())
 
 /** Reads from the page's database. */
 export const queryDb = <T>(page: Page, sql: string, parameters: unknown[] = []) =>

@@ -1,0 +1,301 @@
+import { ChevronLeftIcon, ChevronRightIcon, LayoutGridIcon, PlusIcon } from "lucide-react"
+import { useEffect } from "react"
+import { Link, useLocation, useNavigate } from "react-router"
+import { attempt } from "@/app/feedback"
+import { Button, buttonVariants } from "@/components/ui/button"
+import { whenEditor } from "@/editor/activeEditor"
+import { createScene } from "@/features/plan/mutations"
+import type { PlanChapter, PlanSceneRow } from "@/features/plan/planData"
+import { chapterTitle, statusOf } from "@/features/plan/status"
+import { byData, focusPending, focusSoon } from "@/lib/focus"
+import { formatCount } from "@/lib/numbers"
+import { cn } from "@/lib/utils"
+import { revealScene, useEnsureScene } from "./pageHooks"
+import { SceneBlock } from "./SceneBlock"
+import { sceneNeighbors, sceneToShow, stopPath, type SceneStop } from "./sequence"
+import { navState, nothingFocused, useWrite, writePath, type WriteNavState } from "./writeContext"
+
+/** A chapter's heading block: number, status, title, summary and words, with a way to its plan. */
+export function ChapterHeader({
+  chapter,
+  level,
+  scene,
+}: {
+  chapter: PlanChapter
+  level: 1 | 2
+  /** In the Scene view: which of the chapter's scenes is showing. */
+  scene?: { index: number; count: number }
+}) {
+  const { bookId } = useWrite()
+  const status = statusOf(chapter.status)
+  const Heading = level === 1 ? "h1" : "h2"
+  const summary = chapter.summary?.trim()
+
+  return (
+    <header className="mb-10 font-sans">
+      <div className="flex items-center gap-2">
+        <p className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+          <span>Chapter {chapter.number}</span>
+          {scene && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>
+                Scene {scene.index + 1} of {scene.count}
+              </span>
+            </>
+          )}
+          <span aria-hidden="true">·</span>
+          <span className="inline-flex items-center gap-1.5">
+            <span aria-hidden="true" className={cn("size-2 rounded-full", status.dot)} />
+            {status.label}
+          </span>
+        </p>
+        <Link
+          to={`/b/${bookId}/plan?chapter=${chapter.id}`}
+          aria-label={`Plan chapter ${chapter.number}`}
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
+            "-my-1 ml-auto shrink-0 text-ink-2 pointer-coarse:px-3",
+          )}
+        >
+          <LayoutGridIcon />
+          Plan
+        </Link>
+      </div>
+      <Heading
+        tabIndex={-1}
+        data-write-heading={chapter.id}
+        className={cn(
+          "mt-2 mb-0 font-heading text-3xl leading-tight font-semibold text-ink outline-none",
+          !chapter.title?.trim() && "font-normal text-muted-foreground italic",
+        )}
+      >
+        {chapterTitle(chapter.title)}
+      </Heading>
+      {summary && <p className="mt-3 text-sm leading-relaxed whitespace-pre-line text-muted-foreground">{summary}</p>}
+      <WordProgress
+        words={chapter.words}
+        target={chapter.word_target}
+        label={`Chapter ${chapter.number} target`}
+        className="mt-3"
+      />
+    </header>
+  )
+}
+
+/** "1,234 words", or "1,234 / 3,000 words" with a bar when there's a target. */
+export function WordProgress({
+  words,
+  target,
+  label,
+  className,
+}: {
+  words: number
+  target: number | null | undefined
+  /** The bar's name, e.g. "Chapter 3 target". */
+  label: string
+  className?: string
+}) {
+  return (
+    <div className={cn("flex items-center gap-3 text-xs text-muted-foreground tabular-nums", className)}>
+      <span>
+        {formatCount(words)}
+        {target ? ` / ${formatCount(target)}` : ""} words
+      </span>
+      {!!target && <ProgressBar value={words} max={target} label={label} className="w-24" />}
+    </div>
+  )
+}
+
+export function ProgressBar({
+  value,
+  max,
+  label,
+  className,
+}: {
+  value: number
+  max: number
+  label: string
+  className?: string
+}) {
+  const share = max > 0 ? Math.min(1, value / max) : 0
+  return (
+    <div
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={max}
+      aria-valuenow={Math.min(value, max)}
+      aria-valuetext={`${formatCount(value)} of ${formatCount(max)} words`}
+      className={cn("h-1.5 overflow-hidden rounded-full bg-surface-2", className)}
+    >
+      <div className="h-full rounded-full bg-status-done" style={{ width: `${share * 100}%` }} />
+    </div>
+  )
+}
+
+/** The Chapter view: the chapter's scenes one after another (DESIGN.md §8). */
+export function ChapterUnit({ chapter }: { chapter: PlanChapter }) {
+  const { bookId, plan, sceneId } = useWrite()
+  const location = useLocation()
+  useEnsureScene(chapter)
+
+  // On arrival: to the scene the URL names, else the top.
+  useEffect(() => {
+    const { focus } = navState(location.state)
+    if (sceneId) return revealScene(sceneId, focus === "scene" || (!focusPending() && nothingFocused()))
+    window.scrollTo(0, 0)
+    if (focus === "heading") focusSoon(byData("write-heading", chapter.id))
+    return undefined
+  }, [location.key]) // eslint-disable-line react-hooks/exhaustive-deps -- on arrival only
+
+  const previous = plan.chapters[chapter.number - 2]
+  const next = plan.chapters[chapter.number]
+  const page = (target: PlanChapter): PagerTarget => ({
+    to: writePath(bookId, target.id),
+    label: `Chapter ${target.number}: ${chapterTitle(target.title)}`,
+  })
+
+  return (
+    <article data-write-chapter={chapter.id} className="prose-page mx-auto px-5 pt-10 pb-24 md:px-8">
+      <ChapterHeader chapter={chapter} level={1} />
+      {chapter.scenes.map((scene, index) => (
+        <SceneBlock
+          key={scene.id}
+          chapter={chapter}
+          scene={scene}
+          index={index}
+          divider={index > 0}
+          headingLevel={2}
+        />
+      ))}
+      {chapter.scenes.length > 0 && <AddScene chapter={chapter} />}
+      <Pager
+        label="Chapter pages"
+        previous={previous && page(previous)}
+        next={next && page(next)}
+      />
+    </article>
+  )
+}
+
+function AddScene({ chapter }: { chapter: PlanChapter }) {
+  const { db } = useWrite()
+  const add = async () => {
+    const id = await attempt("add scene", createScene(db, chapter.id))
+    if (id) focusSoon(byData("write-scene-title", id))
+  }
+  return (
+    <div className="mt-10 flex justify-center font-sans">
+      <Button variant="ghost" size="sm" onClick={() => void add()} className="text-muted-foreground">
+        <PlusIcon />
+        Add scene
+      </Button>
+    </div>
+  )
+}
+
+/** The Scene view: one scene at a time, paging through the book's scenes in reading order. */
+export function SceneUnit({ chapter }: { chapter: PlanChapter }) {
+  const { bookId, plan, sceneId } = useWrite()
+  const location = useLocation()
+  const scene = sceneToShow(chapter, sceneId)
+  const index = scene ? chapter.scenes.indexOf(scene) : -1
+  useEnsureScene(chapter)
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+    const { focus } = navState(location.state)
+    if (focus === "heading") focusSoon(byData("write-heading", chapter.id))
+    else if (scene && (focus === "scene" || (sceneId && !focusPending() && nothingFocused()))) {
+      return whenEditor(scene.id, ({ editor }) => editor.commands.focus("start"))
+    }
+    return undefined
+  }, [location.key]) // eslint-disable-line react-hooks/exhaustive-deps -- on arrival only
+
+  const { previous, next } = sceneNeighbors(plan, chapter.id, scene?.id ?? null)
+  const page = (stop: SceneStop): PagerTarget => {
+    const sceneName = stop.scene && !stop.scene.is_implicit ? scenePageName(stop.chapter, stop.scene) : null
+    if (sceneName && stop.chapter.id === chapter.id) return { to: stopPath(bookId, stop), label: sceneName }
+    const chapterName = `Chapter ${stop.chapter.number}: ${chapterTitle(stop.chapter.title)}`
+    return { to: stopPath(bookId, stop), label: sceneName ? `${chapterName} · ${sceneName}` : chapterName }
+  }
+
+  return (
+    <article data-write-chapter={chapter.id} className="prose-page mx-auto px-5 pt-10 pb-24 md:px-8">
+      <ChapterHeader
+        chapter={chapter}
+        level={1}
+        scene={scene && !scene.is_implicit ? { index, count: chapter.scenes.length } : undefined}
+      />
+      {scene && (
+        <>
+          <SceneBlock key={scene.id} chapter={chapter} scene={scene} index={index} divider={false} headingLevel={2} />
+          <NewSceneAfter chapter={chapter} index={index} />
+        </>
+      )}
+      <Pager label="Scene pages" previous={previous ? page(previous) : undefined} next={next ? page(next) : undefined} />
+    </article>
+  )
+}
+
+const scenePageName = (chapter: PlanChapter, scene: Readonly<PlanSceneRow>) => {
+  const title = scene.title?.trim()
+  return `Scene ${chapter.scenes.indexOf(scene) + 1}${title ? `: ${title}` : ""}`
+}
+
+function NewSceneAfter({ chapter, index }: { chapter: PlanChapter; index: number }) {
+  const { db, bookId } = useWrite()
+  const navigate = useNavigate()
+  const add = async () => {
+    const id = await attempt("add scene", createScene(db, chapter.id, { index: index + 1 }))
+    if (!id) return
+    navigate(writePath(bookId, chapter.id, id))
+    focusSoon(byData("write-scene-title", id))
+  }
+  return (
+    <div className="mt-10 flex justify-center font-sans">
+      <Button variant="ghost" size="sm" onClick={() => void add()} className="text-muted-foreground">
+        <PlusIcon />
+        New scene after this
+      </Button>
+    </div>
+  )
+}
+
+interface PagerTarget {
+  to: string
+  label: string
+}
+
+function Pager({ label, previous, next }: { label: string; previous?: PagerTarget; next?: PagerTarget }) {
+  if (!previous && !next) return null
+  return (
+    <nav aria-label={label} className="mt-16 grid gap-3 font-sans sm:grid-cols-2">
+      {previous && <PagerLink target={previous} direction="previous" />}
+      {next && <PagerLink target={next} direction="next" />}
+    </nav>
+  )
+}
+
+function PagerLink({ target, direction }: { target: PagerTarget; direction: "previous" | "next" }) {
+  const state: WriteNavState = { focus: "heading" }
+  return (
+    <Link
+      to={target.to}
+      state={state}
+      className={cn(
+        "flex min-w-0 flex-col gap-0.5 rounded-lg border bg-surface px-4 py-3 transition-colors hover:bg-accent",
+        "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+        direction === "next" && "items-end text-right sm:col-start-2",
+      )}
+    >
+      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+        {direction === "previous" && <ChevronLeftIcon aria-hidden="true" className="size-3.5" />}
+        {direction === "previous" ? "Previous" : "Next"}
+        {direction === "next" && <ChevronRightIcon aria-hidden="true" className="size-3.5" />}
+      </span>{" "}
+      <span className="max-w-full text-sm font-medium break-words text-ink">{target.label}</span>
+    </Link>
+  )
+}

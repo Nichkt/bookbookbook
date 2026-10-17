@@ -23,7 +23,7 @@ export const router = createBrowserRouter([
               { index: true, element: <Navigate to="write" replace /> },
               { path: "plan", element: <PlanIndex /> },
               { path: "plan/:view", element: <PlanScreen /> },
-              { path: "write/:chapterId?", element: <WriteScreen /> },
+              { path: "write/:chapterId?/:sceneId?", element: <WriteScreen /> },
               { path: "codex", element: <CodexScreen /> },
             ],
           },

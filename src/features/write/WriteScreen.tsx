@@ -1,29 +1,43 @@
-import { usePowerSync, useQuery } from "@powersync/react"
+import { usePowerSync } from "@powersync/react"
 import { LayoutGridIcon, PenLineIcon } from "lucide-react"
-import { Fragment, useEffect, useMemo, useState } from "react"
-import { Link, Navigate, NavLink, useNavigate, useParams } from "react-router"
-import { rememberBook } from "@/app/books"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { Link, Navigate, useNavigate, useParams } from "react-router"
+import { rememberBook, useCurrentBook } from "@/app/books"
 import { attempt } from "@/app/feedback"
+import { PlaceholderScreen } from "@/app/PlaceholderScreens"
 import { Button, buttonVariants } from "@/components/ui/button"
-import {
-  ACTS_SQL,
-  CHAPTERS_SQL,
-  ensureScene,
-  SCENES_SQL,
-  type ActListRow,
-  type ChapterListRow,
-  type SceneListRow,
-} from "@/db/queries"
-import type { MentionMatcher } from "@/editor/mentions"
-import { SceneEditor } from "@/editor/SceneEditor"
+import { usePref } from "@/db/prefs"
+import type { BookListRow } from "@/db/queries"
+import { activeEditor } from "@/editor/activeEditor"
 import { useMentionMatcher } from "@/editor/useMentionMatcher"
-import { useSceneDoc, useSceneWords } from "@/editor/useSceneDoc"
 import { createChapter } from "@/features/plan/mutations"
-import { chapterTitle, statusOf } from "@/features/plan/status"
+import type { FocusItem } from "@/features/plan/planContext"
+import { usePlan, type Plan } from "@/features/plan/planData"
 import { byData, focusSoon } from "@/lib/focus"
-import { formatCount } from "@/lib/numbers"
+import { useMediaQuery } from "@/lib/useMediaQuery"
 import { cn } from "@/lib/utils"
-import { navGroups, type NavGroup } from "./navigator"
+import { ChapterUnit, SceneUnit } from "./ChapterPage"
+import { isSnapshotShortcut, useHistoryDialog } from "./history"
+import { takeSnapshot } from "./historyActions"
+import { HistoryDialog } from "./HistoryDialog"
+import { Manuscript } from "./Manuscript"
+import { Navigator } from "./Navigator"
+import { PlanPanel } from "./PlanPanel"
+import {
+  chapterOfScene,
+  isWriteUnit,
+  NAV_PREF,
+  PANEL_DOCKED_QUERY,
+  PANEL_PREF,
+  sceneNameIn,
+  unitPrefKey,
+  useWrite,
+  WriteContext,
+  writePath,
+  type WriteContextValue,
+  type WriteUnit,
+} from "./writeContext"
+import { WriteToolbar } from "./WriteToolbar"
 
 const lastChapterKey = (bookId: string) => `bbb.lastChapter.${bookId}`
 
@@ -35,55 +49,237 @@ function readLastChapter(bookId: string) {
   }
 }
 
-/** Write screen: the chapter navigator plus the chapter's scenes as stacked editors (DESIGN.md §8). */
+function saveLastChapter(bookId: string, chapterId: string) {
+  try {
+    localStorage.setItem(lastChapterKey(bookId), chapterId)
+  } catch {
+    // Only a convenience.
+  }
+}
+
+/** `/b/:bookId/write/:chapterId?/:sceneId?`: the Write screen (DESIGN.md §8). */
 export function WriteScreen() {
-  const { bookId = "", chapterId } = useParams()
-  const acts = useQuery<ActListRow>(ACTS_SQL, [bookId])
-  const chapters = useQuery<ChapterListRow>(CHAPTERS_SQL, [bookId])
-  const groups = useMemo(() => navGroups(acts.data, chapters.data), [acts.data, chapters.data])
-  const ordered = useMemo(() => groups.flatMap((group) => group.chapters), [groups])
+  const { bookId = "" } = useParams()
+  return <WriteBook key={bookId} bookId={bookId} />
+}
+
+function WriteBook({ bookId }: { bookId: string }) {
+  const { chapterId, sceneId } = useParams()
+  const { book, isLoading: booksLoading } = useCurrentBook()
+  const { plan, isLoading } = usePlan(bookId)
+  const prefs = useWritePrefs(bookId)
+
+  if (booksLoading || isLoading || prefs.isLoading) return null
+  if (!book) {
+    return (
+      <PlaceholderScreen title="Book not found" milestone="Write">
+        <p>It may have been deleted. Pick another book from the book menu above, or restore it from the Trash there.</p>
+      </PlaceholderScreen>
+    )
+  }
+  if (plan.chapters.length === 0) {
+    return <EmptyBook bookId={bookId} firstActId={plan.groups.find((group) => group.act)?.act?.id ?? null} />
+  }
+  if (!chapterId) {
+    const last = readLastChapter(bookId)
+    const target = (last && plan.chapterById.get(last)) || plan.chapters[0]
+    return <Navigate to={writePath(bookId, target.id)} replace />
+  }
+  return <WriteWorkspace book={book} plan={plan} chapterId={chapterId} sceneId={sceneId ?? null} prefs={prefs} />
+}
+
+/** A pref that changes on screen at once, ahead of its write to the database. */
+function usePrefState(key: string) {
+  const { value, isLoading, setValue } = usePref(key)
+  const [pending, setPending] = useState<string | null>(null)
+  if (pending !== null && value === pending) setPending(null)
+  const set = useCallback(
+    (next: string) => {
+      setPending(next)
+      void setValue(next)
+    },
+    [setValue],
+  )
+  return { value: pending ?? value, isLoading, set }
+}
+
+type WritePrefs = ReturnType<typeof useWritePrefs>
+
+/** The view per book; whether the navigator and the docked chapter plan are open, per device. */
+function useWritePrefs(bookId: string) {
+  const unit = usePrefState(unitPrefKey(bookId))
+  const nav = usePrefState(NAV_PREF)
+  const panel = usePrefState(PANEL_PREF)
+  const { set: setNav } = nav
+  const { set: setPanel } = panel
+  return {
+    isLoading: unit.isLoading || nav.isLoading || panel.isLoading,
+    unit: isWriteUnit(unit.value) ? unit.value : ("chapter" as WriteUnit),
+    saveUnit: unit.set,
+    navOpen: nav.value !== "closed",
+    saveNavOpen: useCallback((open: boolean) => setNav(open ? "open" : "closed"), [setNav]),
+    dockedPanelOpen: panel.value === "open",
+    saveDockedPanelOpen: useCallback((open: boolean) => setPanel(open ? "open" : "closed"), [setPanel]),
+  }
+}
+
+interface WorkspaceProps {
+  book: BookListRow
+  plan: Plan
+  chapterId: string
+  sceneId: string | null
+  prefs: WritePrefs
+}
+
+function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProps) {
+  const db = usePowerSync()
+  const navigate = useNavigate()
+  const bookId = book.id
+  const matcher = useMentionMatcher(bookId)
+  const panelDocked = useMediaQuery(PANEL_DOCKED_QUERY)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const { unit, saveUnit, navOpen, saveNavOpen, dockedPanelOpen, saveDockedPanelOpen } = prefs
+  const known = plan.chapterById.has(chapterId)
 
   useEffect(() => {
     rememberBook(bookId)
-    if (!chapterId) return
-    try {
-      localStorage.setItem(lastChapterKey(bookId), chapterId)
-    } catch {
-      // Only a convenience.
+    if (known) saveLastChapter(bookId, chapterId)
+  }, [bookId, chapterId, known])
+
+  // What the callbacks below read when they run, so they can stay the same functions.
+  const latest = useRef({ plan, chapterId, sceneId, unit })
+  useLayoutEffect(() => {
+    latest.current = { plan, chapterId, sceneId, unit }
+  })
+
+  const focusItem = useCallback<FocusItem>(
+    (kind, id) => {
+      const current = latest.current
+      if (kind === "act") return
+      if (kind === "chapter") {
+        if (id !== current.chapterId) navigate(writePath(bookId, id))
+        focusSoon(byData("write-heading", id))
+        return
+      }
+      const target = chapterOfScene(current.plan, id)?.id ?? current.chapterId
+      if (current.unit === "scene") navigate(writePath(bookId, target, id))
+      else if (target !== current.chapterId) navigate(writePath(bookId, target))
+      focusSoon(`${byData("write-scene-title", id)}, ${byData("scene-id", id)} [contenteditable="true"]`)
+    },
+    [bookId, navigate],
+  )
+
+  // The new view opens at the scene the writer was in, or was reading.
+  const setUnit = useCallback(
+    (next: WriteUnit) => {
+      const current = latest.current
+      saveUnit(next)
+      const active = activeEditor()?.sceneId
+      const chapter = current.plan.chapterById.get(current.chapterId)
+      const scene = active && chapter?.scenes.some(({ id }) => id === active) ? active : current.sceneId
+      navigate(writePath(bookId, current.chapterId, scene), { replace: true })
+    },
+    [bookId, navigate, saveUnit],
+  )
+
+  const toggleNav = useCallback(() => saveNavOpen(!navOpen), [navOpen, saveNavOpen])
+  const panelOpen = panelDocked ? dockedPanelOpen : sheetOpen
+  const setPanelOpen = useCallback(
+    (open: boolean) => (panelDocked ? saveDockedPanelOpen(open) : setSheetOpen(open)),
+    [panelDocked, saveDockedPanelOpen],
+  )
+
+  // Ctrl+Alt+S: a snapshot of the scene in the History dialog, else of the one the writer is in.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.repeat || !isSnapshotShortcut(event)) return
+      const dialog = useHistoryDialog.getState()
+      const sceneId = dialog.sceneId ?? activeEditor()?.sceneId
+      if (!sceneId) return
+      event.preventDefault()
+      const name = dialog.sceneId ? dialog.sceneName : sceneNameIn(latest.current.plan, sceneId)
+      void takeSnapshot(db, sceneId, name)
     }
-  }, [bookId, chapterId])
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [db])
 
-  if (acts.isLoading || chapters.isLoading) return null
-  if (ordered.length === 0) return <EmptyBook bookId={bookId} firstActId={acts.data[0]?.id ?? null} />
-  if (!chapterId) {
-    const last = readLastChapter(bookId)
-    const target = ordered.find(({ chapter }) => chapter.id === last) ?? ordered[0]
-    return <Navigate to={`/b/${bookId}/write/${target.chapter.id}`} replace />
-  }
+  const context = useMemo<WriteContextValue>(
+    () => ({
+      db,
+      bookId,
+      book,
+      plan,
+      matcher,
+      unit,
+      setUnit,
+      chapterId,
+      sceneId,
+      focusItem,
+      navOpen,
+      toggleNav,
+      panelDocked,
+      panelOpen,
+      setPanelOpen,
+    }),
+    [
+      db,
+      bookId,
+      book,
+      plan,
+      matcher,
+      unit,
+      setUnit,
+      chapterId,
+      sceneId,
+      focusItem,
+      navOpen,
+      toggleNav,
+      panelDocked,
+      panelOpen,
+      setPanelOpen,
+    ],
+  )
 
-  const current = ordered.find(({ chapter }) => chapter.id === chapterId)
   return (
-    <div className="flex flex-1">
-      <ChapterList bookId={bookId} groups={groups} activeId={chapterId} />
-      {current ? (
-        <ChapterView
-          key={chapterId}
-          bookId={bookId}
-          chapter={current.chapter}
-          number={current.number}
-          groups={groups}
-        />
-      ) : (
-        <div className="p-8 text-muted-foreground">
-          <p>That chapter isn't in this book. It may be in the Trash.</p>
-          <Link
-            to={`/b/${bookId}/write/${ordered[0].chapter.id}`}
-            className="mt-2 inline-block text-ink underline underline-offset-2"
-          >
-            Go to chapter 1
-          </Link>
+    <WriteContext.Provider value={context}>
+      <div className="flex flex-1 flex-col">
+        <WriteToolbar />
+        <div className="flex flex-1 items-start">
+          {navOpen && <Navigator />}
+          <div className="min-w-0 flex-1 self-stretch">
+            <WriteContent />
+          </div>
+          <PlanPanel />
         </div>
-      )}
+        <HistoryDialog />
+      </div>
+    </WriteContext.Provider>
+  )
+}
+
+function WriteContent() {
+  const { plan, unit, chapterId } = useWrite()
+  if (unit === "manuscript") return <Manuscript />
+  const chapter = plan.chapterById.get(chapterId)
+  if (!chapter) return <MissingChapter />
+  return unit === "scene" ? <SceneUnit key={chapter.id} chapter={chapter} /> : <ChapterUnit key={chapter.id} chapter={chapter} />
+}
+
+function MissingChapter() {
+  const { bookId, plan } = useWrite()
+  return (
+    <div className="mx-auto max-w-md px-6 py-16">
+      <h1 className="font-heading text-2xl font-semibold text-ink">Chapter not found</h1>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+        That chapter isn't in this book. It may be in the Trash.
+      </p>
+      <Link
+        to={writePath(bookId, plan.chapters[0].id)}
+        className={cn("mt-4 inline-flex items-center text-sm text-ink underline underline-offset-2 pointer-coarse:min-h-11")}
+      >
+        Go to chapter 1
+      </Link>
     </div>
   )
 }
@@ -122,190 +318,5 @@ function EmptyBook({ bookId, firstActId }: { bookId: string; firstActId: string 
         </Link>
       </div>
     </div>
-  )
-}
-
-function ChapterList({ bookId, groups, activeId }: { bookId: string; groups: NavGroup[]; activeId: string }) {
-  return (
-    <aside className="sticky top-14 hidden h-[calc(100svh-3.5rem)] w-72 shrink-0 flex-col border-r bg-surface md:flex">
-      <nav aria-label="Chapters" className="flex-1 space-y-3 overflow-y-auto p-2">
-        {groups.map((group) => {
-          const labelId = `write-act-${group.key}`
-          return (
-            <div key={group.key}>
-              {group.label && (
-                <p
-                  id={labelId}
-                  className="px-2.5 pt-2 pb-1 text-xs font-semibold tracking-wide break-words text-muted-foreground uppercase"
-                >
-                  {group.label}
-                </p>
-              )}
-              <ol aria-labelledby={group.label ? labelId : undefined} className="space-y-0.5">
-                {group.chapters.map(({ chapter, number }) => {
-                  const status = statusOf(chapter.status)
-                  const title = chapterTitle(chapter.title)
-                  return (
-                    <li key={chapter.id}>
-                      <NavLink
-                        to={`/b/${bookId}/write/${chapter.id}`}
-                        aria-current={chapter.id === activeId ? "page" : undefined}
-                        aria-label={`Chapter ${number}: ${title}, ${status.label}, ${formatCount(chapter.words)} words`}
-                        className={cn(
-                          "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-ink-2 hover:bg-accent hover:text-ink pointer-coarse:min-h-11",
-                          "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
-                          chapter.id === activeId && "bg-accent font-medium text-ink",
-                        )}
-                      >
-                        <span className={cn("size-2 shrink-0 rounded-full", status.dot)} title={status.label} />
-                        <span className="w-5 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
-                          {number}
-                        </span>
-                        <span
-                          className={cn(
-                            "min-w-0 flex-1 truncate",
-                            !chapter.title?.trim() && "text-muted-foreground italic",
-                          )}
-                        >
-                          {title}
-                        </span>
-                        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                          {formatCount(chapter.words)}
-                        </span>
-                      </NavLink>
-                    </li>
-                  )
-                })}
-              </ol>
-            </div>
-          )
-        })}
-      </nav>
-      {import.meta.env.DEV && (
-        <div className="border-t p-3 text-xs text-muted-foreground">
-          Dev: <Link to="/lab/ime" className="underline underline-offset-2 hover:text-ink">IME lab</Link>
-        </div>
-      )}
-    </aside>
-  )
-}
-
-interface ChapterViewProps {
-  bookId: string
-  chapter: ChapterListRow
-  number: number
-  groups: NavGroup[]
-}
-
-function ChapterView({ bookId, chapter, number, groups }: ChapterViewProps) {
-  const db = usePowerSync()
-  const navigate = useNavigate()
-  const scenes = useQuery<SceneListRow>(SCENES_SQL, [chapter.id])
-  const matcher = useMentionMatcher(bookId)
-  const status = statusOf(chapter.status)
-  const isEmpty = !scenes.isLoading && scenes.data.length === 0
-
-  useEffect(() => {
-    if (isEmpty) ensureScene(db, chapter.id).catch((error) => console.error("[write] ensureScene", error))
-  }, [db, chapter.id, isEmpty])
-
-  return (
-    <section data-write-chapter={chapter.id} className="min-w-0 flex-1">
-      <div className="sticky top-14 z-10 border-b bg-background/95 px-4 py-2 backdrop-blur md:hidden">
-        <label className="sr-only" htmlFor="chapter-picker">
-          Chapter
-        </label>
-        <select
-          id="chapter-picker"
-          value={chapter.id}
-          onChange={(event) => navigate(`/b/${bookId}/write/${event.target.value}`)}
-          className="h-11 w-full rounded-md border bg-surface px-3 text-base"
-        >
-          {groups.map((group) => {
-            const options = group.chapters.map(({ chapter: option, number: optionNumber }) => (
-              <option key={option.id} value={option.id}>
-                {optionNumber}. {chapterTitle(option.title)}
-              </option>
-            ))
-            return group.label ? (
-              <optgroup key={group.key} label={group.label}>
-                {options}
-              </optgroup>
-            ) : (
-              <Fragment key={group.key}>{options}</Fragment>
-            )
-          })}
-        </select>
-      </div>
-      <article className="prose-page mx-auto px-5 pt-10 pb-32 md:px-8">
-        <header className="mb-10 font-sans">
-          <div className="flex items-center gap-2">
-            <div className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs font-semibold tracking-widest text-muted-foreground uppercase">
-              <span>Chapter {number}</span>
-              <span aria-hidden="true">·</span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className={cn("size-2 rounded-full", status.dot)} />
-                {status.label}
-              </span>
-            </div>
-            <Link
-              to={`/b/${bookId}/plan?chapter=${chapter.id}`}
-              aria-label={`Plan chapter ${number}`}
-              className={cn(
-                buttonVariants({ variant: "ghost", size: "sm" }),
-                "-my-1 ml-auto shrink-0 text-ink-2 pointer-coarse:px-3",
-              )}
-            >
-              <LayoutGridIcon />
-              Plan
-            </Link>
-          </div>
-          <h1
-            className={cn(
-              "mt-2 font-heading text-3xl leading-tight font-semibold text-ink",
-              !chapter.title?.trim() && "font-normal text-muted-foreground italic",
-            )}
-          >
-            {chapterTitle(chapter.title)}
-          </h1>
-          {chapter.summary && <div className="mt-3 text-sm leading-relaxed text-muted-foreground">{chapter.summary}</div>}
-          <div className="mt-3 text-xs text-muted-foreground tabular-nums">
-            {formatCount(chapter.words)}
-            {chapter.word_target ? ` / ${formatCount(chapter.word_target)}` : ""} words
-          </div>
-        </header>
-        {scenes.data.map((scene, sceneIndex) => (
-          <SceneBlock key={scene.id} scene={scene} index={sceneIndex} matcher={matcher} />
-        ))}
-      </article>
-    </section>
-  )
-}
-
-function SceneBlock({ scene, index, matcher }: { scene: SceneListRow; index: number; matcher: MentionMatcher }) {
-  const provider = useSceneDoc(scene.id)
-  const words = useSceneWords(provider) ?? scene.word_count ?? 0
-  const title = scene.title || `Scene ${index + 1}`
-  const label = scene.is_implicit ? "Chapter text" : title
-
-  return (
-    <section aria-label={label} data-scene-id={scene.id}>
-      {index > 0 && (
-        <div aria-hidden="true" className="my-10 text-center text-muted-foreground select-none">
-          ⁂
-        </div>
-      )}
-      {!scene.is_implicit && (
-        <header className="mb-3 flex items-baseline justify-between gap-3 font-sans text-xs text-muted-foreground">
-          <h2 className="font-semibold tracking-wider uppercase">{title}</h2>
-          <span className="tabular-nums">{formatCount(words)} words</span>
-        </header>
-      )}
-      {provider ? (
-        <SceneEditor provider={provider} matcher={matcher} label={label} />
-      ) : (
-        <div className="h-40 animate-pulse rounded-md bg-surface-2/60" aria-busy="true" aria-label="Loading scene" />
-      )}
-    </section>
   )
 }

@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import type { CodexTypeKey } from "@/db/codexTypes"
 import { createCodexEntry } from "@/features/codex/mutations"
 import { nextColor } from "@/lib/palette"
-import { usePlanContext } from "./planContext"
+import { useChapterDetails } from "./planContext"
 import type { PlanEntry } from "./planData"
 
 const NONE = "__none"
@@ -44,7 +44,7 @@ interface EntryPickerProps {
  * text typed. Several can be chosen with `multiple`; the list then stays open.
  */
 export function EntryPicker({ labelId, typeKey, noun, multiple, value, onChange, emptyText }: EntryPickerProps) {
-  const { db, bookId, plan } = usePlanContext()
+  const { db, bookId, plan } = useChapterDetails()
   const triggerId = useId()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")

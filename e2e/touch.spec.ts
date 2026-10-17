@@ -88,6 +88,31 @@ for (const [device, viewport] of [
       await openFirstChapter(page)
       await check("Write")
 
+      if (device === "phone") {
+        await page.getByRole("button", { name: "More writing tools" }).click()
+        await check("Writing tools menu", "[role=menu]")
+        await closeWith("Escape", "[role=menu]")
+      }
+
+      await page.getByRole("button", { name: "More for scene 1 in chapter 1" }).click()
+      await check("Scene menu", "[role=menu]")
+      await page.getByRole("menuitem", { name: "History" }).click()
+      const history = page.getByRole("dialog", { name: "History of “Ferry wake”" })
+      await history.getByRole("button", { name: "Take snapshot" }).click()
+      await history.getByRole("button", { name: /^Snapshot\b/ }).waitFor()
+      await check("History", "[role=dialog]")
+      await closeWith("Escape", "[role=dialog]")
+
+      if (device === "phone") {
+        await page.getByRole("button", { name: "More writing tools" }).click()
+        await page.getByRole("menuitem", { name: "Chapter plan" }).click()
+      } else {
+        await page.getByRole("button", { name: "Chapter plan" }).click()
+      }
+      await page.getByRole("dialog", { name: "Chapter 1: The Ferry Home" }).waitFor()
+      await check("Chapter plan", "[role=dialog]")
+      await closeWith("Escape", "[role=dialog]")
+
       await page.getByRole("navigation", { name: "Screens" }).getByRole("link", { name: "Plan" }).click()
       const card = page.getByRole("button", { name: "Chapter 2: The Keeper's Room" })
       await card.waitFor()

@@ -293,9 +293,9 @@ Three panes, each collapsible: **Navigator** (acts › chapters › scenes, with
 ### Editing unit
 A toolbar toggle: **Scene** · **Chapter** · **Manuscript**.
 - Prose is stored per scene. A chapter without scenes has one *implicit* scene, which the UI hides.
-- **Chapter** mode stacks the chapter's scene editors with ✦ dividers and foldable scene headers.
-- **Manuscript** mode is a virtualized list: editors mount near the viewport. Off-screen scenes render as static
-  read-only HTML, so 150k+ word books stay fast.
+- **Chapter** mode stacks the chapter's scene editors with ⁂ dividers and scene headers.
+- **Manuscript** mode is a virtualized list: editors mount near the viewport. Off-screen scenes keep their space but
+  render nothing, so 150k+ word books stay fast.
 - Selections can't cross a scene boundary (accepted trade-off). Find & replace and export work across scenes.
 
 ### Editor (TipTap / ProseMirror)
@@ -341,6 +341,44 @@ A toolbar toggle: **Scene** · **Chapter** · **Manuscript**.
 Ctrl+J Continue · Ctrl/Cmd+K palette · Ctrl+Shift+F find & replace · Ctrl+. focus mode · Ctrl+Alt+S snapshot ·
 Ctrl+Shift+M dictate · `/` slash menu at the start of an empty line · Esc closes overlays.
 All shortcuts can be remapped later.
+
+### Built in M2
+M2 built the Write screen: the three views, the navigator, formatting, word counts, History and the chapter plan
+beside the text. Focus mode, find & replace and the other writing aids follow in M6. Details it settled:
+- **Views.** A segmented control switches Scene, Chapter and Manuscript, remembered per book. The URL names the
+  chapter, and the scene in the Scene view, so a reload or a link lands in the same place. A switch opens the new view
+  at the scene being written or read. The Scene view pages through the book's scenes in reading order, across
+  chapters.
+- **Manuscript:** the whole book on one page, under its acts. A scene gets its editor within 1000 px of the window and
+  loses it beyond 3000 px, never while it has focus. Without its editor it's a blank space of the height it last had,
+  or one guessed from its word count, so the browser's find can't see it; find & replace (M6) will search the
+  database instead. The URL follows the chapter being read.
+- **Arrivals hold still.** After a jump, the scenes around the target get their editors and seldom take the height
+  guessed for them. The page keeps the target in place until the layout has been still for 1 s (5 s at most) or the
+  writer scrolls, taps, clicks or types, and the URL waits for it. Chrome's scroll anchoring can't be relied on for
+  this (it may anchor to a placeholder that's about to go), and Safari has none.
+- **Scenes** are divided by ⁂. A scene's header holds its title and a ⋯ menu: Move up, Move down, History… and Move
+  to Trash, with Undo. A chapter is one implicit scene, without a header, until the writer adds another: the text so
+  far becomes scene 1. A chapter gets its implicit scene when first opened, or as the Manuscript nears it. Scene
+  controls name their chapter ("Title of scene 2 in chapter 3"), since the Manuscript shows many.
+- **Formatting:** bold (Ctrl+B), italic (Ctrl+I), block quote (Ctrl+Shift+B), centred lines (Ctrl+Shift+E, and
+  Ctrl+Shift+L back) and scene breaks; ⌘ on a Mac. Typography turns quotes, dashes and ellipses typographic, and
+  nothing else. With no editor focused, the toolbar acts on the scene filling most of the window.
+- **Counts** are saved a second after typing pauses: scenes, chapters against their targets, and the book against its
+  target in the navigator. **Today** in the toolbar is the net words written in the book today; its tooltip splits
+  them into added and removed. `writing_stats` rows are per device and local day, so sync will add devices up rather
+  than merge them.
+- **History.** A scene saves an automatic version of its text as it was before the first edit of a sitting, every 10
+  minutes while it's edited, and when it's left. An unchanged one is skipped, and the newest 50 are kept. Snapshots
+  (Ctrl+Alt+S, or the History dialog) can be named and are kept until the scene is deleted for good. The dialog opens
+  on the newest version, so no phone keyboard pops up, and shows paragraph by paragraph what restoring it would add
+  and remove. Restore first saves the text it replaces as "Before restoring", and the toast's Undo puts that back.
+  Restored words count toward Today.
+- **Chapter plan.** The Plan's chapter drawer docks beside the text from 1280 px, its state remembered per device,
+  and is a sheet below that. Trashing the chapter from it closes it.
+- **Phone:** the toolbar has a chapter picker, bold and italic, and a ⋯ menu with the views and the other tools.
+- **Not yet:** folding scenes, focus mode, typewriter scrolling, find & replace and the other aids (M6). Known issue:
+  resizing the window can leave the URL on the previous chapter until the next scroll.
 
 ## 9. AI system
 
@@ -533,7 +571,7 @@ flowchart LR
 | Layer | What | When |
 |---|---|---|
 | 1. Local database | SQLite (WASM), persisted | Every keystroke batch |
-| 2. Snapshots | Per-scene versions, compare & restore | Auto ~10 min of typing + on leaving a scene; manual |
+| 2. Snapshots | Per-scene versions, compare & restore (built in M2) | Auto before a sitting's first edit, every ~10 min of editing and on leaving a scene; manual |
 | 3. Folder auto-backup | Zip of the whole project into a user-chosen folder (File System Access API, Chromium; native in Tauri). Keeps the last N | Daily + on close |
 | 4. Export | One-click full `.zip` | Any time |
 | 5. Cloud sync + history *(Studio)* | Server copy + 30+ days of snapshots | Continuous |
@@ -785,7 +823,8 @@ LanguageTool or the browser spellchecker. RTL later.
 1. Name clearance for "bookbookbook" (trademark, domain, app stores).
 2. The phone keyboard test on real devices with Gboard and Samsung Keyboard
    ([ime-smoke-test.md](ime-smoke-test.md)), left over from M0.
-3. M1, Structure & Planner I, is built and tested ([README](../README.md)). Next: M2, Editor core.
+3. M2, Editor core, is built and tested ([README](../README.md)). Next: export and backups from M7, so the
+   writing can leave the app, then M3, Codex core.
 
 ---
 
@@ -844,3 +883,4 @@ LanguageTool or the browser spellchecker. RTL later.
 | 13 | Speech | Notes, Inbox, beats/summaries, prose; hybrid on-device-first engine; live + memo; commands + AI helpers | Ships in v1.0 |
 | 14 | Name | **Renamed to "bookbookbook"** | Replaces the working name Chapterhouse, which also sidesteps that name's conflicts (Dune novel title, Chapterhouse Studios) |
 | 15 | M1 planner | Outline Tab folds into the item above, Shift+Tab splits off, each with Undo and a ⋯ menu command; drawer docked on wide screens; filters and quick create in M1 | Details in §6, "Built in M1" |
+| 16 | M2 editor | Segmented Scene / Chapter / Manuscript switch, remembered per book; Manuscript mounts editors near the window and holds a jump's target while it settles; ⁂ scene breaks; automatic versions plus named snapshots (Ctrl+Alt+S) with compare, restore and Undo; Today shows net words; chapter plan docked from 1280 px; a ⋯ menu on phones | Details in §8, "Built in M2" |

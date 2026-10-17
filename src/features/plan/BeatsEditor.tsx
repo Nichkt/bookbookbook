@@ -9,7 +9,7 @@ import { byData, focusSoon } from "@/lib/focus"
 import { isComposing } from "@/lib/keys"
 import { cn } from "@/lib/utils"
 import { addBeat, deleteBeat, moveBeat, updateBeat } from "./mutations"
-import { usePlanContext } from "./planContext"
+import { useChapterDetails } from "./planContext"
 import type { PlanBeatRow, PlanChapter } from "./planData"
 
 const focusBeat = (id: string) => focusSoon(byData("beat-input", id))
@@ -20,7 +20,7 @@ const focusAddButton = (chapterId: string) => focusSoon(byData("beats-add", chap
  * it, Alt+↑/↓ reorders.
  */
 export function BeatsEditor({ chapter, labelId }: { chapter: PlanChapter; labelId: string }) {
-  const { db } = usePlanContext()
+  const { db } = useChapterDetails()
 
   const addAt = async (index?: number) => {
     const id = await attempt("add beat", addBeat(db, chapter.id, index))
@@ -58,7 +58,7 @@ interface BeatRowProps {
 }
 
 function BeatRow({ chapter, beat, index, onAddAfter }: BeatRowProps) {
-  const { db } = usePlanContext()
+  const { db } = useChapterDetails()
   const draft = useDraft(beat.text ?? "", (text) => updateBeat(db, beat.id, { text }))
   const beats = chapter.beats
   const name = `Beat ${index + 1}`

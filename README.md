@@ -6,10 +6,28 @@ takes after NovelCrafter, the writing side after Sudowrite.
 - **Design:** [docs/DESIGN.md](docs/DESIGN.md) covers every product and technical decision and the milestone plan.
 - **Prototype:** [prototype/](prototype/README.md) is a clickable mock of the whole app. Open `prototype/index.html`.
 
-## Status: M1, structure and planner
+## Status: M2, editor core
 
-Milestones 0 and 1 from DESIGN.md §19 are built. Everything stays on the device; there are no accounts or sync yet.
+Milestones 0 to 2 from DESIGN.md §19 are built. Everything stays on the device; there are no accounts or sync yet.
 The Codex and Inbox tabs are placeholders until M3 and M11.
+
+**M2, Editor core** (DESIGN.md §8):
+- **Three views:** Scene shows one scene at a time and pages through the book across chapters. Chapter shows a
+  chapter's scenes one after another. Manuscript is the whole book on one page, and the address follows the chapter
+  you're reading. Each book remembers its view.
+- **Formatting:** bold, italic, block quote, centred lines and scene breaks, from the toolbar or the keyboard. Quotes,
+  dashes and ellipses turn typographic as you type.
+- **Scenes:** name, add, reorder or trash them from each scene's header. A chapter is one unnamed scene until you add
+  another.
+- **Navigator:** chapters under their acts with their status and word counts, the open chapter's scenes, and the
+  book's progress toward its target.
+- **Word counts** for scenes, chapters (against their targets) and the book. **Today**, in the toolbar, counts the
+  words you've written in the book today.
+- **History:** every scene keeps versions, automatic ones as you write and named snapshots (Ctrl+Alt+S). Compare one
+  with the scene now, restore it, and undo the restore.
+- **Chapter plan:** the chapter's details from the planner, beside the text on wide screens (1280 px and up) and in
+  a sheet on smaller ones.
+- **Phone:** a chapter picker, bold and italic in the toolbar, and a ⋯ menu with the rest.
 
 **M1, Structure & Planner I** (DESIGN.md §6):
 - **Books:** create, switch and edit them (title, genre, target length) from the header's book menu, which also holds
@@ -71,7 +89,9 @@ in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). 
 - the mention highlighter, codex name matching, word counts, number entry in any locale and the Yjs helpers;
 - the plan's edits (create, move, fold, split, trash) and their exact undo;
 - ordering keys, story time, the Board's drop targets and the Outline's keyboard paths;
-- books, codex entries, the sample book, the Trash and the Write navigator.
+- books, codex entries, the sample book and the Trash;
+- word counts and the day's writing stats, scene versions (saving, pruning, restoring) and how History compares them;
+- the Scene view's reading order, and shortcut labels and keys.
 
 **End-to-end tests** (`e2e/`) run in your installed Chrome against a dev server on port 5174, which Playwright starts
 (or reuses if it's already running). Every test gets a fresh browser profile, so each one starts from the sample book.
@@ -85,8 +105,11 @@ They cover:
 - a phone-style keyboard composition, replayed through the Chrome DevTools Protocol;
 - the planner (`plan.spec.ts`): dragging and keyboard moves on the Board, display presets, filters, the drawer and
   its URL, the Trash, folding and splitting in the Outline, and the links between Plan and Write;
-- touch targets (`touch.spec.ts`): on a phone and a tablet, every control on the Board, its menus, the drawer, a toast
-  and the Outline must be at least 44 px.
+- the Write screen (`write.spec.ts`): the three views and their addresses, a jump holding still while the
+  Manuscript settles, which scene the toolbar acts on, formatting, naming, adding and trashing scenes, History, Today
+  and the chapter plan;
+- touch targets (`touch.spec.ts`): on a phone and a tablet, every control on the Board, its menus, the drawer, a toast,
+  the Outline, and the Write screen with its menus, History and chapter plan must be at least 44 px.
 
 Use `npx playwright test --ui` to debug. A failed test keeps a trace in `test-results/`; open it with
 `npx playwright show-trace <path>`.
@@ -108,15 +131,20 @@ runs:
 
 Snapshot-plus-updates is the same layout DESIGN.md §11 plans for syncing between devices later.
 
+A scene's History lives in `snapshots` too, as rows of kind `auto` or `manual` holding the prose alone. Restoring
+one replaces the live doc's prose with a copy in a single edit, so it's saved, and reaches other tabs, like typing.
+
 ## Project layout
 
 ```text
 src/
   app/            shell, routes, startup and error screens, theme, toasts and announcements, dev hooks
   components/     fields that save as you type; ui/ holds the shadcn components
-  db/             PowerSync schema, queries, sample book and seeding, ordering, undo, Trash, prefs, the scene store
-  editor/         TipTap scene editor, its extensions, codex name matching
-  features/       plan/ (Board, Outline, drawer), write/ (editor screen, navigator), books/, codex/, lab/ (IME lab)
+  db/             PowerSync schema, queries, sample book and seeding, ordering, undo, Trash, prefs, the scene store,
+                  writing stats, scene versions
+  editor/         TipTap scene editor, its extensions, open scene docs, the active editor, codex name matching
+  features/       plan/ (Board, Outline, drawer), write/ (views, toolbar, navigator, History, chapter plan), books/,
+                  codex/, lab/ (IME lab)
   lib/            small helpers (ids, word counts, numbers, keys, focus)
   test/           in-memory SQLite and book builders for unit tests
   yjs/            SceneDocProvider, the scene store interface, Yjs helpers
@@ -133,3 +161,4 @@ Development builds expose `window.__bbb` for the console and the end-to-end test
 - `openScenes()`: ids of the scenes open in this tab.
 - `flushAll()`: resolves once every edit in this tab has been written.
 - `compactAll()`: compacts every open scene now.
+- `settleAll()`: saves pending word counts and versions now, instead of after their delays.

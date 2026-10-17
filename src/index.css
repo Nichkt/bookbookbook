@@ -199,9 +199,42 @@
   .prose-page :where(p + p) {
     text-indent: 1.5em;
   }
+  .prose-page :where(p[style*="text-align"]) {
+    text-indent: 0;
+  }
   .prose-page :where(blockquote) {
     margin: 0.75em 0 0.75em 1.5em;
     color: var(--ink-2);
+  }
+  .prose-page :where(h2, h3) {
+    margin: 1.25em 0 0.5em;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .prose-page :where(h2) {
+    font-size: 1.3em;
+  }
+  .prose-page :where(h3) {
+    font-size: 1.1em;
+  }
+  /* A scene break is stored as a horizontal rule and shown as a centred asterism. */
+  .prose-page :where(hr) {
+    height: auto;
+    margin: 0.75em 0;
+    overflow: visible;
+    border: 0;
+    border-radius: 4px;
+    color: var(--ink-2);
+    text-align: center;
+  }
+  .prose-page :where(hr)::after {
+    content: "\2042";
+    display: block;
+    line-height: 1.75;
+  }
+  .prose-page :where(hr.ProseMirror-selectednode) {
+    outline: 2px solid color-mix(in oklab, var(--accent-ink) 55%, transparent);
+    outline-offset: 2px;
   }
   .prose-page .ProseMirror {
     position: relative;
