@@ -6,9 +6,9 @@ takes after NovelCrafter, the writing side after Sudowrite.
 - **Design:** [docs/DESIGN.md](docs/DESIGN.md) covers every product and technical decision and the milestone plan.
 - **Prototype:** [prototype/](prototype/README.md) is a clickable mock of the whole app. Open `prototype/index.html`.
 
-## Status: the Codex, editor core, export and backups
+## Status: the Codex, editor core, import, export and backups
 
-Milestones 0 to 3 from DESIGN.md §19 are built, along with M7's export and backups.
+Milestones 0 to 3 from DESIGN.md §19 are built, along with M7's import, export and backups.
 Everything stays on the device; there are no accounts or sync yet, so back up from the book menu (Export… → Backup).
 The Inbox tab is a placeholder until M11.
 
@@ -27,7 +27,10 @@ The Inbox tab is a placeholder until M11.
   chapter's characters, places and threads first, with their roles and mentions, then every entry, and shows one at a
   time to read.
 
-**M7, Export and backups** (DESIGN.md §13):
+**M7, Import, export and backups** (DESIGN.md §13):
+- **Import** a Word document, Markdown or plain text, or paste a manuscript, from the book menu or the empty library.
+  A preview shows the chapters, acts and scenes it found. Change where chapters start, rename, merge, start acts or
+  leave chapters out, with Undo, then import it as a new book.
 - **Export** from the book menu:
   - a Word manuscript in standard manuscript format: a title page with the word count, a running head, Times or
     Courier, Letter or A4;
@@ -122,7 +125,10 @@ in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). 
 - word counts and the day's writing stats, scene versions (saving, pruning, restoring) and how History compares them;
 - the Scene view's reading order, and shortcut labels and keys;
 - export: the manuscript and its chapter headings, Word, Markdown (both ways) and plain-text files, safe file names,
-  backups and restoring them, and the Export dialog's saved choices.
+  backups and restoring them, and the Export dialog's saved choices;
+- import: reading Word documents (styles, marks, tracked changes, limits), Markdown and plain text (encodings and
+  paragraphs), splitting into acts, chapters and scenes, the title and author, the preview's edits and Undo, and the
+  book it writes.
 
 **End-to-end tests** (`e2e/`) run in your installed Chrome against a dev server on port 5174, which Playwright starts
 (or reuses if it's already running). Every test gets a fresh browser profile, so each one starts from the sample book.
@@ -142,6 +148,9 @@ They cover:
 - export (`export.spec.ts`): a Word manuscript with the last words typed and the author, Markdown as one file and a
   file per chapter, a backup restored beside its original, a file that isn't a backup, nothing to export, and
   restoring into an empty library;
+- import (`import.spec.ts`): a Markdown manuscript with acts and scenes, a paste reworked in the preview (leaving
+  out, starting an act, merging, Undo, Enter between titles), a Word document with its title, author and italics,
+  files it can't read, and a file dropped into the empty library;
 - the Codex (`codex.spec.ts`): a new entry surviving a reload, Appears in and back, the Trash and Undo, custom types,
   a field on every character, search with the tag filter, a new character found in the text and counted, and the
   phone layout;
@@ -149,8 +158,8 @@ They cover:
   entry was opened from and the list where it was left, counts that follow the text, sharing the panel with the
   chapter plan, hover cards that leave the caret alone, and Ctrl+click;
 - touch targets (`touch.spec.ts`): on a phone and a tablet, every control on the Board, its menus, the drawer, a toast,
-  the Outline, the Write screen with its menus, History, chapter plan and Codex panel, and the Codex must be at least
-  44 px.
+  the Outline, the Write screen with its menus, History, chapter plan and Codex panel, the Codex, and the Import
+  dialog with its menus must be at least 44 px.
 
 Use `npx playwright test --ui` to debug. A failed test keeps a trace in `test-results/`; open it with
 `npx playwright show-trace <path>`.
@@ -186,8 +195,9 @@ src/
   editor/         TipTap scene editor, its extensions, open scene docs, the active editor, codex name matching
   export/         manuscript, Word, Markdown and plain-text files, backups and restoring them
   features/       plan/ (Board, Outline, drawer), write/ (views, toolbar, navigator, History, side panel with the
-                  chapter plan and Codex, hover cards), books/, export/ (Export and Restore dialogs), codex/ (Codex
-                  screen, entry pages, Appears in), lab/ (IME lab)
+                  chapter plan and Codex, hover cards), books/, export/ (Export and Restore dialogs), import/ (Import
+                  dialog and its preview), codex/ (Codex screen, entry pages, Appears in), lab/ (IME lab)
+  import/         reading Word, Markdown and plain text, splitting into acts, chapters and scenes, writing the book
   lib/            small helpers (ids, word counts, numbers, keys, focus, colors, plain text as rich text)
   test/           in-memory SQLite and book builders for unit tests
   yjs/            SceneDocProvider, the scene store interface, Yjs helpers

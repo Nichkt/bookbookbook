@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label"
 import type { BookListRow } from "@/db/queries"
 import { ExportForm } from "@/features/export/ExportForm"
 import { RestoreForm } from "@/features/export/RestoreForm"
+import { ImportForm } from "@/features/import/ImportForm"
 import { formatCount, parseCount } from "@/lib/numbers"
 import { closeBookDialog, returnFocusOnClose, useBookDialogs } from "./dialogStore"
 import { createBook, DEFAULT_BOOK_TARGET, trashBook, updateBook } from "./mutations"
@@ -29,7 +30,7 @@ const onOpenChange = (open: boolean) => {
   if (!open && !useBookDialogs.getState().busy) closeBookDialog()
 }
 
-/** New book, Book settings, Export, Restore and Trash, opened from the header's book menu (DESIGN.md §4, §13). */
+/** New book, Book settings, Export, Restore, Import and Trash, opened from the header's book menu (DESIGN.md §4, §13). */
 export function BookDialogs({ book }: { book: BookListRow | undefined }) {
   const dialog = useBookDialogs((state) => state.dialog)
   return (
@@ -53,6 +54,16 @@ export function BookDialogs({ book }: { book: BookListRow | undefined }) {
       <Dialog open={dialog === "restore"} onOpenChange={onOpenChange}>
         <DialogContent onCloseAutoFocus={returnFocusOnClose}>
           <RestoreForm />
+        </DialogContent>
+      </Dialog>
+      <Dialog open={dialog === "import"} onOpenChange={onOpenChange}>
+        <DialogContent
+          className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-y-auto sm:max-w-2xl"
+          onCloseAutoFocus={returnFocusOnClose}
+          // The preview holds the writer's changes: a stray click beside it mustn't throw them away.
+          onInteractOutside={(event) => event.preventDefault()}
+        >
+          <ImportForm />
         </DialogContent>
       </Dialog>
       <Dialog open={dialog === "trash"} onOpenChange={onOpenChange}>

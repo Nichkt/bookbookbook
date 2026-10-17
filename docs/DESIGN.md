@@ -651,9 +651,9 @@ flowchart LR
 ### Import
 | Source | Approach | Phase |
 |---|---|---|
-| DOCX | mammoth (DOCX → HTML) → split on Heading 1/2 or "Chapter N" patterns → **split preview** (rename, merge, set acts) → scenes split on `***`, `* * *`, `#` | Beta |
-| Markdown / TXT | Same splitter: `#` / `##` headings or chapter regex | Beta |
-| Paste & split | Paste a manuscript, same split preview | Beta |
+| DOCX | The app's own reader (decision 20): headings from Word's styles → split on a heading level or "Chapter N" lines → **split preview** (rename, merge, set acts, leave out) → scenes split on `***`, `* * *`, `#` and smaller headings | Beta (built in M7) |
+| Markdown / TXT | Same splitter: `#` / `##` headings or chapter lines | Beta (built in M7) |
+| Paste & split | Paste a manuscript, same split preview | Beta (built in M7) |
 | Scrivener `.scriv` | Folder package (zip it or use a directory picker): parse the `.scrivx` binder XML + RTF files. Synopsis → summary, notes → notes, label/status → labels/status | v1.x |
 | Codex | CSV / Markdown entries | Later |
 
@@ -672,7 +672,7 @@ flowchart LR
 Export options: choose chapters, include/strip comments, front matter, scene-break style. AI tint is never exported.
 
 ### Built in M7
-So far M7 has built export, backups and restoring them. Import, folder backups and the "last backup" reminder are
+So far M7 has built export, backups, restoring them, and import. Folder backups and the "last backup" reminder are
 still to come. Details it settled:
 - **One Export dialog**, in the book menu. Word manuscript, Markdown, Plain text and Backup are radio cards, and only
   the chosen format's options show. Each book remembers its last choices, and focus starts on the chosen format.
@@ -711,9 +711,56 @@ still to come. Details it settled:
     all, 20,000 files). Files can't share data or misstate a stored size, so a crafted zip can't unpack to more than
     it holds. Rows whose parent is missing are dropped.
   - One restore at a time: the dialog stays open until it's done, so a second drop or a retry can't make two books.
+- **Import** is in the book menu ("Import a manuscript…") and the empty library. One dialog, two steps: the source
+  (choose a file, drop one anywhere on the dialog, or paste the text), then a preview of the book it will make. Back
+  keeps a paste, to fix rather than paste again.
+- **Reading:**
+  - Word documents are read straight from the `.docx`: paragraphs, centring, and bold, italic, underline and
+    strikethrough however they were applied. Heading levels come from styles: Word's Title, Heading 1–9, a style
+    based on one, or an outline level. Tracked changes read as accepted. Deleted and hidden text, field codes,
+    contents pages, drawings, footnotes and comments are left behind. An old `.doc` is turned away with how to save
+    it as `.docx`.
+  - Markdown is read as export writes it. Front matter can give the title and author.
+  - Plain text is read as UTF-8, UTF-16 or Windows' Western encoding. Paragraphs are a line each or parted by blank
+    lines: the preview guesses, and offers the other. Lines wrapped short, as an e-text's are, join up. A paste with
+    Markdown headings is read as Markdown.
+  - Limits: 256 MB for a Word document (its parts within limits, as a backup's are) and 32 MB for text. An empty
+    file or paste says there's nothing to import.
+- **Splitting:**
+  - Chapters start at the headings of one level, at lines like "Chapter 12", "Chapter Twelve" or "Prologue", or
+    nowhere (one chapter). The likeliest is chosen, and "Chapters start at" offers each way with the chapters it
+    makes: "Heading 2 (24 chapters)".
+  - Headings above the chapters' level, and lines like "Part Two", start acts. Headings a level below, and scene
+    breaks, start scenes. "Split chapters into scenes at scene breaks and smaller headings" turns that off, and only
+    shows when it changes something.
+  - A first heading over the rest is the book's title, and a "by …" line under it the author. Otherwise the file's
+    own details give them, and failing those the title is the file's name.
+  - What comes before the first chapter is front matter: under 500 words (a title page, a dedication), it's left out
+    to begin with. A contents page and a closing "The End" are dropped.
+- **The preview:**
+  - Title, author, "Chapters start at", and a count of what import will make: "24 chapters · 3 acts · 87 scenes ·
+    91,204 words".
+  - A list of acts and chapters. Each chapter shows its words, scenes and first words. The list takes the dialog's
+    room, keeps at least 12 rem on a short screen, and then the dialog scrolls.
+  - Titles are renamed in place. Enter goes on to the next title, since renaming chapters is usually renaming
+    several.
+  - Each chapter's ⋯ menu: merge into the chapter above or below (the merged chapter's title goes to its first
+    scene), start an act here, and leave out or put back. In a book without acts, starting one makes the chapters
+    before it a first act. Each act can be removed, its chapters kept.
+  - Undo takes back any change, up to 100. Typing in one title is one step.
+  - Focus follows the work: to the new act's title, to the menu of the chapter merged into, or, when an act goes, to
+    the title of the chapter it headed. Menu commands that move focus wait for the menu to close.
+  - Clicks outside the dialog don't close it, so a stray tap can't lose the changes. Escape and Cancel still do.
+- **Importing** makes a new book beside the others, as a restore does:
+  - It gets its own codex. A title that's taken gets " (imported)".
+  - Its target is 80,000 words, or more for a longer book: its words rounded up to the next 10,000.
+  - Acts and chapters come as the preview shows them. A chapter with prose is "drafting", one without an "idea".
+  - Each scene's prose goes in as its first version, so the words don't count as the day's writing.
+  - It opens at the first chapter, with "Imported “Title”".
 - **Not yet:** choosing chapters, scene-break style, front matter, act headings, a localized "Chapter", comments
-  (M6), import, folder auto-backup, the "last backup" indicator and reminder, and AI cards and codex images in
-  backups (M4, v1.x). The app already asks the browser to keep its storage (`persist()`) at the first edit.
+  (M6), folder auto-backup, the "last backup" indicator and reminder, importing into an existing book, images in
+  imports, and AI cards and codex images in backups (M4, v1.x). The app already asks the browser to keep its storage
+  (`persist()`) at the first edit.
 
 ---
 
@@ -870,8 +917,9 @@ LanguageTool or the browser spellchecker. RTL later.
     against XSS.
   - Strict CSP, no third-party scripts on the app origin, dependency auditing.
   - OS keychain in the desktop app.
-- **Input hardening:** the ProseMirror schema drops unknown markup. Imported HTML (DOCX, paste) is sanitized
-  (DOMPurify) before parsing.
+- **Input hardening:** the ProseMirror schema drops unknown markup. Imports never go through HTML: Word's XML is
+  read by a parser that expands no entities and limits nesting, within size limits, and only the editor's own blocks
+  and marks come through.
 - **Telemetry:**
   - Opt-in, cookie-less analytics.
   - Error reports scrub content: no prose, codex text, prompts or outputs ever leave the device.
@@ -927,8 +975,8 @@ LanguageTool or the browser spellchecker. RTL later.
 1. Name clearance for "bookbookbook" (trademark, domain, app stores).
 2. The phone keyboard test on real devices with Gboard and Samsung Keyboard
    ([ime-smoke-test.md](ime-smoke-test.md)), left over from M0.
-3. M2, Editor core, M3, Codex core, and M7's export and backups are built and tested ([README](../README.md)). The
-   rest of M7 (import, folder backups, the "last backup" reminder) comes later.
+3. M2, Editor core, M3, Codex core, and M7's export, backups and import are built and tested
+   ([README](../README.md)). The rest of M7 (folder backups, the "last backup" reminder) comes next.
 
 ---
 
@@ -991,3 +1039,4 @@ LanguageTool or the browser spellchecker. RTL later.
 | 17 | M7 export | One Export dialog: Word manuscript, Markdown, plain text or Backup, its choices remembered per book; open scenes saved before exporting; the author saved with the book; Restore always makes a new book beside the original; import and folder backups later | Details in §13, "Built in M7" |
 | 18 | M3 Codex screen | Types, list and entry side by side from 1024 px, list and entry from 768 px, one at a time on phones; search across every type; a type's fields plus an entry's own, and removing a type's field keeps the text entries filled in; mention matching stays on the main thread, without a worker | Details in §7, "Built in M3" |
 | 19 | M3 hover cards and Codex panel | Cards open when the mouse rests on a name and never take the caret; a plain click places the caret, Ctrl/⌘+click opens the Codex screen; Write's side panel has Chapter plan and Codex pages, one at a time, each a toolbar button; the Codex page lists the chapter's entries first and only reads; @-mentions and quick-create move to M6 | Details in §7, "Built in M3" |
+| 20 | M7 import | Word documents read by the app's own reader, not mammoth: heading levels straight from styles, including a style based on a heading or given an outline level (mammoth maps styles by name), no HTML to sanitize, the same zip limits as restore, and one dependency fewer; one dialog, source then preview; short front matter left out to begin with; rename, merge, start acts and leave out in the preview, every change undoable; a new book beside the others, never into an open one | Details in §13, "Built in M7" |

@@ -2,7 +2,7 @@ import { generateKeyBetween } from "fractional-indexing"
 import { newId } from "@/lib/id"
 import { NO_AUTO_MENTION_TYPES } from "./codexTypes"
 import type { ChapterStatus } from "./schema"
-import { insertRow, type Db } from "./tx"
+import { insertRow, type Db, type Tx } from "./tx"
 
 export interface BookListRow {
   id: string
@@ -15,6 +15,20 @@ export interface BookListRow {
 
 export const BOOKS_SQL = `
   SELECT id, title, author, genre, target_words, universe_id FROM books WHERE deleted_at IS NULL ORDER BY created_at, id`
+
+/**
+ * `title`, or if another book has it, `title (word)`, `title (word 2)`…: for a book restored or imported beside
+ * the one it came from, so the two can be told apart.
+ */
+export async function unusedTitle(tx: Tx, title: string, word: string): Promise<string> {
+  const taken = async (candidate: string) =>
+    Boolean(await tx.getOptional("SELECT id FROM books WHERE deleted_at IS NULL AND title = ?", [candidate]))
+  if (!(await taken(title))) return title
+  for (let n = 1; ; n++) {
+    const candidate = n === 1 ? `${title} (${word})` : `${title} (${word} ${n})`
+    if (!(await taken(candidate))) return candidate
+  }
+}
 
 export interface ActListRow {
   id: string

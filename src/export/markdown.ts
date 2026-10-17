@@ -236,16 +236,28 @@ const LIST_ITEM = /^( {0,3})([-+*]|\d{1,9}[.)])(?=[ \t]|$)([ \t]*)(.*)$/
 /**
  * Blocks from Markdown: paragraphs, headings (`#` and `##` become the editor's larger heading), scene breaks
  * (`***`, `---`, `* * *`, a lone `#` or `⁂`), quotes and lists. Front matter is skipped; links keep their text.
+ * `levels`, when given, gets the level each top-level heading was written at (1 to 6), which import splits
+ * chapters by.
  */
-export function markdownToBlocks(markdown: string): Block[] {
-  const text = stripFrontMatter(markdown.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n"))
-  return parseBlocks(text.split("\n").map((line) => line.replace(/^\t+/, (tabs) => "    ".repeat(tabs.length))))
+export function markdownToBlocks(markdown: string, levels?: Map<Block, number>): Block[] {
+  const text = stripFrontMatter(normalizeNewlines(markdown))
+  return parseBlocks(
+    text.split("\n").map((line) => line.replace(/^\t+/, (tabs) => "    ".repeat(tabs.length))),
+    levels,
+  )
 }
 
+const FRONT_MATTER = /^---[ \t]*\n(?:([\s\S]*?)\n)?(?:---|\.\.\.)[ \t]*(?:\n|$)/
+
+const normalizeNewlines = (markdown: string) => markdown.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n")
+
 function stripFrontMatter(text: string): string {
-  const match = /^---[ \t]*\n(?:[\s\S]*?\n)?(?:---|\.\.\.)[ \t]*(?:\n|$)/.exec(text)
+  const match = FRONT_MATTER.exec(text)
   return match ? text.slice(match[0].length) : text
 }
+
+/** The YAML front matter's lines, between its `---` fences: "" when there's none. */
+export const markdownFrontMatter = (markdown: string) => FRONT_MATTER.exec(normalizeNewlines(markdown))?.[1] ?? ""
 
 interface ListItemStart {
   ordered: boolean
@@ -279,12 +291,16 @@ function interruptsParagraph(line: string): boolean {
   return item !== null && item.content.trim() !== "" && (!item.ordered || item.start === 1)
 }
 
-function parseBlocks(lines: readonly string[]): Block[] {
+function parseBlocks(lines: readonly string[], levels?: Map<Block, number>): Block[] {
   const blocks: Block[] = []
   let paragraph: string[] = []
   const endParagraph = () => {
     if (paragraph.length > 0) blocks.push({ type: "paragraph", inlines: parseInlines(paragraph.join("\n")) })
     paragraph = []
+  }
+  const pushHeading = (block: Block, written: number) => {
+    levels?.set(block, written)
+    blocks.push(block)
   }
   let i = 0
   while (i < lines.length) {
@@ -295,7 +311,7 @@ function parseBlocks(lines: readonly string[]): Block[] {
       continue
     }
     if (paragraph.length > 0 && SETEXT_UNDERLINE.test(line)) {
-      blocks.push({ type: "heading", level: 2, inlines: parseInlines(paragraph.join("\n")) })
+      pushHeading({ type: "heading", level: 2, inlines: parseInlines(paragraph.join("\n")) }, line.trim().startsWith("=") ? 1 : 2)
       paragraph = []
       i++
       continue
@@ -316,7 +332,8 @@ function parseBlocks(lines: readonly string[]): Block[] {
       const content = (heading[2] ?? "").trim()
       // A lone # is a manuscript's scene break.
       const level = heading[1].length >= 3 ? 3 : 2
-      blocks.push(content ? { type: "heading", level, inlines: parseInlines(content) } : SCENE_BREAK)
+      if (content) pushHeading({ type: "heading", level, inlines: parseInlines(content) }, heading[1].length)
+      else blocks.push(SCENE_BREAK)
       i++
       continue
     }

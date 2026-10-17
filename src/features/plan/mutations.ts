@@ -62,7 +62,7 @@ export function newChapterRow(values: NewRow & { book_id: string; position: stri
   }
 }
 
-function newSceneRow(values: NewRow & { chapter_id: string; position: string }): NewRow {
+export function newSceneRow(values: NewRow & { chapter_id: string; position: string }): NewRow {
   return {
     title: "",
     summary: "",

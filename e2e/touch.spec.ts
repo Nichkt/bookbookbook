@@ -222,5 +222,37 @@ for (const [device, viewport] of [
       await page.getByRole("menuitem", { name: "Move to Trash" }).click()
       await check("Undo toast", "[data-sonner-toast]")
     })
+
+    test("every import control is at least a 44px target", async ({ page }) => {
+      const { check, closeWith } = checker(page)
+
+      await openFirstChapter(page)
+      await page.getByRole("button", { name: "Book: The Salt Ledger" }).click()
+      await check("Book menu", "[role=menu]")
+      await page.getByRole("menuitem", { name: "Import a manuscript…" }).click()
+      const dialog = page.getByRole("dialog", { name: "Import a manuscript" })
+      await dialog.getByRole("button", { name: /^Choose a file…/ }).waitFor()
+      await check("Import a manuscript", "[role=dialog]")
+
+      // Acts, scenes and a left-out title page: every kind of row.
+      await dialog.locator('input[type="file"]').setInputFiles({
+        name: "draft.md",
+        mimeType: "text/markdown",
+        buffer: Buffer.from(
+          "# The Long Tide\n\nby Ada Lane\n\n# Part One\n\n## Ferry\n\nThe ferry.\n\n* * *\n\nNight.\n\n" +
+            "## Harbour\n\nGulls.\n\n# Part Two\n\n## Island\n\nFog.\n",
+        ),
+      })
+      await dialog.getByRole("textbox", { name: "Title of act 2" }).waitFor()
+      await check("Import preview", "[role=dialog]")
+
+      await dialog.getByRole("combobox", { name: "Chapters start at" }).click()
+      await check("Chapter start options", "[role=listbox]")
+      await closeWith("Escape", "[role=listbox]")
+
+      await dialog.getByRole("button", { name: "More for chapter 2" }).click()
+      await check("Import chapter menu", "[role=menu]")
+      await closeWith("Escape", "[role=menu]")
+    })
   })
 }

@@ -1,8 +1,10 @@
-import { strFromU8, strToU8, unzipSync, zipSync, type UnzipFileInfo } from "fflate"
+import { strFromU8, strToU8, zipSync } from "fflate"
+import { unusedTitle } from "@/db/queries"
 import { columnTypes, type SyncableName } from "@/db/schema"
 import { localDay } from "@/db/stats"
-import { insertRow, type Db, type SqlValue, type Tx } from "@/db/tx"
+import { insertRow, type Db, type SqlValue } from "@/db/tx"
 import { newId } from "@/lib/id"
+import { unzipLimited } from "@/lib/unzip"
 import { countWords } from "@/lib/words"
 import { base64ToBytes, bytesToBase64 } from "@/yjs/base64"
 import { proseText } from "@/yjs/prose"
@@ -147,27 +149,14 @@ const MAX_TOTAL_BYTES = 512 * 1024 * 1024
 const MAX_ENTRIES = 20_000
 const ENTRY = /^(scenes\/[^/]+\.(ystate|md)|versions\/[^/]+\.ystate)$/
 
-/**
- * Unpacks only the files a backup has, within sane sizes, so a stray or hostile zip can't eat the memory or the
- * time. Stored files must be the size they claim, and the files unpacked can't share data: their packed sizes add
- * up to no more than the zip. So the work grows with the zip's size, not with what its directory claims.
- */
+/** Unpacks only the files a backup has, within sane sizes. */
 function readZip(data: Uint8Array): Map<string, Uint8Array> {
-  let entries = 0
-  let packed = 0
-  let unpacked = 0
-  const wanted = (file: UnzipFileInfo) => {
-    if (++entries > MAX_ENTRIES) throw new Error("Too many files")
-    const limit = file.name === "book.json" ? MAX_JSON_BYTES : ENTRY.test(file.name) ? MAX_FILE_BYTES : 0
-    if (!limit || (file.compression !== 0 && file.compression !== 8) || file.originalSize > limit) return false
-    if (file.compression === 0 && file.size !== file.originalSize) throw new Error("Bad size")
-    packed += file.size
-    unpacked += file.originalSize
-    if (packed > data.length || unpacked > MAX_TOTAL_BYTES) throw new Error("Too big")
-    return true
-  }
   try {
-    return new Map(Object.entries(unzipSync(data, { filter: wanted })))
+    return unzipLimited(data, {
+      limit: (name) => (name === "book.json" ? MAX_JSON_BYTES : ENTRY.test(name) ? MAX_FILE_BYTES : 0),
+      maxTotal: MAX_TOTAL_BYTES,
+      maxEntries: MAX_ENTRIES,
+    })
   } catch {
     throw new ExportError(NOT_A_BACKUP)
   }
@@ -240,7 +229,8 @@ export async function restoreBackup(db: Db, zip: Uint8Array, now = new Date()): 
   const bookId = newId()
 
   return db.writeTransaction(async (tx) => {
-    const title = await unusedTitle(tx, typeof book.title === "string" && book.title.trim() ? book.title.trim() : "Untitled book")
+    const bookTitle = typeof book.title === "string" && book.title.trim() ? book.title.trim() : "Untitled book"
+    const title = await unusedTitle(tx, bookTitle, "restored")
     const universeName = typeof universe.name === "string" && universe.name.trim() ? universe.name : title
     await insertRow(tx, "universes", { ...columnsOf("universes", universe), id: universeId, owner_id: null, name: universeName })
     await insertRow(tx, "books", {
@@ -372,12 +362,3 @@ function readState(state: Uint8Array | undefined): Prose | null {
 }
 
 /** The title, or with "(restored)" after it if a book in the library has it already. */
-async function unusedTitle(tx: Tx, title: string): Promise<string> {
-  const taken = async (candidate: string) =>
-    Boolean(await tx.getOptional("SELECT id FROM books WHERE deleted_at IS NULL AND title = ?", [candidate]))
-  if (!(await taken(title))) return title
-  for (let n = 1; ; n++) {
-    const candidate = n === 1 ? `${title} (restored)` : `${title} (restored ${n})`
-    if (!(await taken(candidate))) return candidate
-  }
-}
