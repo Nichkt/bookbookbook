@@ -303,6 +303,7 @@ describe("folding chapters into scenes (Tab) and splitting them out (Shift+Tab)"
               target: 3000,
               threads: ["ledger"],
               present: ["mara"],
+              labels: ["storm"],
               beats: ["stays"],
               scenes: [
                 { title: "a1", words: 100 },
@@ -320,7 +321,12 @@ describe("folding chapters into scenes (Tab) and splitting them out (Shift+Tab)"
     const split = await splitChapterAt(db, "sc-A-2")
     // A keeps a1 as a real scene: its title says something the chapter's doesn't.
     expect(await outline(db)).toEqual(["# One", "A: a1", "a2: a2, a3", "Z"])
-    expect(await chapterRow(db, split!.chapterId)).toMatchObject({ act_id: "act-One", summary: "", word_target: 2500 })
+    expect(await chapterRow(db, split!.chapterId)).toMatchObject({
+      act_id: "act-One",
+      summary: "",
+      word_target: 2500,
+      labels: '["storm"]',
+    })
     expect((await chapterRow(db, "ch-A")).word_target).toBe(500)
     expect(await links(db, split!.chapterId)).toEqual(["present:mara", "thread:ledger"])
     const beats = await db.getAll<{ parent_id: string }>("SELECT parent_id FROM beats")

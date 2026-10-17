@@ -182,6 +182,11 @@ function useReturnFocus() {
 function DockedDrawer({ chapterId, onClose }: { chapterId: string; onClose: () => void }) {
   const ref = useRef<HTMLElement>(null)
   const returnFocus = useReturnFocus()
+  // After a reload or Back to a `?chapter=` URL nothing has focus, so start in the drawer, as a click on a card would.
+  useEffect(() => {
+    const active = document.activeElement
+    if (!focusPending() && (!active || active === document.body)) focusSoon(byData("drawer-heading", chapterId))
+  }, [chapterId])
   const close = () => {
     returnFocus(chapterId, ref.current)
     onClose()

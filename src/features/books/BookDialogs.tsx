@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { BookListRow } from "@/db/queries"
-import { parseCount } from "@/lib/numbers"
+import { formatCount, parseCount } from "@/lib/numbers"
 import { closeBookDialog, returnFocusOnClose, useBookDialogs } from "./dialogStore"
 import { createBook, DEFAULT_BOOK_TARGET, trashBook, updateBook } from "./mutations"
 import { TrashList } from "./TrashList"
@@ -52,7 +52,7 @@ function NewBookForm() {
   const db = usePowerSync()
   const navigate = useNavigate()
   const [title, setTitle] = useState("")
-  const [target, setTarget] = useState(String(DEFAULT_BOOK_TARGET))
+  const [target, setTarget] = useState(formatCount(DEFAULT_BOOK_TARGET))
   const [busy, setBusy] = useState(false)
 
   const submit = async (event: FormEvent) => {
@@ -114,7 +114,7 @@ function BookSettingsForm({ book }: { book: BookListRow }) {
   const navigate = useNavigate()
   const [title, setTitle] = useState(book.title ?? "")
   const [genre, setGenre] = useState(book.genre ?? "")
-  const [target, setTarget] = useState(book.target_words ? String(book.target_words) : "")
+  const [target, setTarget] = useState(book.target_words ? formatCount(book.target_words) : "")
   const name = book.title?.trim() || "Untitled book"
 
   const save = async (event: FormEvent) => {

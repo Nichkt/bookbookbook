@@ -236,7 +236,8 @@ The Matrix, Timeline, Corkboard and templates follow in M5. Details it settled:
 - **Board.** Cards drag within and between acts (dnd-kit). Alt+arrow keys move the focused card, and screen readers
   hear where it landed.
 - **Drawer.** From 1024 px up it docks beside the Board or Outline, which stay usable. Narrower screens get a modal
-  sheet, full-screen on phones. `?chapter=` in the URL opens it, so it survives a reload and Back closes it.
+  sheet, full-screen on phones. `?chapter=` in the URL opens it, so it survives a reload (focus starts on its heading)
+  and Back closes it. Word targets show the locale's digit grouping ("3,000") and read it back when typed.
 - **Filters** by POV, status and thread dim the chapters that don't match, and live in the URL. The Display preset
   and fields are saved per book and per view in `ui_prefs`.
 - **Quick create:** "+ Act" and "+ Chapter" in the toolbar, "+" on each act of the Board, Enter in the Outline. The

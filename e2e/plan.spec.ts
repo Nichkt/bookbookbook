@@ -147,6 +147,7 @@ test.describe("Chapter drawer", () => {
     await expect(updated).toContainText("Drafting")
 
     await page.reload()
+    await expect(drawer.getByRole("heading", { name: "Chapter 5", exact: true })).toBeFocused()
     await expect(drawer.getByRole("textbox", { name: "Chapter title" })).toHaveValue("The Records Room")
     await expect(drawer.getByRole("combobox", { name: "Status" })).toHaveText("Drafting")
     await expect(drawer.getByRole("textbox", { name: "Summary" })).toHaveValue(summary)

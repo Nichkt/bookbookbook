@@ -68,7 +68,7 @@ Storage → Clear site data) and reload.
 **Unit tests** live next to the code (`src/**/*.test.ts`) and run in Node. Tests that write to the database use an
 in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). They cover:
 - scene saving and compaction (`SceneDocProvider` against an in-memory store);
-- the mention highlighter, codex name matching, word counts and the Yjs helpers;
+- the mention highlighter, codex name matching, word counts, number entry in any locale and the Yjs helpers;
 - the plan's edits (create, move, fold, split, trash) and their exact undo;
 - ordering keys, story time, the Board's drop targets and the Outline's keyboard paths;
 - books, codex entries, the sample book, the Trash and the Write navigator.

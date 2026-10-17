@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useDraft } from "@/components/useDraft"
 import { byData, focusSoon } from "@/lib/focus"
-import { formatCount, parseCount } from "@/lib/numbers"
+import { formatCount, parseCount, tidyCount } from "@/lib/numbers"
 import { cn } from "@/lib/utils"
 import { BeatsEditor } from "./BeatsEditor"
 import { trashChapterWithUndo, trashSceneWithUndo } from "./commands"
@@ -286,15 +286,16 @@ function Section({
   )
 }
 
-/** The chapter's word target. Takes "3000" or "3,000"; anything else goes back to the saved value. */
+/** The chapter's word target, with separators. Takes "3000" or "3,000"; anything else goes back to the saved value. */
 function TargetField({ chapter, inputId }: { chapter: PlanChapter; inputId: string }) {
   const { db } = usePlanContext()
-  const stored = chapter.word_target ? String(chapter.word_target) : ""
+  const stored = chapter.word_target ? formatCount(chapter.word_target) : ""
   const draft = useDraft(stored, (text) => {
     const target = parseCount(text)
     if (text.trim() && target === null) return
     return updateChapter(db, chapter.id, { word_target: target })
   })
+  const [editing, setEditing] = useState(false)
   const invalid = draft.value.trim() !== "" && parseCount(draft.value) === null
   return (
     <div className="flex items-center gap-2">
@@ -304,10 +305,15 @@ function TargetField({ chapter, inputId }: { chapter: PlanChapter; inputId: stri
         placeholder="None"
         aria-invalid={invalid || undefined}
         aria-describedby={`${inputId}-help`}
-        value={draft.value}
+        // Separators come back once you leave the field, however the number was typed.
+        value={editing ? draft.value : tidyCount(draft.value)}
         onChange={(event) => draft.onChange(event.target.value)}
-        onFocus={draft.onFocus}
+        onFocus={() => {
+          setEditing(true)
+          draft.onFocus()
+        }}
         onBlur={() => {
+          setEditing(false)
           draft.onBlur()
           if (invalid) {
             draft.reset()
