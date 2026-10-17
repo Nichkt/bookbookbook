@@ -120,6 +120,21 @@ for (const [device, viewport] of [
       await check("Chapter plan", "[role=dialog]")
       await closeWith("Escape", "[role=dialog]")
 
+      if (device === "phone") {
+        await page.getByRole("button", { name: "More writing tools" }).click()
+        await page.getByRole("menuitem", { name: "Codex" }).click()
+      } else {
+        await page.getByRole("button", { name: "Codex", exact: true }).click()
+      }
+      const codexSheet = page.getByRole("dialog", { name: "Codex" })
+      const mara = codexSheet.getByRole("region", { name: "In this chapter" }).getByRole("button").first()
+      await mara.waitFor()
+      await check("Codex panel", "[role=dialog]")
+      await mara.click()
+      await codexSheet.getByRole("heading", { level: 2, name: "Mara Quill" }).waitFor()
+      await check("Codex panel entry", "[role=dialog]")
+      await closeWith("Escape", "[role=dialog]")
+
       await page.getByRole("navigation", { name: "Screens" }).getByRole("link", { name: "Plan" }).click()
       const card = page.getByRole("button", { name: "Chapter 2: The Keeper's Room" })
       await card.waitFor()

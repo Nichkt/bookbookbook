@@ -3,6 +3,7 @@ import { useEditorState, type Editor } from "@tiptap/react"
 import {
   BoldIcon,
   BookOpenTextIcon,
+  BookUserIcon,
   EllipsisIcon,
   FileTextIcon,
   HistoryIcon,
@@ -43,7 +44,16 @@ import { useMediaQuery } from "@/lib/useMediaQuery"
 import { cn } from "@/lib/utils"
 import { openHistory } from "./history"
 import { NAVIGATOR_ID } from "./Navigator"
-import { isWriteUnit, sceneNameIn, UNIT_LABELS, useWrite, WRITE_UNITS, writePath, type WriteUnit } from "./writeContext"
+import {
+  isWriteUnit,
+  sceneNameIn,
+  UNIT_LABELS,
+  useWrite,
+  WRITE_UNITS,
+  writePath,
+  type PanelPage,
+  type WriteUnit,
+} from "./writeContext"
 
 const UNIT_ICONS: Record<WriteUnit, LucideIcon> = {
   scene: FileTextIcon,
@@ -114,7 +124,7 @@ const toggleCenter = (editor: Editor) => editor.chain().focus().toggleTextAlign(
 const sceneBreak = (editor: Editor) => editor.chain().focus().setHorizontalRule().run()
 
 function WideToolbar({ active, format }: ToolbarProps) {
-  const { plan, unit, setUnit, navOpen, toggleNav, panelOpen, setPanelOpen } = useWrite()
+  const { plan, unit, setUnit, navOpen, toggleNav } = useWrite()
   const editor = active?.editor
   return (
     <div data-write-toolbar="" className={BAR_CLASS}>
@@ -223,18 +233,28 @@ function WideToolbar({ active, format }: ToolbarProps) {
         </TooltipTrigger>
         <TooltipContent>History · Snapshot {shortcutLabel("Mod+Alt+S")}</TooltipContent>
       </Tooltip>
-      <Button
-        variant={panelOpen ? "secondary" : "ghost"}
-        size="sm"
-        aria-expanded={panelOpen}
-        data-write-panel-return=""
-        onClick={() => setPanelOpen(!panelOpen)}
-        className="shrink-0 text-ink-2"
-      >
-        <NotebookTextIcon />
-        <span className="sr-only lg:not-sr-only">Chapter plan</span>
-      </Button>
+      <PanelButton page="plan" label="Chapter plan" icon={NotebookTextIcon} />
+      <PanelButton page="codex" label="Codex" icon={BookUserIcon} />
     </div>
+  )
+}
+
+/** Opens the panel at its page, or closes it when the page is showing: the toolbar's buttons are the panel's tabs. */
+function PanelButton({ page, label, icon: Icon }: { page: PanelPage; label: string; icon: LucideIcon }) {
+  const { panel, setPanel } = useWrite()
+  const showing = panel === page
+  return (
+    <Button
+      variant={showing ? "secondary" : "ghost"}
+      size="sm"
+      aria-expanded={showing}
+      data-write-panel-return={page}
+      onClick={() => setPanel(showing ? null : page)}
+      className="shrink-0 text-ink-2"
+    >
+      <Icon />
+      <span className="sr-only lg:not-sr-only">{label}</span>
+    </Button>
   )
 }
 
@@ -328,7 +348,7 @@ function PhoneToolbar({ active, format }: ToolbarProps) {
 }
 
 function PhoneMenu({ active, format }: ToolbarProps) {
-  const { bookId, plan, unit, setUnit, setPanelOpen } = useWrite()
+  const { bookId, plan, unit, setUnit, setPanel } = useWrite()
   const trigger = useRef<HTMLButtonElement>(null)
   const { after, onCloseAutoFocus } = useAfterMenu()
   const today = useToday(bookId)
@@ -341,7 +361,7 @@ function PhoneMenu({ active, format }: ToolbarProps) {
           variant="ghost"
           size="icon-sm"
           aria-label="More writing tools"
-          data-write-panel-return=""
+          data-write-panel-return="menu"
           className="shrink-0 text-ink-2"
         >
           <EllipsisIcon />
@@ -380,9 +400,13 @@ function PhoneMenu({ active, format }: ToolbarProps) {
           <HistoryIcon />
           History…
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => after(() => setPanelOpen(true))}>
+        <DropdownMenuItem onSelect={() => after(() => setPanel("plan"))}>
           <NotebookTextIcon />
           Chapter plan
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => after(() => setPanel("codex"))}>
+          <BookUserIcon />
+          Codex
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuLabel className="font-normal text-muted-foreground tabular-nums">

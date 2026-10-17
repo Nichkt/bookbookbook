@@ -111,8 +111,8 @@ App
 **Navigation rules**
 - Plan → **Write ▸** (card, drawer, outline row) opens the Writing studio at that chapter. Write → right-panel **Plan**
   tab edits the same chapter's summary and beats.
-- Every codex mention links to its entry (hover preview, click to open in the side panel, Ctrl+click to open the full
-  page).
+- Every codex mention links to its entry: resting the mouse on it shows a preview card whose **Details** opens the
+  entry in the side panel, and Ctrl+click (⌘-click on a Mac) opens the full page. A plain click places the caret.
 - The last-used Plan view, Display preset and editing unit are remembered **per book, per device**.
 - Deep links: `/b/:bookId/plan/:view`, `/b/:bookId/write/:chapterId[/:sceneId]`, `/b/:bookId/codex/:entryId`, `/inbox`.
 
@@ -270,8 +270,8 @@ Dialogue polish) · Arc.
   survives renames and resolves ambiguity.
 - **Rendering:** auto-mentions are ProseMirror **decorations**, not stored marks. They are recomputed per changed
   paragraph after a short idle delay, so the prose stays clean and typing never jumps the caret.
-- **Hover card:** portrait/initials, type, one-line description, key fields, "Open". Click opens the entry in the
-  right panel.
+- **Hover card:** portrait/initials, type, key fields (or the notes), "Open in Codex", and "Details", which opens the
+  entry in the right panel.
 - **Backlinks:** `mention_index` (local) is aggregated per chapter → **Appears in**, Matrix "present" suggestions and
   auto "characters present" links.
 - **Quick-create:** select a name → "Add to codex" (pre-filled type guess, alias suggestions).
@@ -282,8 +282,8 @@ included when mentioned in the current scene or the text being sent) and **Never
 "as of" the current chapter so the AI doesn't learn spoilers too early.
 
 ### Built in M3
-M3 has built the Codex screen so far: types, the entry list, and entry pages with Appears in. Hover cards and the
-Codex panel in Write come next. Details it settled:
+M3 built the Codex screen (types, the entry list, and entry pages with Appears in), hover cards for the names the text
+underlines, and a Codex page in Write's side panel. Details it settled:
 - **Layouts.** From 1024 px the types, the list and the entry sit side by side. From 768 px the list and the entry
   do, with a "Codex type" menu above the list. Phones show the list or an entry, which links back to the list. Each
   book remembers, per device, the type the list showed and the entry open last, and wide screens reopen that entry.
@@ -307,9 +307,31 @@ Codex panel in Write come next. Details it settled:
   30 days.
 - **Custom types** can be added, renamed and, once empty, deleted, with Undo. The form refuses a name another type
   has.
+- **Hover cards.** Resting the mouse on an underlined name for 350 ms opens its card: initials, type, up to three
+  filled-in fields (or the notes), "Open in Codex" and "Details". The card swaps at once for the next name, stays
+  while the pointer is on it, and closes 200 ms after the pointer leaves both. A key, a scroll or Escape closes it, and
+  no card opens for half a second after a key, so a pointer resting on the text stays quiet while the writer types.
+  The card never takes focus: "Details" opens the entry in the panel, and the caret stays where it was.
+- **Clicks.** A plain click on a name places the caret, like anywhere else in the text; §4 first had it open the
+  panel, which would make names hard to edit. Ctrl+click (⌘-click on a Mac) opens the entry on the Codex screen.
+  Cards are for mice: keyboards and touch screens reach the same entries through the panel.
+- **The Codex panel.** Write's side panel has two pages, Chapter plan and Codex, each a toolbar button that opens or
+  closes it (items in the ⋯ menu on phones). One shows at a time, and wide screens remember which. **In this
+  chapter** comes first: the POV, the location, then the entries the text names, most mentioned first, and last the
+  plan's links the text doesn't name. Each row says how the entry is there ("POV · Present · 4 mentions"), and the
+  counts follow the text a second after typing stops. Below come every entry by type and a search like the Codex
+  screen's.
+- **Entries in the panel.** A row opens the entry's page in the panel: tags, aliases, its part in the chapter, its
+  filled-in fields and notes. Back returns to the list where it was left, and "Open in Codex" goes to the full page.
+  The panel only reads: entries are edited on the Codex screen.
+- **Focus (§17).** Opening the panel from the toolbar focuses its heading, and an entry's heading takes focus when it
+  opens. Back lands on the entry's row: the one it was opened from, or after "Details" the one in view. Closing
+  returns to the button that opened the panel, or to the text if "Details" did.
 - **Touch:** every control is at least 44 px on touch screens.
-- **Not yet:** hover cards and the Codex panel (later in M3), @-mentions, quick-create from a selection and per-alias
-  case options.
+- **Not yet:** @-mentions, quick-create from a selection, per-alias case options, pinning entries to the panel, and a
+  shortcut for the entry at the caret. @-mentions would put a node in the stored prose, which export, word counts,
+  History's compare and backups all read, and they need testing with Android keyboards, so they move to M6 with
+  quick-create.
 
 ---
 
@@ -317,8 +339,9 @@ Codex panel in Write come next. Details it settled:
 
 ### Layout
 Three panes, each collapsible: **Navigator** (acts › chapters › scenes, with status dots and word counts) ·
-**Page** · **Right panel** with tabs **Plan** (summary, beats, notes, metadata for the current chapter/scene) ·
-**Codex** (entries mentioned here + pinned) · **AI** (tools, model, context preview, result cards).
+**Page** · **Right panel** with pages, each opened from the toolbar: **Plan** (summary, beats, notes, metadata for the
+current chapter/scene) · **Codex** (entries mentioned here + pinned) · **AI** (tools, model, context preview, result
+cards).
 
 ### Editing unit
 A toolbar toggle: **Scene** · **Chapter** · **Manuscript**.
@@ -880,10 +903,10 @@ LanguageTool or the browser spellchecker. RTL later.
 | M0 | Foundations + **risk spike** | M | Vite/React/TS, Tailwind/shadcn, theme tokens, PowerSync local-only schema, TipTap + Yjs persisted to SQLite, Android IME smoke test |
 | M1 | Structure & Planner I | M | Books, acts, chapters, scenes, beats; Board (dnd-kit), Outline, detail drawer, Display menu |
 | M2 | Editor core | L | Scene editors, editing units, formatting, word counts, navigator, snapshots, virtualized manuscript |
-| M3 | Codex core | M | Types, fields, aliases, mention worker + decorations, hover cards, @-mentions, Appears-in, codex panel |
+| M3 | Codex core | M | Types, fields, aliases, mention decorations, hover cards, Appears-in, codex panel |
 | M4 | AI core | L | BYOK + local routing, context assembler + preview, all tools, cards, provenance, custom tools |
 | M5 | Planner II | L | Matrix, Timeline, Corkboard, templates (scaffold + overlay), Snowflake-style wizard |
-| M6 | Writing aids | M | Focus, typewriter, sprint, find & replace, comments, prose checks, Harper, read aloud, read-through |
+| M6 | Writing aids | M | Focus, typewriter, sprint, find & replace, comments, prose checks, Harper, read aloud, read-through, @-mentions, codex quick-create |
 | M7 | Import / export / backups | M | DOCX/MD/paste import with split preview, DOCX (manuscript format)/MD/zip export, folder backup, persistence UX |
 | M8 | Mobile, a11y, onboarding → **Beta** | L | Bottom sheets, keyboard-docked tools, device testing, axe audit, sample book, install prompts |
 | M9 | Accounts & sync | XL | Supabase Auth, sync rules, guest → account migration, compaction, cloud history, multi-device tests |
@@ -904,9 +927,8 @@ LanguageTool or the browser spellchecker. RTL later.
 1. Name clearance for "bookbookbook" (trademark, domain, app stores).
 2. The phone keyboard test on real devices with Gboard and Samsung Keyboard
    ([ime-smoke-test.md](ime-smoke-test.md)), left over from M0.
-3. M2, Editor core, and M7's export and backups are built and tested ([README](../README.md)). M3, Codex core, has
-   its Codex screen; hover cards and the Codex panel in Write are next. The rest of M7 (import, folder backups, the
-   "last backup" reminder) comes later.
+3. M2, Editor core, M3, Codex core, and M7's export and backups are built and tested ([README](../README.md)). The
+   rest of M7 (import, folder backups, the "last backup" reminder) comes later.
 
 ---
 
@@ -968,3 +990,4 @@ LanguageTool or the browser spellchecker. RTL later.
 | 16 | M2 editor | Segmented Scene / Chapter / Manuscript switch, remembered per book; Manuscript mounts editors near the window and holds a jump's target while it settles; ⁂ scene breaks; automatic versions plus named snapshots (Ctrl+Alt+S) with compare, restore and Undo; Today shows net words; chapter plan docked from 1280 px; a ⋯ menu on phones | Details in §8, "Built in M2" |
 | 17 | M7 export | One Export dialog: Word manuscript, Markdown, plain text or Backup, its choices remembered per book; open scenes saved before exporting; the author saved with the book; Restore always makes a new book beside the original; import and folder backups later | Details in §13, "Built in M7" |
 | 18 | M3 Codex screen | Types, list and entry side by side from 1024 px, list and entry from 768 px, one at a time on phones; search across every type; a type's fields plus an entry's own, and removing a type's field keeps the text entries filled in; mention matching stays on the main thread, without a worker | Details in §7, "Built in M3" |
+| 19 | M3 hover cards and Codex panel | Cards open when the mouse rests on a name and never take the caret; a plain click places the caret, Ctrl/⌘+click opens the Codex screen; Write's side panel has Chapter plan and Codex pages, one at a time, each a toolbar button; the Codex page lists the chapter's entries first and only reads; @-mentions and quick-create move to M6 | Details in §7, "Built in M3" |

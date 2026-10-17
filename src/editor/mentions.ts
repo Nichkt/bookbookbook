@@ -25,7 +25,7 @@ export const MIN_TERM_LENGTH = 2
 /**
  * Auto-mention rules from DESIGN.md §7: whole words, case-sensitive, longest match wins ("Jonas Quill" over
  * "Jonas"), and a term shared by two entries is never linked. Possessives work because "'" isn't a word character.
- * M3 moves this into a worker with per-alias options; the rules stay the same.
+ * It runs on the main thread, which is fast enough for a whole book (DESIGN.md §7, "Built in M3").
  */
 export function buildMentionMatcher(entries: readonly MentionTarget[]): MentionMatcher {
   const owners = new Map<string, Set<string>>()

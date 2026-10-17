@@ -1,3 +1,4 @@
+import type { Editor } from "@tiptap/react"
 import { createContext, useContext } from "react"
 import type { BookListRow } from "@/db/queries"
 import type { Db } from "@/db/tx"
@@ -14,12 +15,22 @@ export const UNIT_LABELS: Record<WriteUnit, string> = { scene: "Scene", chapter:
 
 /** Per book, like the Plan's view. */
 export const unitPrefKey = (bookId: string) => `write.unit:${bookId}`
-/** Per device: whether the navigator, and the docked chapter plan, are open. */
+/** Per device: whether the navigator is open, and the docked panel's page. */
 export const NAV_PREF = "write.nav"
 export const PANEL_PREF = "write.panel"
 
-/** From here up the chapter plan sits beside the text instead of over it. */
+/** From here up the panel sits beside the text instead of over it. */
 export const PANEL_DOCKED_QUERY = "(min-width: 80rem)"
+
+/** The panel's pages (DESIGN.md §8), each opened by its own button in the toolbar. */
+export const PANEL_PAGES = ["plan", "codex"] as const
+export type PanelPage = (typeof PANEL_PAGES)[number]
+
+/** The docked panel's page as the pref stores it. Before the Codex page, "open" meant the plan. */
+export function panelFromPref(value: string | null | undefined): PanelPage | null {
+  if (value === "open") return "plan"
+  return PANEL_PAGES.includes(value as PanelPage) ? (value as PanelPage) : null
+}
 
 export const writePath = (bookId: string, chapterId: string, sceneId?: string | null) =>
   `/b/${bookId}/write/${chapterId}${sceneId ? `/${sceneId}` : ""}`
@@ -70,10 +81,19 @@ export interface WriteContextValue {
   focusItem: FocusItem
   navOpen: boolean
   toggleNav: () => void
-  /** Whether the chapter plan shows beside the text (wide screens) rather than as a sheet over it. */
+  /** Whether the panel shows beside the text (wide screens) rather than as a sheet over it. */
   panelDocked: boolean
-  panelOpen: boolean
-  setPanelOpen: (open: boolean) => void
+  /** The panel's page; null while it's closed. */
+  panel: PanelPage | null
+  /** Opens the panel at a page from the toolbar, or closes it. */
+  setPanel: (page: PanelPage | null) => void
+  /** The entry the Codex page shows; null for its list. */
+  codexEntryId: string | null
+  setCodexEntryId: (entryId: string | null) => void
+  /** Opens the Codex page at an entry from a name in the text. Focus goes back to the text when the panel closes. */
+  openEntryFromText: (entryId: string) => void
+  /** The editor a name was in when it opened the panel; null when the toolbar opened it. */
+  panelOpener: () => Editor | null
 }
 
 export const WriteContext = createContext<WriteContextValue | null>(null)

@@ -31,8 +31,17 @@ interface OpenScene {
 }
 
 const open = new Map<string, OpenScene>()
+const editListeners = new Set<(sceneId: string) => void>()
 let store: SceneStore | undefined
 let persistenceRequested = false
+
+/** Calls `listener` with a scene's id after each edit made to its prose here. Returns a function that stops it. */
+export function onSceneEdit(listener: (sceneId: string) => void): () => void {
+  editListeners.add(listener)
+  return () => {
+    editListeners.delete(listener)
+  }
+}
 
 function requestPersistentStorage() {
   if (persistenceRequested) return
@@ -83,6 +92,8 @@ function onLocalEdit(sceneId: string, scene: OpenScene) {
   scene.versionTimer ??= setTimeout(() => {
     saveAutoVersion(sceneId, scene).catch(logError("version"))
   }, VERSION_EVERY_MS)
+
+  for (const listener of editListeners) listener(sceneId)
 }
 
 /** Opens (or reuses) the live doc for a scene. Pair every call with `releaseSceneDoc`. */

@@ -1,4 +1,5 @@
 import { usePowerSync } from "@powersync/react"
+import type { Editor } from "@tiptap/react"
 import { LayoutGridIcon, PenLineIcon } from "lucide-react"
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { Link, Navigate, useNavigate, useParams } from "react-router"
@@ -21,22 +22,25 @@ import { isSnapshotShortcut, useHistoryDialog } from "./history"
 import { takeSnapshot } from "./historyActions"
 import { HistoryDialog } from "./HistoryDialog"
 import { Manuscript } from "./Manuscript"
+import { MentionLayer } from "./MentionLayer"
 import { Navigator } from "./Navigator"
-import { PlanPanel } from "./PlanPanel"
 import {
   chapterOfScene,
   isWriteUnit,
   NAV_PREF,
   PANEL_DOCKED_QUERY,
   PANEL_PREF,
+  panelFromPref,
   sceneNameIn,
   unitPrefKey,
   useWrite,
   WriteContext,
   writePath,
+  type PanelPage,
   type WriteContextValue,
   type WriteUnit,
 } from "./writeContext"
+import { WritePanel } from "./WritePanel"
 import { WriteToolbar } from "./WriteToolbar"
 
 const lastChapterKey = (bookId: string) => `bbb.lastChapter.${bookId}`
@@ -105,7 +109,7 @@ function usePrefState(key: string) {
 
 type WritePrefs = ReturnType<typeof useWritePrefs>
 
-/** The view per book; whether the navigator and the docked chapter plan are open, per device. */
+/** The view per book; whether the navigator is open and the docked panel's page, per device. */
 function useWritePrefs(bookId: string) {
   const unit = usePrefState(unitPrefKey(bookId))
   const nav = usePrefState(NAV_PREF)
@@ -118,8 +122,8 @@ function useWritePrefs(bookId: string) {
     saveUnit: unit.set,
     navOpen: nav.value !== "closed",
     saveNavOpen: useCallback((open: boolean) => setNav(open ? "open" : "closed"), [setNav]),
-    dockedPanelOpen: panel.value === "open",
-    saveDockedPanelOpen: useCallback((open: boolean) => setPanel(open ? "open" : "closed"), [setPanel]),
+    dockedPanel: panelFromPref(panel.value),
+    saveDockedPanel: useCallback((page: PanelPage | null) => setPanel(page ?? "closed"), [setPanel]),
   }
 }
 
@@ -137,8 +141,10 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
   const bookId = book.id
   const matcher = useMentionMatcher(bookId)
   const panelDocked = useMediaQuery(PANEL_DOCKED_QUERY)
-  const [sheetOpen, setSheetOpen] = useState(false)
-  const { unit, saveUnit, navOpen, saveNavOpen, dockedPanelOpen, saveDockedPanelOpen } = prefs
+  const [sheetPanel, setSheetPanel] = useState<PanelPage | null>(null)
+  const [codexEntryId, setCodexEntryId] = useState<string | null>(null)
+  const opener = useRef<Editor | null>(null)
+  const { unit, saveUnit, navOpen, saveNavOpen, dockedPanel, saveDockedPanel } = prefs
   const known = plan.chapterById.has(chapterId)
 
   useEffect(() => {
@@ -183,11 +189,28 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
   )
 
   const toggleNav = useCallback(() => saveNavOpen(!navOpen), [navOpen, saveNavOpen])
-  const panelOpen = panelDocked ? dockedPanelOpen : sheetOpen
-  const setPanelOpen = useCallback(
-    (open: boolean) => (panelDocked ? saveDockedPanelOpen(open) : setSheetOpen(open)),
-    [panelDocked, saveDockedPanelOpen],
+  const panel = panelDocked ? dockedPanel : sheetPanel
+  const showPanel = useCallback(
+    (page: PanelPage | null) => (panelDocked ? saveDockedPanel(page) : setSheetPanel(page)),
+    [panelDocked, saveDockedPanel],
   )
+  const setPanel = useCallback(
+    (page: PanelPage | null) => {
+      if (page) opener.current = null
+      if (page === "codex") setCodexEntryId(null)
+      showPanel(page)
+    },
+    [showPanel],
+  )
+  const openEntryFromText = useCallback(
+    (entryId: string) => {
+      opener.current = activeEditor()?.editor ?? null
+      setCodexEntryId(entryId)
+      showPanel("codex")
+    },
+    [showPanel],
+  )
+  const panelOpener = useCallback(() => opener.current, [])
 
   // Ctrl+Alt+S: a snapshot of the scene in the History dialog, else of the one the writer is in.
   useEffect(() => {
@@ -219,8 +242,12 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
       navOpen,
       toggleNav,
       panelDocked,
-      panelOpen,
-      setPanelOpen,
+      panel,
+      setPanel,
+      codexEntryId,
+      setCodexEntryId,
+      openEntryFromText,
+      panelOpener,
     }),
     [
       db,
@@ -236,8 +263,11 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
       navOpen,
       toggleNav,
       panelDocked,
-      panelOpen,
-      setPanelOpen,
+      panel,
+      setPanel,
+      codexEntryId,
+      openEntryFromText,
+      panelOpener,
     ],
   )
 
@@ -247,10 +277,10 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
         <WriteToolbar />
         <div className="flex flex-1 items-start">
           {navOpen && <Navigator />}
-          <div className="min-w-0 flex-1 self-stretch">
+          <MentionLayer className="min-w-0 flex-1 self-stretch">
             <WriteContent />
-          </div>
-          <PlanPanel />
+          </MentionLayer>
+          <WritePanel />
         </div>
         <HistoryDialog />
       </div>
