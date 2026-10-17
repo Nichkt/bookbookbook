@@ -1,6 +1,6 @@
 import { create } from "zustand"
 
-export type BookDialog = "new" | "settings" | "trash"
+export type BookDialog = "new" | "settings" | "trash" | "export" | "restore"
 
 interface BookDialogState {
   dialog: BookDialog | null

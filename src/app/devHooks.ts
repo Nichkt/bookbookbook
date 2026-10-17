@@ -1,5 +1,5 @@
 import { db } from "@/db/powersync"
-import { openSceneDocs, settleSceneDocs } from "@/editor/sceneDocs"
+import { flushSceneDocs, openSceneDocs, settleSceneDocs } from "@/editor/sceneDocs"
 
 /** Handles for the end-to-end tests and the console. Development builds only. */
 export interface DevHooks {
@@ -24,9 +24,7 @@ export function installDevHooks() {
   window.__bbb = {
     db,
     openScenes: () => openSceneDocs().map((provider) => provider.sceneId),
-    async flushAll() {
-      await Promise.all(openSceneDocs().map((provider) => provider.flush()))
-    },
+    flushAll: flushSceneDocs,
     async compactAll() {
       await Promise.all(openSceneDocs().map((provider) => provider.compact()))
     },

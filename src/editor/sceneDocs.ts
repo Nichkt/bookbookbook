@@ -143,6 +143,11 @@ export function openSceneDocs(): SceneDocProvider[] {
   return [...open.values()].map((scene) => scene.provider)
 }
 
+/** Resolves once every edit made in this tab so far is written, e.g. before an export reads the stored prose. */
+export async function flushSceneDocs() {
+  await Promise.all(openSceneDocs().map((provider) => provider.flush()))
+}
+
 /** Saves pending word counts and versions now rather than after their delays, e.g. before a test reads them. */
 export async function settleSceneDocs() {
   await Promise.all(

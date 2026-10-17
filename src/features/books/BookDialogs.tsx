@@ -17,6 +17,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { BookListRow } from "@/db/queries"
+import { ExportForm } from "@/features/export/ExportForm"
+import { RestoreForm } from "@/features/export/RestoreForm"
 import { formatCount, parseCount } from "@/lib/numbers"
 import { closeBookDialog, returnFocusOnClose, useBookDialogs } from "./dialogStore"
 import { createBook, DEFAULT_BOOK_TARGET, trashBook, updateBook } from "./mutations"
@@ -26,7 +28,7 @@ const onOpenChange = (open: boolean) => {
   if (!open) closeBookDialog()
 }
 
-/** New book, Book settings and Trash, opened from the header's book menu (DESIGN.md §4). */
+/** New book, Book settings, Export, Restore and Trash, opened from the header's book menu (DESIGN.md §4, §13). */
 export function BookDialogs({ book }: { book: BookListRow | undefined }) {
   const dialog = useBookDialogs((state) => state.dialog)
   return (
@@ -38,6 +40,19 @@ export function BookDialogs({ book }: { book: BookListRow | undefined }) {
       </Dialog>
       <Dialog open={dialog === "settings" && Boolean(book)} onOpenChange={onOpenChange}>
         <DialogContent onCloseAutoFocus={returnFocusOnClose}>{book && <BookSettingsForm book={book} />}</DialogContent>
+      </Dialog>
+      <Dialog open={dialog === "export" && Boolean(book)} onOpenChange={onOpenChange}>
+        <DialogContent
+          className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg"
+          onCloseAutoFocus={returnFocusOnClose}
+        >
+          {book && <ExportForm book={book} />}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={dialog === "restore"} onOpenChange={onOpenChange}>
+        <DialogContent onCloseAutoFocus={returnFocusOnClose}>
+          <RestoreForm />
+        </DialogContent>
       </Dialog>
       <Dialog open={dialog === "trash"} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-lg" onCloseAutoFocus={returnFocusOnClose}>
@@ -113,13 +128,19 @@ function BookSettingsForm({ book }: { book: BookListRow }) {
   const db = usePowerSync()
   const navigate = useNavigate()
   const [title, setTitle] = useState(book.title ?? "")
+  const [author, setAuthor] = useState(book.author ?? "")
   const [genre, setGenre] = useState(book.genre ?? "")
   const [target, setTarget] = useState(book.target_words ? formatCount(book.target_words) : "")
   const name = book.title?.trim() || "Untitled book"
 
   const save = async (event: FormEvent) => {
     event.preventDefault()
-    const patch = { title: title.trim() || "Untitled book", genre: genre.trim(), target_words: parseCount(target) }
+    const patch = {
+      title: title.trim() || "Untitled book",
+      author: author.trim(),
+      genre: genre.trim(),
+      target_words: parseCount(target),
+    }
     const saved = await attempt("book settings", updateBook(db, book.id, patch).then(() => true))
     if (saved) closeBookDialog()
   }
@@ -141,6 +162,16 @@ function BookSettingsForm({ book }: { book: BookListRow }) {
       <div className="grid gap-2">
         <Label htmlFor="book-title">Title</Label>
         <Input id="book-title" value={title} onChange={(event) => setTitle(event.target.value)} autoComplete="off" />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="book-author">Author</Label>
+        <Input
+          id="book-author"
+          value={author}
+          onChange={(event) => setAuthor(event.target.value)}
+          placeholder="Your name, as on the title page"
+          autoComplete="name"
+        />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="book-genre">Genre</Label>

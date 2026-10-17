@@ -573,13 +573,20 @@ flowchart LR
 | 1. Local database | SQLite (WASM), persisted | Every keystroke batch |
 | 2. Snapshots | Per-scene versions, compare & restore (built in M2) | Auto before a sitting's first edit, every ~10 min of editing and on leaving a scene; manual |
 | 3. Folder auto-backup | Zip of the whole project into a user-chosen folder (File System Access API, Chromium; native in Tauri). Keeps the last N | Daily + on close |
-| 4. Export | One-click full `.zip` | Any time |
+| 4. Export | One-click full `.zip` (built in M7) | Any time |
 | 5. Cloud sync + history *(Studio)* | Server copy + 30+ days of snapshots | Continuous |
 | 6. Weekly email backup *(v1.x, opt-in)* | Email with an **expiring link** to an encrypted zip, never an attachment | Weekly |
 | 7. Trash | Deleted books, chapters, scenes and entries | Restorable for 30 days |
 
-- **Open project format (`.bookbookbook.zip`):** `book.json` (structure, codex, settings), `scenes/<id>.md`
-  (Markdown with front matter, human-readable), optional `scenes/<id>.ystate` (lossless Yjs state), `assets/`.
+- **Open project format (`.bookbookbook.zip`, built in M7):**
+  - `book.json`: the book's rows (structure, codex, links, writing stats, named versions' details), with a format
+    name and version.
+  - `manuscript.md`: the whole book, to read.
+  - `scenes/<id>.ystate`: each written scene's prose exactly (Yjs state).
+  - `scenes/<id>.md`: the same prose as Markdown with front matter. It restores the scene if the `.ystate` is missing.
+  - `versions/<id>.ystate`: named versions.
+  - `assets/`: codex images, once there are any (v1.x).
+
   It must be usable without the app.
 - **"Last backup" indicator** in the status bar. If there's no backup or sync for 7 days, show a gentle banner.
 - **Encryption:** TLS in transit, provider encryption at rest (Postgres, Storage). **E2EE later**: client-side
@@ -610,6 +617,46 @@ flowchart LR
 | Print-ready interior | Trim sizes, mirrored margins, widows/orphans, drop caps (Paged.js or Typst WASM) | Later |
 
 Export options: choose chapters, include/strip comments, front matter, scene-break style. AI tint is never exported.
+
+### Built in M7
+So far M7 has built export, backups and restoring them. Import, folder backups and the "last backup" reminder are
+still to come. Details it settled:
+- **One Export dialog**, in the book menu. Word manuscript, Markdown, Plain text and Backup are radio cards, and only
+  the chosen format's options show. Each book remembers its last choices, and focus starts on the chosen format.
+- **What goes in:** chapters in reading order, their scenes joined by scene breaks. Trashed chapters and scenes stay
+  out, and so do chapters with nothing written. Open scenes are saved first, so the last word typed is in. With
+  nothing written, the dialog says so rather than make an empty file.
+- **Chapter headings:** "Chapter 3: The Ferry Home", "Chapter 3" or "The Ferry Home". The numbers count chapters as
+  the planner does, written or not. A prologue, epilogue, interlude, foreword, preface or afterword is headed by its
+  title alone. A title that starts with "Chapter" isn't put after the number.
+- **Word manuscript:**
+  - A title page with the author and the word count ("about 87,000 words"), and the title halfway down.
+  - Each chapter on a new page, a third of the way down, as Word's Heading 1. That way Word's navigation pane,
+    Vellum and Atticus find the chapters.
+  - 12 pt Times New Roman or Courier New, double-spaced, first lines indented ½", 1" margins.
+  - "Surname / SHORT TITLE / page" atop every page after the title page. `#` marks scene breaks and "END" closes
+    the book.
+  - Letter paper by default in the US, Canada, Mexico and the Philippines, A4 elsewhere.
+  - The Author field is saved with the book (`books.author`), and is in book settings too.
+- **Markdown and plain text:** one file, or a zip with a file per chapter ("01 The Ferry Home.md"). Markdown keeps
+  bold, italics and headings, with `<u>` for underline and `~~` for strikethrough. Both mark scene breaks `* * *`.
+- **File names** are made safe on every system: no characters Windows forbids, no reserved names like `CON`, 120
+  characters at most.
+- **Backups:**
+  - The open format in §12, named `Title YYYY-MM-DD.bookbookbook.zip`.
+  - Everything in the book: plan, codex, prose, named versions and writing stats.
+  - Trashed chapters and scenes come along, still in the Trash.
+  - Left out: automatic versions and settings kept per device, such as the view and the export choices.
+- **Restore** is in the book menu and the empty library: choose a backup or drop it on the dialog.
+  - It always makes a new book, with new ids, so it can sit beside its original. The title gets " (restored)" if
+    the library has one by that name already, and the codex comes as a universe of its own.
+  - A file that isn't a backup, or comes from a newer version of the app, is turned away with a message and changes
+    nothing.
+  - Only the files a backup has are read, within size limits (16 MB a file, 64 MB for `book.json`, 512 MB in
+    all). Rows whose parent is missing are dropped.
+- **Not yet:** choosing chapters, scene-break style, front matter, act headings, a localized "Chapter", comments
+  (M6), import, folder auto-backup, the "last backup" indicator and reminder, and AI cards and codex images in
+  backups (M4, v1.x). The app already asks the browser to keep its storage (`persist()`) at the first edit.
 
 ---
 
@@ -823,8 +870,8 @@ LanguageTool or the browser spellchecker. RTL later.
 1. Name clearance for "bookbookbook" (trademark, domain, app stores).
 2. The phone keyboard test on real devices with Gboard and Samsung Keyboard
    ([ime-smoke-test.md](ime-smoke-test.md)), left over from M0.
-3. M2, Editor core, is built and tested ([README](../README.md)). Next: export and backups from M7, so the
-   writing can leave the app, then M3, Codex core.
+3. M2, Editor core, and M7's export and backups are built and tested ([README](../README.md)). Next: M3, Codex
+   core. The rest of M7 (import, folder backups, the "last backup" reminder) comes later.
 
 ---
 
@@ -884,3 +931,4 @@ LanguageTool or the browser spellchecker. RTL later.
 | 14 | Name | **Renamed to "bookbookbook"** | Replaces the working name Chapterhouse, which also sidesteps that name's conflicts (Dune novel title, Chapterhouse Studios) |
 | 15 | M1 planner | Outline Tab folds into the item above, Shift+Tab splits off, each with Undo and a ⋯ menu command; drawer docked on wide screens; filters and quick create in M1 | Details in §6, "Built in M1" |
 | 16 | M2 editor | Segmented Scene / Chapter / Manuscript switch, remembered per book; Manuscript mounts editors near the window and holds a jump's target while it settles; ⁂ scene breaks; automatic versions plus named snapshots (Ctrl+Alt+S) with compare, restore and Undo; Today shows net words; chapter plan docked from 1280 px; a ⋯ menu on phones | Details in §8, "Built in M2" |
+| 17 | M7 export | One Export dialog: Word manuscript, Markdown, plain text or Backup, its choices remembered per book; open scenes saved before exporting; the author saved with the book; Restore always makes a new book beside the original; import and folder backups later | Details in §13, "Built in M7" |

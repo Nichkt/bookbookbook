@@ -6,10 +6,22 @@ takes after NovelCrafter, the writing side after Sudowrite.
 - **Design:** [docs/DESIGN.md](docs/DESIGN.md) covers every product and technical decision and the milestone plan.
 - **Prototype:** [prototype/](prototype/README.md) is a clickable mock of the whole app. Open `prototype/index.html`.
 
-## Status: M2, editor core
+## Status: editor core, export and backups
 
-Milestones 0 to 2 from DESIGN.md §19 are built. Everything stays on the device; there are no accounts or sync yet.
-The Codex and Inbox tabs are placeholders until M3 and M11.
+Milestones 0 to 2 from DESIGN.md §19 are built, along with M7's export and backups. Everything stays on the device;
+there are no accounts or sync yet, so back up from the book menu (Export… → Backup). The Codex and Inbox tabs are
+placeholders until M3 and M11.
+
+**M7, Export and backups** (DESIGN.md §13):
+- **Export** from the book menu:
+  - a Word manuscript in standard manuscript format: a title page with the word count, a running head, Times or
+    Courier, Letter or A4;
+  - Markdown or plain text, as one file or a file per chapter.
+
+  Chapters are headed by number, title or both, and each book remembers its choices.
+- **Backups:** one zip with the whole book (plan, codex, prose, named versions and writing stats), and a Markdown
+  copy to read without the app.
+- **Restore** a backup from the book menu or the empty library. It comes back as a new book, beside the others.
 
 **M2, Editor core** (DESIGN.md §8):
 - **Three views:** Scene shows one scene at a time and pages through the book across chapters. Chapter shows a
@@ -30,8 +42,8 @@ The Codex and Inbox tabs are placeholders until M3 and M11.
 - **Phone:** a chapter picker, bold and italic in the toolbar, and a ⋯ menu with the rest.
 
 **M1, Structure & Planner I** (DESIGN.md §6):
-- **Books:** create, switch and edit them (title, genre, target length) from the header's book menu, which also holds
-  the Trash.
+- **Books:** create, switch and edit them (title, author, genre, target length) from the header's book menu, which
+  also holds the Trash.
 - **Board:** acts as rows of chapter cards. Drag cards within and between acts, or move them with Alt+arrow keys.
   Display presets (Compact, Standard, Detailed) with per-field toggles, remembered per view. Filters by POV, status
   and plot thread.
@@ -91,7 +103,9 @@ in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). 
 - ordering keys, story time, the Board's drop targets and the Outline's keyboard paths;
 - books, codex entries, the sample book and the Trash;
 - word counts and the day's writing stats, scene versions (saving, pruning, restoring) and how History compares them;
-- the Scene view's reading order, and shortcut labels and keys.
+- the Scene view's reading order, and shortcut labels and keys;
+- export: the manuscript and its chapter headings, Word, Markdown (both ways) and plain-text files, safe file names,
+  backups and restoring them, and the Export dialog's saved choices.
 
 **End-to-end tests** (`e2e/`) run in your installed Chrome against a dev server on port 5174, which Playwright starts
 (or reuses if it's already running). Every test gets a fresh browser profile, so each one starts from the sample book.
@@ -108,6 +122,9 @@ They cover:
 - the Write screen (`write.spec.ts`): the three views and their addresses, a jump holding still while the
   Manuscript settles, which scene the toolbar acts on, formatting, naming, adding and trashing scenes, History, Today
   and the chapter plan;
+- export (`export.spec.ts`): a Word manuscript with the last words typed and the author, Markdown as one file and a
+  file per chapter, a backup restored beside its original, a file that isn't a backup, nothing to export, and
+  restoring into an empty library;
 - touch targets (`touch.spec.ts`): on a phone and a tablet, every control on the Board, its menus, the drawer, a toast,
   the Outline, and the Write screen with its menus, History and chapter plan must be at least 44 px.
 
@@ -143,8 +160,9 @@ src/
   db/             PowerSync schema, queries, sample book and seeding, ordering, undo, Trash, prefs, the scene store,
                   writing stats, scene versions
   editor/         TipTap scene editor, its extensions, open scene docs, the active editor, codex name matching
+  export/         manuscript, Word, Markdown and plain-text files, backups and restoring them
   features/       plan/ (Board, Outline, drawer), write/ (views, toolbar, navigator, History, chapter plan), books/,
-                  codex/, lab/ (IME lab)
+                  export/ (Export and Restore dialogs), codex/, lab/ (IME lab)
   lib/            small helpers (ids, word counts, numbers, keys, focus)
   test/           in-memory SQLite and book builders for unit tests
   yjs/            SceneDocProvider, the scene store interface, Yjs helpers

@@ -1,4 +1,4 @@
-import { PlusIcon } from "lucide-react"
+import { ArchiveRestoreIcon, PlusIcon } from "lucide-react"
 import { Navigate } from "react-router"
 import { Button } from "@/components/ui/button"
 import { openBookDialog } from "@/features/books/dialogStore"
@@ -12,11 +12,17 @@ export function OpenBook() {
   if (!book) {
     return (
       <PlaceholderScreen title="No books yet" milestone="Library">
-        <p>Start one, or restore a book from the Trash in the book menu above.</p>
-        <Button className="mt-2" onClick={(event) => openBookDialog("new", event.currentTarget)}>
-          <PlusIcon />
-          New book
-        </Button>
+        <p>Start one, or restore one from a backup. A deleted book may still be in the Trash, in the book menu above.</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Button onClick={(event) => openBookDialog("new", event.currentTarget)}>
+            <PlusIcon />
+            New book
+          </Button>
+          <Button variant="outline" onClick={(event) => openBookDialog("restore", event.currentTarget)}>
+            <ArchiveRestoreIcon />
+            Restore from backup
+          </Button>
+        </div>
       </PlaceholderScreen>
     )
   }

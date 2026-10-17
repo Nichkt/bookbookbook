@@ -39,13 +39,14 @@ test("a blank title becomes Untitled book", async () => {
 
 test("update, trash, undo and restore", async () => {
   const { bookId } = await createBook(db, { title: "Draft", targetWords: null })
-  await updateBook(db, bookId, { title: "Final", genre: "Mystery", target_words: 70_000 })
+  await updateBook(db, bookId, { title: "Final", author: "Ann Lee", genre: "Mystery", target_words: 70_000 })
   const row = () =>
-    db.get<{ deleted_at: string | null }>("SELECT title, genre, target_words, deleted_at FROM books WHERE id = ?", [
-      bookId,
-    ])
+    db.get<{ deleted_at: string | null }>(
+      "SELECT title, author, genre, target_words, deleted_at FROM books WHERE id = ?",
+      [bookId],
+    )
   const before = await row()
-  expect(before).toEqual({ title: "Final", genre: "Mystery", target_words: 70_000, deleted_at: null })
+  expect(before).toEqual({ title: "Final", author: "Ann Lee", genre: "Mystery", target_words: 70_000, deleted_at: null })
 
   const changes = await trashBook(db, bookId)
   expect((await row()).deleted_at).not.toBeNull()

@@ -13,6 +13,8 @@ const SYNCABLE = {
     universe_id: text,
     owner_id: text,
     title: text,
+    // As the title page and running header of an exported manuscript give it (DESIGN.md §13).
+    author: text,
     genre: text,
     pov: text,
     tense: text,
@@ -96,7 +98,11 @@ const SYNCABLE = {
   },
 } satisfies Record<string, ColumnsType>
 
-type SyncableName = keyof typeof SYNCABLE
+export type SyncableName = keyof typeof SYNCABLE
+
+/** A syncable table's columns besides `id`, with their SQL types: for code that copies whole rows, like restores. */
+export const columnTypes = (table: SyncableName): Record<string, string> =>
+  Object.fromEntries(Object.entries(SYNCABLE[table]).map(([name, type]) => [name, String(type.type)]))
 
 const INDEXES: Partial<Record<SyncableName, IndexShorthand>> = {
   books: { universe: ["universe_id"] },

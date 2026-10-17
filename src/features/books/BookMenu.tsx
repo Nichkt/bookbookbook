@@ -1,4 +1,4 @@
-import { ChevronDownIcon, PlusIcon, SettingsIcon, Trash2Icon } from "lucide-react"
+import { ArchiveRestoreIcon, ChevronDownIcon, DownloadIcon, PlusIcon, SettingsIcon, Trash2Icon } from "lucide-react"
 import { useRef } from "react"
 import { useLocation, useNavigate } from "react-router"
 import { rememberBook } from "@/app/books"
@@ -18,7 +18,7 @@ import { openBookDialog, type BookDialog } from "./dialogStore"
 
 const SCREEN_RE = /^\/b\/[^/]+\/(plan|write|codex)\b/
 
-/** The header's book switcher, with New book, Book settings and Trash (DESIGN.md §4). */
+/** The header's book switcher, with New book, Book settings, Export, Restore and Trash (DESIGN.md §4, §13). */
 export function BookMenu({ book, books }: { book: BookListRow | undefined; books: readonly BookListRow[] }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -78,9 +78,18 @@ export function BookMenu({ book, books }: { book: BookListRow | undefined; books
           <PlusIcon />
           New book…
         </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => open("restore")}>
+          <ArchiveRestoreIcon />
+          Restore from backup…
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem disabled={!book} onSelect={() => open("settings")}>
           <SettingsIcon />
           Book settings…
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled={!book} onSelect={() => open("export")}>
+          <DownloadIcon />
+          Export…
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => open("trash")}>
           <Trash2Icon />

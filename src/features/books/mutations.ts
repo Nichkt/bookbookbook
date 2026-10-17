@@ -43,6 +43,7 @@ export async function createBook(
 
 export interface BookPatch {
   title?: string
+  author?: string
   genre?: string
   target_words?: number | null
 }
@@ -50,6 +51,7 @@ export interface BookPatch {
 export async function updateBook(db: Db, id: string, patch: BookPatch) {
   const values: Record<string, string | number | null> = {}
   if (patch.title !== undefined) values.title = patch.title
+  if (patch.author !== undefined) values.author = patch.author
   if (patch.genre !== undefined) values.genre = patch.genre
   if (patch.target_words !== undefined) values.target_words = patch.target_words
   await updateRow(db, "books", id, values)

@@ -7,13 +7,14 @@ import { insertRow, type Db } from "./tx"
 export interface BookListRow {
   id: string
   title: string | null
+  author: string | null
   genre: string | null
   target_words: number | null
   universe_id: string | null
 }
 
 export const BOOKS_SQL = `
-  SELECT id, title, genre, target_words, universe_id FROM books WHERE deleted_at IS NULL ORDER BY created_at, id`
+  SELECT id, title, author, genre, target_words, universe_id FROM books WHERE deleted_at IS NULL ORDER BY created_at, id`
 
 export interface ActListRow {
   id: string
