@@ -1,4 +1,5 @@
 import {
+  ArchiveIcon,
   ArchiveRestoreIcon,
   ChevronDownIcon,
   DownloadIcon,
@@ -22,11 +23,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import type { BookListRow } from "@/db/queries"
+import { LastBackupLabel } from "@/features/backup/BackupsDialog"
 import { openBookDialog, type BookDialog } from "./dialogStore"
 
 const SCREEN_RE = /^\/b\/[^/]+\/(plan|write|codex)\b/
 
-/** The header's book switcher, with New book, Restore, Import, Book settings, Export and Trash (DESIGN.md §4, §13). */
+/**
+ * The header's book switcher, with New book, Restore, Import, Book settings, Export, Backups and Trash
+ * (DESIGN.md §4, §12, §13). Backups shows when the open book was last backed up.
+ */
 export function BookMenu({ book, books }: { book: BookListRow | undefined; books: readonly BookListRow[] }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -102,6 +107,11 @@ export function BookMenu({ book, books }: { book: BookListRow | undefined; books
         <DropdownMenuItem disabled={!book} onSelect={() => open("export")}>
           <DownloadIcon />
           Export…
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => open("backups")}>
+          <ArchiveIcon />
+          Backups…
+          {book && <LastBackupLabel bookId={book.id} />}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => open("trash")}>
           <Trash2Icon />

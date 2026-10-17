@@ -1,7 +1,11 @@
+import { usePowerSync } from "@powersync/react"
 import { BookOpenIcon } from "lucide-react"
-import { Link, NavLink, Outlet } from "react-router"
+import { useEffect } from "react"
+import { Link, NavLink, Outlet, useParams } from "react-router"
+import { startBackups } from "@/backup/scheduler"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { BackupBanner } from "@/features/backup/BackupBanner"
 import { BookDialogs } from "@/features/books/BookDialogs"
 import { BookMenu } from "@/features/books/BookMenu"
 import { cn } from "@/lib/utils"
@@ -51,8 +55,12 @@ function ScreenLinks({ screens, className, linkClassName }: { screens: Screen[];
 }
 
 export function AppShell() {
+  const db = usePowerSync()
+  const { bookId } = useParams()
   const { book, books } = useCurrentBook()
   const screens = screensFor(book?.id)
+  // Backups run whichever screen is open (DESIGN.md §12).
+  useEffect(() => startBackups(db), [db])
   return (
     <TooltipProvider>
       <div className="flex min-h-svh flex-col">
@@ -79,6 +87,8 @@ export function AppShell() {
         </header>
         {/* Phones get the bottom tab bar instead (DESIGN.md §16), so leave room for it. */}
         <main className="flex flex-1 flex-col pb-16 md:pb-0">
+          {/* Only on the book's own screens, where it's clearly about that book. */}
+          {bookId && book && <BackupBanner key={book.id} book={book} />}
           <Outlet />
         </main>
         <ScreenLinks

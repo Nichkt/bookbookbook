@@ -106,6 +106,9 @@ test("backs up a book and restores it beside the original", async ({ page }) => 
   await expect(chapters.getByRole("link", { name: /^Chapter \d+:/ })).toHaveCount(12)
   const titles = await queryDb<{ title: string }>(page, "SELECT title FROM books WHERE deleted_at IS NULL ORDER BY title")
   expect(titles.map((row) => row.title)).toEqual(["The Salt Ledger", "The Salt Ledger (restored)"])
+  // A book restored is as safe as its backup.
+  await page.getByRole("button", { name: "Book: The Salt Ledger (restored)" }).click()
+  await expect(page.getByRole("menuitem", { name: /^Backups…/ })).toContainText("Last backup: Today")
 })
 
 test("says so when a book has nothing to export yet", async ({ page }) => {

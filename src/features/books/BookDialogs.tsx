@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { BookListRow } from "@/db/queries"
+import { BackupsDialog } from "@/features/backup/BackupsDialog"
 import { ExportForm } from "@/features/export/ExportForm"
 import { RestoreForm } from "@/features/export/RestoreForm"
 import { ImportForm } from "@/features/import/ImportForm"
@@ -30,7 +31,10 @@ const onOpenChange = (open: boolean) => {
   if (!open && !useBookDialogs.getState().busy) closeBookDialog()
 }
 
-/** New book, Book settings, Export, Restore, Import and Trash, opened from the header's book menu (DESIGN.md §4, §13). */
+/**
+ * New book, Book settings, Export, Restore, Import, Trash and Backups, opened from the header's book menu
+ * (DESIGN.md §4, §12, §13).
+ */
 export function BookDialogs({ book }: { book: BookListRow | undefined }) {
   const dialog = useBookDialogs((state) => state.dialog)
   return (
@@ -69,6 +73,14 @@ export function BookDialogs({ book }: { book: BookListRow | undefined }) {
       <Dialog open={dialog === "trash"} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-lg" onCloseAutoFocus={returnFocusOnClose}>
           <TrashList bookId={book?.id} />
+        </DialogContent>
+      </Dialog>
+      <Dialog open={dialog === "backups"} onOpenChange={onOpenChange}>
+        <DialogContent
+          className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg"
+          onCloseAutoFocus={returnFocusOnClose}
+        >
+          <BackupsDialog book={book} />
         </DialogContent>
       </Dialog>
     </>

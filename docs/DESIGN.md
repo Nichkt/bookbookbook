@@ -609,7 +609,8 @@ flowchart LR
 
 ### Offline & storage
 - The service worker caches the app shell, so the app opens offline after the first visit.
-- Call `navigator.storage.persist()` after the first real edit, and show storage status in Settings › Backups.
+- Call `navigator.storage.persist()` after the first real edit. The Backups dialog (book menu) shows whether the
+  browser has agreed, and can ask again.
 - **Safari** may delete a site's script-written storage after ~7 days without a visit unless the site is installed to
   the Home Screen / Dock. Beta onboarding must push **Install** and **folder backup** on Safari.
 - **Secure origins only.** PowerSync's web SDK needs the Web Locks API, which browsers only offer on `https://` and
@@ -625,7 +626,7 @@ flowchart LR
 |---|---|---|
 | 1. Local database | SQLite (WASM), persisted | Every keystroke batch |
 | 2. Snapshots | Per-scene versions, compare & restore (built in M2) | Auto before a sitting's first edit, every ~10 min of editing and on leaving a scene; manual |
-| 3. Folder auto-backup | Zip of the whole project into a user-chosen folder (File System Access API, Chromium; native in Tauri). Keeps the last N | Daily + on close |
+| 3. Folder auto-backup | Each book's backup zip, written into a folder the writer chooses (File System Access API: Chrome and Edge on computers; native in Tauri). Keeps the newest 10 of each book (built in M7) | Within the hour of a change, and on leaving the app |
 | 4. Export | One-click full `.zip` (built in M7) | Any time |
 | 5. Cloud sync + history *(Studio)* | Server copy + 30+ days of snapshots | Continuous |
 | 6. Weekly email backup *(v1.x, opt-in)* | Email with an **expiring link** to an encrypted zip, never an attachment | Weekly |
@@ -641,7 +642,8 @@ flowchart LR
   - `assets/`: codex images, once there are any (v1.x).
 
   It must be usable without the app.
-- **"Last backup" indicator** in the status bar. If there's no backup or sync for 7 days, show a gentle banner.
+- **"Last backup"** shows beside Backups… in the book menu. A calm reminder comes when a book has gone a week of
+  changes without a backup, or when folder backups need the writer (built in M7; details in §13).
 - **Encryption:** TLS in transit, provider encryption at rest (Postgres, Storage). **E2EE later**: client-side
   encryption of rows and Yjs updates. Trade-offs: no server-side compaction, search or email backups, and hosted AI
   still needs plaintext per request.
@@ -672,8 +674,7 @@ flowchart LR
 Export options: choose chapters, include/strip comments, front matter, scene-break style. AI tint is never exported.
 
 ### Built in M7
-So far M7 has built export, backups, restoring them, and import. Folder backups and the "last backup" reminder are
-still to come. Details it settled:
+M7 has built export, backups, restoring them, import, folder backups and the backup reminder. Details it settled:
 - **One Export dialog**, in the book menu. Word manuscript, Markdown, Plain text and Backup are radio cards, and only
   the chosen format's options show. Each book remembers its last choices, and focus starts on the chosen format.
 - **What goes in:** chapters in reading order, their scenes joined by scene breaks. Trashed chapters and scenes stay
@@ -711,6 +712,54 @@ still to come. Details it settled:
     all, 20,000 files). Files can't share data or misstate a stored size, so a crafted zip can't unpack to more than
     it holds. Rows whose parent is missing are dropped.
   - One restore at a time: the dialog stays open until it's done, so a second drop or a retry can't make two books.
+- **Backup status:** each device notes, per book, when it was last backed up and since when it has changed
+  (`ui_prefs` `backup:<bookId>`).
+  - A check compares the book's fingerprint, a hash of everything a backup holds. Any change counts, planning as much
+    as writing, and nothing else does (opening a chapter, changing the view). The day's writing stats date a change.
+  - A download, the Export dialog's Backup, a folder backup and a restore all count as backups.
+  - A book with nothing written in it, such as the sample, an import or a new book, isn't counted as at risk till
+    something is: an import's file still has it, and the rest would be easy to redo.
+  - Checks run half a minute after the app opens, hourly, and when the writer leaves the tab (at most every 5
+    minutes), each after saving the open scenes. Checks, downloads, restores and folder changes take turns over every
+    tab (a Web Lock), so none undoes what another notes.
+- **The reminder** is a strip atop the open book's screens:
+  - After a week of changes without a backup: "“The Salt Ledger” was last backed up 12 days ago, and has changed
+    since." or "… has never been backed up. Its only copy is in this browser." It offers Back up now (a download),
+    Back up to a folder… (where the browser can and none is chosen) and Not now.
+  - As soon as there's a change to back up, when folder backups are paused (Allow) or have stopped (Choose a
+    folder…).
+  - It comes only at calm moments: as the book opens, while the writer is away from the tab, or as they come back,
+    once the folder has been looked at again. It never appears mid-sentence, but goes as soon as it's dealt with, and
+    focus moves on to what follows it. Its spell away or back begins as the tab's change sets out (on the window), so
+    the folder is always looked at again after it, even where that's instant, without folder backups.
+  - While one of its buttons works, it holds still as it was, the button saying "Backing up…": folder backups come on
+    before they've written the book's backup. Should the focused button go all the same, focus moves to its first.
+  - Not now puts it off for a week, or a day for a paused or stopped folder. Each book has its own.
+- **"Last backup"** in the book menu, beside Backups…: "Today", "Yesterday", "12 days ago", "3 Mar" or "Never".
+- **The Backups dialog** (book menu) stands in for Settings › Backups till there's a Settings screen:
+  - This book: its last backup, whether it has changed since, and Back up now.
+  - Folder backups: off, on ("Up to date as of today at 14:32"), paused or stopped, each with its buttons.
+  - This browser: whether it has agreed to keep the app's data, the space it takes, and a button to ask (again).
+  - A button that stays as its section changes keeps focus and changes only its label ("Choose a folder…" becomes
+    "Change folder…"). When the focused button goes, focus moves to its section's first, not to the dialog.
+- **Folder backups,** in Chrome and Edge on computers. Elsewhere the dialog suggests Back up now, kept on a cloud drive.
+  - Choosing a folder backs up every book there at once. Then each check writes the backup of every book that has
+    changed: the same `Title YYYY-MM-DD.bookbookbook.zip`, replaced through the day. The newest 10 of each book stay.
+  - Only files written here are ever replaced or removed. A name another file has taken gets " (2)". Stop forgets
+    which files were ours, so choosing the same folder again writes that day's as " (2)" beside them.
+  - The folder's handle is kept in IndexedDB, and its state in `ui_prefs` (`backup.folder`, and the files written
+    for each book in `backup.files:<bookId>`). One store in the page holds the state, the handle and the
+    permission, so the reminder, the dialog and the toasts agree.
+  - **Paused:** Chrome takes back permission to write ("Allow this time") after 5 minutes in the background, or when
+    the app closes. Checks skip the folder till the writer allows it again, and the dialog suggests "Allow on every
+    visit".
+  - **Stopped:** the browser has lost the folder, or writing failed. A folder moved, renamed or deleted says so.
+    Each check tries again, so a folder put back resumes. A check also looks for each book's newest backup, and
+    writes it again if it has gone.
+  - A file is written whole or not at all: the browser writes a copy and swaps it in.
+- **Known limits:** a download counts as a backup when it's made, even if the save is then cancelled. Checks read and
+  hash every book on the main thread. A session under half a minute may end before a check. Changes to the folder
+  in another tab show here on coming back to the tab, or at the next check.
 - **Import** is in the book menu ("Import a manuscript…") and the empty library. One dialog, two steps: the source
   (choose a file, drop one anywhere on the dialog, or paste the text), then a preview of the book it will make. Back
   keeps a paste, to fix rather than paste again.
@@ -758,9 +807,9 @@ still to come. Details it settled:
   - Each scene's prose goes in as its first version, so the words don't count as the day's writing.
   - It opens at the first chapter, with "Imported “Title”".
 - **Not yet:** choosing chapters, scene-break style, front matter, act headings, a localized "Chapter", comments
-  (M6), folder auto-backup, the "last backup" indicator and reminder, importing into an existing book, images in
-  imports, and AI cards and codex images in backups (M4, v1.x). The app already asks the browser to keep its storage
-  (`persist()`) at the first edit.
+  (M6), importing into an existing book, images in imports, AI cards and codex images in backups (M4, v1.x), folder
+  backups beyond Chrome and Edge (Tauri, M12), and checks in a worker. The app already asks the browser to keep its
+  storage (`persist()`) at the first edit.
 
 ---
 
@@ -975,8 +1024,8 @@ LanguageTool or the browser spellchecker. RTL later.
 1. Name clearance for "bookbookbook" (trademark, domain, app stores).
 2. The phone keyboard test on real devices with Gboard and Samsung Keyboard
    ([ime-smoke-test.md](ime-smoke-test.md)), left over from M0.
-3. M2, Editor core, M3, Codex core, and M7's export, backups and import are built and tested
-   ([README](../README.md)). The rest of M7 (folder backups, the "last backup" reminder) comes next.
+3. M2, Editor core, M3, Codex core, and M7, Import / export / backups, are built and tested
+   ([README](../README.md)).
 
 ---
 
@@ -987,7 +1036,7 @@ LanguageTool or the browser spellchecker. RTL later.
 | **Scope is very large** for a small team | Slips, half-finished features | Milestone gates; Beta cut list; prototype first; defer v1.x items without guilt |
 | **Sync correctness** (PowerSync + Yjs) | Lost or duplicated writing | Follow the official Yjs + Supabase demo pattern; offline/online chaos tests; multi-device e2e; snapshots + backups as a safety net |
 | **Yjs update growth** | Slow loads, storage cost | Per-scene docs; compaction into snapshots; GC on |
-| **Browser storage eviction** (esp. Safari ~7-day rule) | Data loss in Beta | `persist()`, install prompts, folder backup, export reminders, "last backup" indicator |
+| **Browser storage eviction** (esp. Safari ~7-day rule) | Data loss in Beta | `persist()`, install prompts, folder backups, a calm backup reminder, "last backup" in the book menu (built in M7) |
 | **Mobile IME bugs** in ProseMirror | Broken typing on Android | Test from M0 on real devices (`/lab/ime`, [checklist](ime-smoke-test.md)); no decoration updates during composition; an e2e test replays a composition through the Chrome DevTools Protocol; keep a list of known keyboards |
 | **AI cost abuse** | Margin loss | Reserve/settle credits, rate limits, max tokens, model allow-list, anomaly alerts; no hosted AI on Free |
 | **Model refusals on mature fiction** | Frustrated writers | Model choice, fiction framing, graceful refusals, local models |
@@ -1040,3 +1089,4 @@ LanguageTool or the browser spellchecker. RTL later.
 | 18 | M3 Codex screen | Types, list and entry side by side from 1024 px, list and entry from 768 px, one at a time on phones; search across every type; a type's fields plus an entry's own, and removing a type's field keeps the text entries filled in; mention matching stays on the main thread, without a worker | Details in §7, "Built in M3" |
 | 19 | M3 hover cards and Codex panel | Cards open when the mouse rests on a name and never take the caret; a plain click places the caret, Ctrl/⌘+click opens the Codex screen; Write's side panel has Chapter plan and Codex pages, one at a time, each a toolbar button; the Codex page lists the chapter's entries first and only reads; @-mentions and quick-create move to M6 | Details in §7, "Built in M3" |
 | 20 | M7 import | Word documents read by the app's own reader, not mammoth: heading levels straight from styles, including a style based on a heading or given an outline level (mammoth maps styles by name), no HTML to sanitize, the same zip limits as restore, and one dependency fewer; one dialog, source then preview; short front matter left out to begin with; rename, merge, start acts and leave out in the preview, every change undoable; a new book beside the others, never into an open one | Details in §13, "Built in M7" |
+| 21 | M7 folder backups and reminder | Each book's backup status noted per device and decided by a fingerprint of all a backup holds, so any change counts and nothing else does; the reminder after a week of changes, or at once when folder backups need the writer, shown only as a book opens or the writer comes back, never mid-sentence; "last backup" in the book menu, not a status bar; a Backups dialog in the book menu till Settings exists; folder backups write each changed book's dated zip, replace only their own files, keep 10 per book, retry a failed folder and rewrite a missing backup; one store for the folder's state, handle and permission; a reminder that holds still while its buttons work, and buttons that keep focus as their section changes | Details in §13, "Built in M7" |

@@ -9,7 +9,7 @@ import { countWords } from "@/lib/words"
 import { base64ToBytes, bytesToBase64 } from "@/yjs/base64"
 import { proseText } from "@/yjs/prose"
 import { contentState, docFromState, isEmptyContent } from "@/yjs/versions"
-import { blocksState, docBlocks, tidyBlocks } from "./blocks"
+import { blocksState, docBlocks, tidyBlocks, type Block } from "./blocks"
 import { ExportError } from "./errors"
 import { FILE_TYPES, markdownBook, safeFilename, type ExportFile } from "./files"
 import { loadManuscript } from "./manuscript"
@@ -65,8 +65,19 @@ export interface BackupData {
 
 const BOOK_SCENES = "SELECT s.id FROM scenes s JOIN chapters c ON c.id = s.chapter_id WHERE c.book_id = ?"
 
-/** The book as a backup zip. Trashed chapters and scenes come along, as they'd still be in the Trash. */
-export async function backupFile(db: Db, bookId: string, readScene: SceneReader, now = new Date()): Promise<ExportFile> {
+/** A book as read for a backup: what `zipBackup` packs and `backupFingerprint` hashes. */
+export interface BookBackup {
+  data: BackupData
+  /** Every scene's stored prose (a Yjs state), by id. */
+  states: Map<string, Uint8Array>
+  /** Each written scene's prose, tidied, by id, in the order of `data.scenes`. */
+  prose: Map<string, Block[]>
+  /** Named versions' prose, by version id. */
+  versions: Map<string, Uint8Array>
+}
+
+/** Reads all a backup holds. Trashed chapters and scenes come along, as they'd still be in the Trash. */
+export async function readBackup(db: Db, bookId: string, readScene: SceneReader, now = new Date()): Promise<BookBackup> {
   const book = await db.getOptional<Row>("SELECT * FROM books WHERE id = ?", [bookId])
   if (!book) throw new Error(`There's no book ${bookId}.`)
   const universeId = typeof book.universe_id === "string" ? book.universe_id : null
@@ -78,11 +89,11 @@ export async function backupFile(db: Db, bookId: string, readScene: SceneReader,
      WHERE kind = 'manual' AND scene_id IN (${BOOK_SCENES}) ORDER BY scene_id, created_at, id`,
     [bookId],
   )
-  const files: Record<string, Uint8Array> = {}
+  const versionStates = new Map<string, Uint8Array>()
   const versions: VersionMeta[] = []
   for (const { state_b64, ...meta } of versionRows) {
     try {
-      if (state_b64) files[`versions/${meta.id}.ystate`] = base64ToBytes(state_b64)
+      if (state_b64) versionStates.set(meta.id, base64ToBytes(state_b64))
       versions.push(meta)
     } catch (error) {
       // Skipped, so one bad row can't stop the whole backup.
@@ -114,31 +125,61 @@ export async function backupFile(db: Db, bookId: string, readScene: SceneReader,
   }
 
   const states = new Map<string, Uint8Array>()
-  const chapterTitles = new Map(data.chapters.map((chapter) => [chapter.id, chapter.title]))
+  const prose = new Map<string, Block[]>()
   for (const scene of scenes) {
     const id = String(scene.id)
     const state = await readScene(id)
     states.set(id, state)
     const doc = docFromState(state)
     try {
-      if (isEmptyContent(doc)) continue
-      files[`scenes/${id}.ystate`] = state
-      const frontMatter = { id, chapter: chapterTitles.get(scene.chapter_id) ?? null, title: scene.title ?? null }
-      const yaml = Object.entries(frontMatter).map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
-      files[`scenes/${id}.md`] = strToU8(`---\n${yaml.join("\n")}\n---\n\n${blocksToMarkdown(tidyBlocks(docBlocks(doc)))}\n`)
+      if (!isEmptyContent(doc)) prose.set(id, tidyBlocks(docBlocks(doc)))
     } finally {
       doc.destroy()
     }
   }
-  const manuscript = await loadManuscript(db, bookId, async (id) => states.get(id) ?? readScene(id))
+  return { data, states, prose, versions: versionStates }
+}
+
+/**
+ * A hash of all the backup holds but when it was made, to tell whether the book has changed since a backup.
+ * Prose counts as what it says, its tidied blocks: a Yjs state's bytes differ with how the prose came to be.
+ */
+export async function backupFingerprint(backup: BookBackup): Promise<string> {
+  const text = JSON.stringify({ data: { ...backup.data, exportedAt: null }, prose: [...backup.prose] })
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", strToU8(text)))
+  return Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")
+}
+
+/** The backup as a zip, named for the book and the day it was made. */
+export async function zipBackup(db: Db, backup: BookBackup, readScene: SceneReader): Promise<ExportFile> {
+  const { data, states, prose } = backup
+  const files: Record<string, Uint8Array> = {}
+  for (const [id, state] of backup.versions) files[`versions/${id}.ystate`] = state
+  const chapterTitles = new Map(data.chapters.map((chapter) => [chapter.id, chapter.title]))
+  for (const scene of data.scenes) {
+    const id = String(scene.id)
+    const blocks = prose.get(id)
+    const state = states.get(id)
+    if (!blocks || !state) continue
+    files[`scenes/${id}.ystate`] = state
+    const frontMatter = { id, chapter: chapterTitles.get(scene.chapter_id) ?? null, title: scene.title ?? null }
+    const yaml = Object.entries(frontMatter).map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
+    files[`scenes/${id}.md`] = strToU8(`---\n${yaml.join("\n")}\n---\n\n${blocksToMarkdown(blocks)}\n`)
+  }
+  const manuscript = await loadManuscript(db, String(data.book.id), async (id) => states.get(id) ?? readScene(id))
   files["manuscript.md"] = strToU8(markdownBook(manuscript, "number-title"))
   files["book.json"] = strToU8(`${JSON.stringify(data, null, 2)}\n`)
 
   return {
-    name: `${safeFilename(manuscript.title, "Untitled book")} ${localDay(now)}.bookbookbook.zip`,
+    name: `${safeFilename(manuscript.title, "Untitled book")} ${localDay(new Date(data.exportedAt))}.bookbookbook.zip`,
     type: FILE_TYPES.zip,
     data: zipSync(files),
   }
+}
+
+/** The book as a backup zip. */
+export async function backupFile(db: Db, bookId: string, readScene: SceneReader, now = new Date()): Promise<ExportFile> {
+  return zipBackup(db, await readBackup(db, bookId, readScene, now), readScene)
 }
 
 // Restoring
@@ -190,8 +231,15 @@ function columnsOf(table: SyncableName, row: Record<string, unknown>): Row {
   return values
 }
 
+export interface RestoredBook {
+  bookId: string
+  title: string
+  /** When the backup was made, if it says. */
+  exportedAt: Date | null
+}
+
 /** Restores a backup zip as a new book. Throws an ExportError to show the writer if the file can't be restored. */
-export async function restoreBackup(db: Db, zip: Uint8Array, now = new Date()): Promise<{ bookId: string; title: string }> {
+export async function restoreBackup(db: Db, zip: Uint8Array, now = new Date()): Promise<RestoredBook> {
   const files = readZip(zip)
   const json = files.get("book.json")
   if (!json) throw new ExportError(NOT_A_BACKUP)
@@ -328,7 +376,8 @@ export async function restoreBackup(db: Db, zip: Uint8Array, now = new Date()): 
         created_at: typeof meta.created_at === "string" ? meta.created_at : nowIso,
       })
     }
-    return { bookId, title }
+    const exportedAt = typeof backup.exportedAt === "string" ? new Date(backup.exportedAt) : null
+    return { bookId, title, exportedAt: exportedAt && Number.isFinite(exportedAt.getTime()) ? exportedAt : null }
   })
 }
 

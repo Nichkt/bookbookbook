@@ -8,8 +8,9 @@ takes after NovelCrafter, the writing side after Sudowrite.
 
 ## Status: the Codex, editor core, import, export and backups
 
-Milestones 0 to 3 from DESIGN.md §19 are built, along with M7's import, export and backups.
-Everything stays on the device; there are no accounts or sync yet, so back up from the book menu (Export… → Backup).
+Milestones 0 to 3 and 7 from DESIGN.md §19 are built.
+Everything stays on the device; there are no accounts or sync yet, so keep backups: Backups… in the book menu downloads
+one, or backs every book up to a folder as it changes (Chrome and Edge).
 The Inbox tab is a placeholder until M11.
 
 **M3, Codex core** (DESIGN.md §7):
@@ -38,7 +39,13 @@ The Inbox tab is a placeholder until M11.
 
   Chapters are headed by number, title or both, and each book remembers its choices.
 - **Backups:** one zip with the whole book (plan, codex, prose, named versions and writing stats), and a Markdown
-  copy to read without the app.
+  copy to read without the app. Back up now from Backups… in the book menu, or choose Backup in Export….
+- **Folder backups:** choose a folder in Backups…, ideally one a cloud drive syncs, and every book is backed up there
+  within the hour of a change and as you leave the app. The newest 10 backups of each book are kept. Chrome and Edge
+  on computers.
+- **Backup reminder:** a book that has gone a week of changes without a backup says so as it opens, or when you come
+  back to the tab, never mid-sentence. So do folder backups that need your permission again or have lost their
+  folder. The book menu shows when the open book was last backed up.
 - **Restore** a backup from the book menu or the empty library. It comes back as a new book, beside the others.
 
 **M2, Editor core** (DESIGN.md §8):
@@ -126,6 +133,8 @@ in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). 
 - the Scene view's reading order, and shortcut labels and keys;
 - export: the manuscript and its chapter headings, Word, Markdown (both ways) and plain-text files, safe file names,
   backups and restoring them, and the Export dialog's saved choices;
+- backup status: when a book counts as changed, the reminder's rules and labels, and folder backups (file names,
+  replacing only their own files, keeping 10, a failed or missing folder, a backup gone from it);
 - import: reading Word documents (styles, marks, tracked changes, limits), Markdown and plain text (encodings and
   paragraphs), splitting into acts, chapters and scenes, the title and author, the preview's edits and Undo, and the
   book it writes.
@@ -148,6 +157,11 @@ They cover:
 - export (`export.spec.ts`): a Word manuscript with the last words typed and the author, Markdown as one file and a
   file per chapter, a backup restored beside its original, a file that isn't a backup, nothing to export, and
   restoring into an empty library;
+- backups (`backups.spec.ts`): the reminder for a book unbacked-up through a week of changes, Back up now, Not now,
+  a reminder falling due mid-session that waits for the writer to come back, one falling due while they're away
+  that's there when they're back (in a browser without folder backups), and folder backups to a stand-in folder:
+  choosing one, keeping it up to date, stopping, permission taken back, a deleted folder, and the reminder keeping
+  focus while its folder backup runs, or as its focused button goes;
 - import (`import.spec.ts`): a Markdown manuscript with acts and scenes, a paste reworked in the preview (leaving
   out, starting an act, merging, Undo, Enter between titles), a Word document with its title, author and italics,
   files it can't read, and a file dropped into the empty library;
@@ -158,8 +172,8 @@ They cover:
   entry was opened from and the list where it was left, counts that follow the text, sharing the panel with the
   chapter plan, hover cards that leave the caret alone, and Ctrl+click;
 - touch targets (`touch.spec.ts`): on a phone and a tablet, every control on the Board, its menus, the drawer, a toast,
-  the Outline, the Write screen with its menus, History, chapter plan and Codex panel, the Codex, and the Import
-  dialog with its menus must be at least 44 px.
+  the Outline, the Write screen with its menus, History, chapter plan and Codex panel, the Codex, the Import dialog
+  with its menus, the backup reminder and the Backups dialog must be at least 44 px.
 
 Use `npx playwright test --ui` to debug. A failed test keeps a trace in `test-results/`; open it with
 `npx playwright show-trace <path>`.
@@ -189,6 +203,7 @@ one replaces the live doc's prose with a copy in a single edit, so it's saved, a
 ```text
 src/
   app/            shell, routes, startup and error screens, theme, toasts and announcements, dev hooks
+  backup/         backup status, folder backups, and when backups run
   components/     fields that save as you type; ui/ holds the shadcn components
   db/             PowerSync schema, queries, sample book and seeding, ordering, undo, Trash, prefs, the scene store,
                   writing stats, scene versions
@@ -196,7 +211,8 @@ src/
   export/         manuscript, Word, Markdown and plain-text files, backups and restoring them
   features/       plan/ (Board, Outline, drawer), write/ (views, toolbar, navigator, History, side panel with the
                   chapter plan and Codex, hover cards), books/, export/ (Export and Restore dialogs), import/ (Import
-                  dialog and its preview), codex/ (Codex screen, entry pages, Appears in), lab/ (IME lab)
+                  dialog and its preview), backup/ (the reminder and the Backups dialog), codex/ (Codex screen,
+                  entry pages, Appears in), lab/ (IME lab)
   import/         reading Word, Markdown and plain text, splitting into acts, chapters and scenes, writing the book
   lib/            small helpers (ids, word counts, numbers, keys, focus, colors, plain text as rich text)
   test/           in-memory SQLite and book builders for unit tests
@@ -215,3 +231,5 @@ Development builds expose `window.__bbb` for the console and the end-to-end test
 - `flushAll()`: resolves once every edit in this tab has been written.
 - `compactAll()`: compacts every open scene now.
 - `settleAll()`: saves pending word counts and versions now, instead of after their delays.
+- `backUpNow()`: runs a backup check now, writing to the backup folder if there is one. Resolves to `"up-to-date"`,
+  `"failed"` or `"skipped"` (no folder it can write to).

@@ -4,6 +4,7 @@ import { useRef, useState } from "react"
 import { useNavigate } from "react-router"
 import { toast } from "sonner"
 import { rememberBook } from "@/app/books"
+import { noteRestored } from "@/backup/actions"
 import { Button } from "@/components/ui/button"
 import { DialogClose, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { restoreBackup } from "@/export/backup"
@@ -34,6 +35,7 @@ export function RestoreForm() {
     setError(null)
     try {
       const restored = await restoreBackup(db, new Uint8Array(await file.arrayBuffer()))
+      await noteRestored(db, restored)
       rememberBook(restored.bookId)
       setBookDialogBusy(false)
       if (useBookDialogs.getState().dialog === "restore") closeBookDialog()

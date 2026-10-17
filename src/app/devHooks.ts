@@ -1,3 +1,4 @@
+import { backUpNow, type FolderOutcome } from "@/backup/scheduler"
 import { db } from "@/db/powersync"
 import { flushSceneDocs, openSceneDocs, settleSceneDocs } from "@/editor/sceneDocs"
 
@@ -12,6 +13,8 @@ export interface DevHooks {
   compactAll(): Promise<void>
   /** Saves pending word counts and versions now, instead of after their delays. */
   settleAll(): Promise<void>
+  /** Runs a backup pass now, rather than waiting for the next: checks every book, and writes to the folder. */
+  backUpNow(): Promise<FolderOutcome>
 }
 
 declare global {
@@ -29,5 +32,6 @@ export function installDevHooks() {
       await Promise.all(openSceneDocs().map((provider) => provider.compact()))
     },
     settleAll: settleSceneDocs,
+    backUpNow: () => backUpNow(db),
   }
 }

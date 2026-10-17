@@ -2,11 +2,15 @@ import { test as base, expect, type Locator, type Page } from "@playwright/test"
 
 /** What src/app/devHooks.ts puts on `window.__bbb` in development builds, which these tests run against. */
 export interface DevHooks {
-  db: { getAll<T>(sql: string, parameters?: unknown[]): Promise<T[]> }
+  db: {
+    getAll<T>(sql: string, parameters?: unknown[]): Promise<T[]>
+    execute(sql: string, parameters?: unknown[]): Promise<unknown>
+  }
   openScenes(): string[]
   flushAll(): Promise<void>
   compactAll(): Promise<void>
   settleAll(): Promise<void>
+  backUpNow(): Promise<"up-to-date" | "failed" | "skipped">
 }
 
 declare global {
@@ -63,3 +67,43 @@ export const settleAll = (page: Page) => page.evaluate(() => window.__bbb.settle
 /** Reads from the page's database. */
 export const queryDb = <T>(page: Page, sql: string, parameters: unknown[] = []) =>
   page.evaluate(({ sql, parameters }) => window.__bbb.db.getAll<T>(sql, parameters), { sql, parameters })
+
+/** The open book's id, from the address. */
+export const openBookId = (page: Page) => new URL(page.url()).pathname.split("/")[2]
+
+/** Sets a device pref (`ui_prefs`), or with null, deletes it. */
+export const setPref = (page: Page, key: string, value: string | null) =>
+  page.evaluate(
+    async ({ key, value }) => {
+      const { db } = window.__bbb
+      await db.execute("DELETE FROM ui_prefs WHERE id = ?", [key])
+      if (value !== null) await db.execute("INSERT INTO ui_prefs (id, value) VALUES (?, ?)", [key, value])
+    },
+    { key, value },
+  )
+
+/**
+ * Notes, as the backup checks would, that the open book was last backed up `last` days ago (null: never), and has
+ * changed since `changed` days ago. Its fingerprint is one the book never has, so the checks find it changed still.
+ */
+export async function seedBackupRecord(page: Page, { last, changed }: { last: number | null; changed: number }) {
+  const value = await page.evaluate(
+    ({ last, changed }) => {
+      // By the calendar, as the app counts days, so a change of clocks makes no difference.
+      const daysAgo = (days: number) => {
+        const date = new Date()
+        date.setDate(date.getDate() - days)
+        return date.toISOString()
+      }
+      return JSON.stringify({
+        last: last === null ? null : daysAgo(last),
+        hash: "older",
+        hashedAt: daysAgo(last ?? changed),
+        dayWords: 0,
+        changedAt: daysAgo(changed),
+      })
+    },
+    { last, changed },
+  )
+  await setPref(page, `backup:${openBookId(page)}`, value)
+}

@@ -159,6 +159,15 @@ export async function flushSceneDocs() {
   await Promise.all(openSceneDocs().map((provider) => provider.flush()))
 }
 
+/** Saves pending word counts now, rather than once typing pauses, e.g. before a backup reads them. */
+export async function saveWordCounts() {
+  await Promise.all(
+    [...open].map(async ([sceneId, scene]) => {
+      if (scene.wordsTimer !== undefined) await saveWordCount(sceneId, scene)
+    }),
+  )
+}
+
 /** Saves pending word counts and versions now rather than after their delays, e.g. before a test reads them. */
 export async function settleSceneDocs() {
   await Promise.all(

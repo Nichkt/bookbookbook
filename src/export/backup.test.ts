@@ -5,9 +5,17 @@ import { saveVersion } from "@/db/versions"
 import { buildBook, outline } from "@/test/book"
 import { para, paras, sceneBreak, text, writeProse } from "@/test/blocks"
 import { createTestDb } from "@/test/sqliteDb"
-import { base64ToBytes } from "@/yjs/base64"
+import { base64ToBytes, bytesToBase64 } from "@/yjs/base64"
 import { docFromState } from "@/yjs/versions"
-import { backupFile, BACKUP_FORMAT, NEWER_BACKUP, NOT_A_BACKUP, restoreBackup } from "./backup"
+import {
+  backupFile,
+  backupFingerprint,
+  BACKUP_FORMAT,
+  NEWER_BACKUP,
+  NOT_A_BACKUP,
+  readBackup,
+  restoreBackup,
+} from "./backup"
 import { blocksState, docBlocks, tidyBlocks, type Block } from "./blocks"
 import { storedSceneReader } from "./scenes"
 
@@ -273,6 +281,55 @@ describe("backupFile", () => {
   })
 })
 
+describe("backupFingerprint", () => {
+  const fingerprint = async (now = NOW) => backupFingerprint(await readBackup(db, "book", storedSceneReader(db), now))
+
+  it("stays the same while the book does, whenever it's taken", async () => {
+    await seed()
+    const first = await fingerprint()
+    expect(first).toMatch(/^[0-9a-f]{64}$/)
+    expect(await fingerprint(new Date(2026, 0, 1))).toBe(first)
+    // Another book's changes aren't this one's.
+    await db.execute("UPDATE chapters SET title = 'Elsewhere' WHERE id = 'ch-Other'")
+    expect(await fingerprint()).toBe(first)
+  })
+
+  it("reads prose for what it says, not how it's stored", async () => {
+    await seed()
+    const first = await fingerprint()
+    // The same prose from a new document: other bytes, other history.
+    const restated = bytesToBase64(blocksState(await proseOf(db, "sc-Arrival-1")))
+    await db.execute("UPDATE snapshots SET state_b64 = ? WHERE id = 'prose-sc-Arrival-1'", [restated])
+    expect(await fingerprint()).toBe(first)
+    await db.execute("UPDATE snapshots SET state_b64 = ? WHERE id = 'prose-sc-Arrival-1'", [
+      bytesToBase64(blocksState([para(text("The ferry docked.")), sceneBreak, ...paras("Mara stepped off.")])),
+    ])
+    expect(await fingerprint()).not.toBe(first)
+  })
+
+  it("changes with anything a backup holds: plans, prose, the codex, versions", async () => {
+    await seed()
+    const seen = new Set([await fingerprint()])
+    const changes = [
+      () => db.execute("UPDATE chapters SET summary = 'Mara lands.' WHERE id = 'ch-Arrival'"),
+      () => writeProse(db, "sc-Arrival-2", paras("New words.")),
+      () => db.execute("UPDATE codex_entries SET notes = 'Tall.' WHERE id = 'mara'"),
+      async () => {
+        const doc = docFromState(blocksState(paras("Kept.")))
+        await saveVersion(db, "sc-Arrival-1", doc, { kind: "manual", label: "Keep", now: NOW })
+        doc.destroy()
+      },
+      () => db.execute("UPDATE scenes SET deleted_at = ? WHERE id = 'sc-Arrival-2'", [NOW.toISOString()]),
+    ]
+    for (const change of changes) {
+      await change()
+      const next = await fingerprint()
+      expect(seen.has(next)).toBe(false)
+      seen.add(next)
+    }
+  })
+})
+
 const concat = (...parts: Uint8Array[]) => {
   const joined = new Uint8Array(parts.reduce((length, part) => length + part.length, 0))
   parts.reduce((at, part) => (joined.set(part, at), at + part.length), 0)
@@ -324,7 +381,8 @@ describe("restoreBackup", () => {
   it("restores a backup as a new book beside the original", async () => {
     await seed()
     const zip = await backup()
-    const { bookId, title } = await restoreBackup(db, zip, NOW)
+    const { bookId, title, exportedAt } = await restoreBackup(db, zip, NOW)
+    expect(exportedAt).toEqual(NOW)
     expect(title).toBe("Test book (restored)")
     expect(bookId).not.toBe("book")
 
@@ -373,6 +431,13 @@ describe("restoreBackup", () => {
     ])
   })
 
+  it("says when the backup it restores was made", async () => {
+    await seed()
+    const made = new Date(2025, 1, 20, 9, 30)
+    const zip = (await backupFile(db, "book", storedSceneReader(db), made)).data as Uint8Array
+    expect((await restoreBackup(db, zip, NOW)).exportedAt).toEqual(made)
+  })
+
   it("names each restore apart, and keeps the title in a library without it", async () => {
     await seed()
     const zip = await backup()
@@ -419,8 +484,9 @@ describe("restoreBackup", () => {
       "notes.txt": strToU8("Not part of a backup."),
     })
 
-    const { bookId, title } = await restoreBackup(db, zip, NOW)
+    const { bookId, title, exportedAt } = await restoreBackup(db, zip, NOW)
     expect(title).toBe("Hand made")
+    expect(exportedAt).toBeNull()
     expect(await outline(db, bookId)).toEqual(["One: First"])
     const row = await db.get<{ target_words: number; universe_id: string }>("SELECT * FROM books WHERE id = ?", [bookId])
     expect(row.target_words).toBe(5000)

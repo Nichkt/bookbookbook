@@ -7,6 +7,12 @@ import type { Db } from "./tx"
  * are deleted with the book.
  */
 
+/** A pref's value, outside React. */
+export async function readPref(db: Db, key: string): Promise<string | null> {
+  const row = await db.getOptional<{ value: string | null }>("SELECT value FROM ui_prefs WHERE id = ?", [key])
+  return row?.value ?? null
+}
+
 /** Sets a pref. Upserts can't run through PowerSync's views, so check for the row first. */
 export async function setPref(db: Db, key: string, value: string) {
   await db.writeTransaction(async (tx) => {

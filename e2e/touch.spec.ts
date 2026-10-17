@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test"
-import { openFirstChapter, test } from "./fixtures"
+import { openFirstChapter, seedBackupRecord, test } from "./fixtures"
 
 const CONTROLS = [
   "button",
@@ -253,6 +253,23 @@ for (const [device, viewport] of [
       await dialog.getByRole("button", { name: "More for chapter 2" }).click()
       await check("Import chapter menu", "[role=menu]")
       await closeWith("Escape", "[role=menu]")
+    })
+
+    test("every backup control is at least a 44px target", async ({ page }) => {
+      const { check } = checker(page)
+
+      await openFirstChapter(page)
+      await seedBackupRecord(page, { last: 20, changed: 10 })
+      await page.reload()
+      const reminder = page.getByRole("region", { name: "Backup reminder" })
+      await reminder.getByRole("button", { name: "Not now" }).waitFor()
+      await check("Backup reminder", 'section[aria-label="Backup reminder"]')
+
+      await page.getByRole("button", { name: "Book: The Salt Ledger" }).click()
+      await page.getByRole("menuitem", { name: /^Backups…/ }).click()
+      const dialog = page.getByRole("dialog", { name: "Backups" })
+      await dialog.getByRole("region", { name: "This browser" }).getByText(/^The browser /).first().waitFor()
+      await check("Backups", "[role=dialog]")
     })
   })
 }
