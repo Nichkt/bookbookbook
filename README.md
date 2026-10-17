@@ -6,11 +6,23 @@ takes after NovelCrafter, the writing side after Sudowrite.
 - **Design:** [docs/DESIGN.md](docs/DESIGN.md) covers every product and technical decision and the milestone plan.
 - **Prototype:** [prototype/](prototype/README.md) is a clickable mock of the whole app. Open `prototype/index.html`.
 
-## Status: editor core, export and backups
+## Status: the Codex, editor core, export and backups
 
-Milestones 0 to 2 from DESIGN.md §19 are built, along with M7's export and backups. Everything stays on the device;
-there are no accounts or sync yet, so back up from the book menu (Export… → Backup). The Codex and Inbox tabs are
-placeholders until M3 and M11.
+Milestones 0 to 2 from DESIGN.md §19 are built, along with M7's export and backups and most of M3, the Codex.
+Everything stays on the device; there are no accounts or sync yet, so back up from the book menu (Export… → Backup).
+The Inbox tab is a placeholder until M11.
+
+**M3, Codex core** (DESIGN.md §7), so far:
+- **Codex screen:** the types, their entries and an entry side by side on wide screens, one at a time on phones.
+  Search looks through every type's names, aliases, tags, fields and notes, and a tag filter narrows it.
+- **Entries:** name, color, type, tags, aliases, AI context, details and notes, saved as you type. Add a field to
+  one entry, or to every entry of its type.
+- **Appears in:** the chapters that mention an entry or link it in the plan, with its role there and how often it's
+  mentioned. Each opens its chapter in Write.
+- **Custom types:** add, rename and delete your own, beside the eight built in.
+- **Trash:** entries go to the Trash with Undo, and come back from the book menu.
+
+Hover cards on underlined names and a Codex panel beside the text come next.
 
 **M7, Export and backups** (DESIGN.md §13):
 - **Export** from the book menu:
@@ -102,6 +114,8 @@ in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). 
 - the plan's edits (create, move, fold, split, trash) and their exact undo;
 - ordering keys, story time, the Board's drop targets and the Outline's keyboard paths;
 - books, codex entries, the sample book and the Trash;
+- the Codex: entries and types (fields, aliases, trash and their exact undo), search, the screen's layout and list
+  rules, and Appears in;
 - word counts and the day's writing stats, scene versions (saving, pruning, restoring) and how History compares them;
 - the Scene view's reading order, and shortcut labels and keys;
 - export: the manuscript and its chapter headings, Word, Markdown (both ways) and plain-text files, safe file names,
@@ -125,8 +139,11 @@ They cover:
 - export (`export.spec.ts`): a Word manuscript with the last words typed and the author, Markdown as one file and a
   file per chapter, a backup restored beside its original, a file that isn't a backup, nothing to export, and
   restoring into an empty library;
+- the Codex (`codex.spec.ts`): a new entry surviving a reload, Appears in and back, the Trash and Undo, custom types,
+  a field on every character, search with the tag filter, a new character found in the text and counted, and the
+  phone layout;
 - touch targets (`touch.spec.ts`): on a phone and a tablet, every control on the Board, its menus, the drawer, a toast,
-  the Outline, and the Write screen with its menus, History and chapter plan must be at least 44 px.
+  the Outline, the Write screen with its menus, History and chapter plan, and the Codex must be at least 44 px.
 
 Use `npx playwright test --ui` to debug. A failed test keeps a trace in `test-results/`; open it with
 `npx playwright show-trace <path>`.
@@ -162,8 +179,8 @@ src/
   editor/         TipTap scene editor, its extensions, open scene docs, the active editor, codex name matching
   export/         manuscript, Word, Markdown and plain-text files, backups and restoring them
   features/       plan/ (Board, Outline, drawer), write/ (views, toolbar, navigator, History, chapter plan), books/,
-                  export/ (Export and Restore dialogs), codex/, lab/ (IME lab)
-  lib/            small helpers (ids, word counts, numbers, keys, focus)
+                  export/ (Export and Restore dialogs), codex/ (Codex screen, entry pages, Appears in), lab/ (IME lab)
+  lib/            small helpers (ids, word counts, numbers, keys, focus, colors, plain text as rich text)
   test/           in-memory SQLite and book builders for unit tests
   yjs/            SceneDocProvider, the scene store interface, Yjs helpers
 e2e/              Playwright tests

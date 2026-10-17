@@ -281,6 +281,36 @@ Dialogue polish) · Arc.
 included when mentioned in the current scene or the text being sent) and **Never**. In v1.x, progressions are resolved
 "as of" the current chapter so the AI doesn't learn spoilers too early.
 
+### Built in M3
+M3 has built the Codex screen so far: types, the entry list, and entry pages with Appears in. Hover cards and the
+Codex panel in Write come next. Details it settled:
+- **Layouts.** From 1024 px the types, the list and the entry sit side by side. From 768 px the list and the entry
+  do, with a "Codex type" menu above the list. Phones show the list or an entry, which links back to the list. Each
+  book remembers, per device, the type the list showed and the entry open last, and wide screens reopen that entry.
+- **Arrivals (§17).** A link to an entry focuses its row in the list, or the entry's heading on phones. The phone's
+  link back lands on the row.
+- **Search** looks through every type: names, aliases, tags, fields and notes. A tag filter narrows it, screen
+  readers hear how many entries were found, and "No entries match." offers Clear search.
+- **Entries.** "New character" (or location, and so on) adds an entry and focuses its name. Tags and aliases are
+  chips, and tags suggest the ones already in use. A name or alias that another entry also has gets a warning that
+  links to it, since a shared name is never underlined. A color from the palette tints the entry's initials.
+- **Details** are the type's fields, then the entry's own. "Add to every character" adds a field to the type.
+  Removing a type's field takes it off the type and that entry; other entries that filled it in keep it as their
+  own, and the toast says how many. Field names ignore case, so "Owner" and "owner" are one field.
+- **Appears in** lists, in reading order, the chapters that mention the entry or link it in the plan, with its roles
+  there (POV, Location, Thread, Present) and its mentions. A chapter opens in Write at its heading. Events, plot
+  threads and themes aren't looked for in the prose, since their names are often ordinary words.
+- **Mentions stay on the main thread.** One combined regex finds 6,250 mentions of 300 entries in a 150k-word book in
+  about 4 ms on a desktop, so the planned worker isn't needed.
+- **Trash and Undo.** A trashed entry gives its place to the next one in the list. Its Undo toast, like those for
+  removing a field or deleting a type, puts focus back on what it restores. The book menu's Trash keeps entries for
+  30 days.
+- **Custom types** can be added, renamed and, once empty, deleted, with Undo. The form refuses a name another type
+  has.
+- **Touch:** every control is at least 44 px on touch screens.
+- **Not yet:** hover cards and the Codex panel (later in M3), @-mentions, quick-create from a selection and per-alias
+  case options.
+
 ---
 
 ## 8. Writing studio
@@ -874,8 +904,9 @@ LanguageTool or the browser spellchecker. RTL later.
 1. Name clearance for "bookbookbook" (trademark, domain, app stores).
 2. The phone keyboard test on real devices with Gboard and Samsung Keyboard
    ([ime-smoke-test.md](ime-smoke-test.md)), left over from M0.
-3. M2, Editor core, and M7's export and backups are built and tested ([README](../README.md)). Next: M3, Codex
-   core. The rest of M7 (import, folder backups, the "last backup" reminder) comes later.
+3. M2, Editor core, and M7's export and backups are built and tested ([README](../README.md)). M3, Codex core, has
+   its Codex screen; hover cards and the Codex panel in Write are next. The rest of M7 (import, folder backups, the
+   "last backup" reminder) comes later.
 
 ---
 
@@ -936,3 +967,4 @@ LanguageTool or the browser spellchecker. RTL later.
 | 15 | M1 planner | Outline Tab folds into the item above, Shift+Tab splits off, each with Undo and a ⋯ menu command; drawer docked on wide screens; filters and quick create in M1 | Details in §6, "Built in M1" |
 | 16 | M2 editor | Segmented Scene / Chapter / Manuscript switch, remembered per book; Manuscript mounts editors near the window and holds a jump's target while it settles; ⁂ scene breaks; automatic versions plus named snapshots (Ctrl+Alt+S) with compare, restore and Undo; Today shows net words; chapter plan docked from 1280 px; a ⋯ menu on phones | Details in §8, "Built in M2" |
 | 17 | M7 export | One Export dialog: Word manuscript, Markdown, plain text or Backup, its choices remembered per book; open scenes saved before exporting; the author saved with the book; Restore always makes a new book beside the original; import and folder backups later | Details in §13, "Built in M7" |
+| 18 | M3 Codex screen | Types, list and entry side by side from 1024 px, list and entry from 768 px, one at a time on phones; search across every type; a type's fields plus an entry's own, and removing a type's field keeps the text entries filled in; mention matching stays on the main thread, without a worker | Details in §7, "Built in M3" |

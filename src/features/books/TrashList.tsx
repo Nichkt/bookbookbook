@@ -22,16 +22,19 @@ import {
   TRASH_DAYS,
   TRASHED_BOOKS_SQL,
   TRASHED_CHAPTERS_SQL,
+  TRASHED_ENTRIES_SQL,
   TRASHED_SCENES_SQL,
   type TrashedBookRow,
   type TrashedChapterRow,
+  type TrashedEntryRow,
   type TrashedSceneRow,
+  type TrashKind,
 } from "@/db/trash"
+import { typeSingular, UNNAMED_ENTRY } from "@/features/codex/codexData"
+import { restoreEntry } from "@/features/codex/mutations"
 import { restoreChapter, restoreScene } from "@/features/plan/mutations"
 import { chapterTitle, UNTITLED_SCENE } from "@/features/plan/status"
 import { restoreBook } from "./mutations"
-
-type TrashKind = "chapter" | "scene" | "book"
 
 interface TrashItem {
   kind: TrashKind
@@ -47,11 +50,12 @@ function timeLeft(deletedAt: string) {
   return days === 1 ? "1 day left" : `${days} days left`
 }
 
-/** The Trash (DESIGN.md §12): this book's chapters and scenes, and every book in the Trash. */
+/** The Trash (DESIGN.md §12): this book's chapters and scenes, its universe's codex entries, and every book. */
 export function TrashList({ bookId }: { bookId: string | undefined }) {
   const db = usePowerSync()
   const chapters = useQuery<TrashedChapterRow>(TRASHED_CHAPTERS_SQL, [bookId ?? ""])
   const scenes = useQuery<TrashedSceneRow>(TRASHED_SCENES_SQL, [bookId ?? ""])
+  const entries = useQuery<TrashedEntryRow>(TRASHED_ENTRIES_SQL, [bookId ?? ""])
   const books = useQuery<TrashedBookRow>(TRASHED_BOOKS_SQL)
   const [confirm, setConfirm] = useState<TrashItem | "empty" | null>(null)
 
@@ -79,6 +83,19 @@ export function TrashList({ bookId }: { bookId: string | undefined }) {
       })),
     },
     {
+      heading: "Codex entries",
+      items: entries.data.map((row) => ({
+        kind: "entry",
+        id: row.id,
+        title: row.name?.trim() || UNNAMED_ENTRY,
+        detail:
+          row.type_name === null
+            ? null
+            : typeSingular({ key: row.type_key, name: row.type_name, builtin: row.type_builtin }),
+        deletedAt: row.deleted_at,
+      })),
+    },
+    {
       heading: "Books",
       items: books.data.map((row) => ({
         kind: "book",
@@ -90,7 +107,7 @@ export function TrashList({ bookId }: { bookId: string | undefined }) {
     },
   ].filter((section) => section.items.length > 0) as { heading: string; items: TrashItem[] }[]
   const count = sections.reduce((sum, section) => sum + section.items.length, 0)
-  const isLoading = chapters.isLoading || scenes.isLoading || books.isLoading
+  const isLoading = chapters.isLoading || scenes.isLoading || entries.isLoading || books.isLoading
 
   const restore = async (item: TrashItem) => {
     const work =
@@ -98,7 +115,9 @@ export function TrashList({ bookId }: { bookId: string | undefined }) {
         ? restoreChapter(db, item.id)
         : item.kind === "scene"
           ? restoreScene(db, item.id)
-          : restoreBook(db, item.id)
+          : item.kind === "entry"
+            ? restoreEntry(db, item.id)
+            : restoreBook(db, item.id)
     if ((await attempt("restore", work.then(() => true))) !== true) return
     toast(`Restored “${item.title}”`)
   }

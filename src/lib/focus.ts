@@ -61,5 +61,11 @@ export function focusSoon(selector: string) {
 /** Whether a focusSoon request is still waiting for its element, so a dialog opening now shouldn't move focus. */
 export const focusPending = () => waiting !== 0 && waiting === latest
 
+/** Whether focus is nowhere in particular, so arriving somewhere may take it. */
+export const nothingFocused = () => {
+  const active = document.activeElement
+  return !active || active === document.body
+}
+
 /** A selector for `[data-<name>="<value>"]`, with the value quoted safely. */
 export const byData = (name: string, value: string) => `[data-${name}="${value.replace(/["\\]/g, "\\$&")}"]`

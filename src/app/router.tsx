@@ -1,10 +1,11 @@
 import { createBrowserRouter, Navigate } from "react-router"
+import { CodexScreen } from "@/features/codex/CodexScreen"
 import { ImeLab } from "@/features/lab/ImeLab"
 import { PlanIndex, PlanScreen } from "@/features/plan/PlanScreen"
 import { WriteScreen } from "@/features/write/WriteScreen"
 import { AppShell } from "./AppShell"
 import { OpenBook } from "./OpenBook"
-import { CodexScreen, InboxScreen, NotFoundScreen } from "./PlaceholderScreens"
+import { InboxScreen, NotFoundScreen } from "./PlaceholderScreens"
 import { RouteError } from "./RouteError"
 
 export const router = createBrowserRouter([
@@ -24,7 +25,7 @@ export const router = createBrowserRouter([
               { path: "plan", element: <PlanIndex /> },
               { path: "plan/:view", element: <PlanScreen /> },
               { path: "write/:chapterId?/:sceneId?", element: <WriteScreen /> },
-              { path: "codex", element: <CodexScreen /> },
+              { path: "codex/:entryId?", element: <CodexScreen /> },
             ],
           },
           { path: "inbox", element: <InboxScreen /> },

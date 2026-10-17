@@ -17,14 +17,6 @@ export function PlaceholderScreen({ title, milestone, children }: Props) {
   )
 }
 
-export function CodexScreen() {
-  return (
-    <PlaceholderScreen title="Codex" milestone="Arrives in M3">
-      <p>Characters, places and threads, with aliases, mentions and the Appears-in list.</p>
-    </PlaceholderScreen>
-  )
-}
-
 export function InboxScreen() {
   return (
     <PlaceholderScreen title="Inbox" milestone="Arrives in M11">

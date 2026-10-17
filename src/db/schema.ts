@@ -72,6 +72,8 @@ const SYNCABLE = {
     ai_context: text,
     color: text,
     image_path: text,
+    // Set while the entry is in the Trash (DESIGN.md §12); purged 30 days later.
+    deleted_at: text,
   },
   entity_links: { book_id: text, chapter_id: text, scene_id: text, entry_id: text, role: text, source: text },
   inbox_notes: { book_id: text, text: text, source: text, stt_engine: text, filed_to: text, created_at: text },

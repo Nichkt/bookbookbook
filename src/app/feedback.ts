@@ -46,6 +46,10 @@ export function offerUndo(db: Db, message: string, changes: ChangeSet, onUndone?
     action: {
       label: "Undo",
       onClick: () => {
+        // Sonner puts focus back where it was before the toast took it, once focus leaves the toast. Let that happen
+        // now rather than when onUndone focuses something, which it would otherwise undo.
+        const active = document.activeElement
+        if (active instanceof HTMLElement && active.closest("[data-sonner-toaster]")) active.blur()
         void attempt(
           "undo",
           db.writeTransaction((tx) => changes.revert(tx)).then(() => {

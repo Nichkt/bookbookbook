@@ -2,6 +2,7 @@ import { EllipsisIcon, LayoutGridIcon, PenLineIcon, PlusIcon, Trash2Icon, XIcon 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react"
 import { Link } from "react-router"
 import { announce, attempt } from "@/app/feedback"
+import { ChipsInput } from "@/components/ChipsInput"
 import { DraftInput, DraftTextarea } from "@/components/DraftField"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
@@ -21,7 +22,6 @@ import { BeatsEditor } from "./BeatsEditor"
 import { trashChapterWithUndo, trashSceneWithUndo } from "./commands"
 import { templateBeatName } from "./display"
 import { EntryPicker } from "./EntryPicker"
-import { LabelsInput } from "./LabelsInput"
 import { createScene, setChapterLinks, updateChapter, updateScene } from "./mutations"
 import { useChapterDetails, type FocusItem } from "./planContext"
 import type { PlanChapter } from "./planData"
@@ -221,9 +221,11 @@ function ChapterForm({ chapter, onClose }: { chapter: PlanChapter; onClose: () =
           <Label htmlFor={fieldId("labels")} className="self-start pt-2 text-ink-2">
             Labels
           </Label>
-          <LabelsInput
+          <ChipsInput
             id={fieldId("labels")}
-            labels={chapter.labelList}
+            noun="label"
+            placeholder="Add a label…"
+            values={chapter.labelList}
             suggestions={plan.labels}
             onChange={(labels) => save({ labels: JSON.stringify(labels) })}
           />

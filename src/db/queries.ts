@@ -71,7 +71,8 @@ export const MENTION_ENTRIES_SQL = `
   FROM codex_entries e
     JOIN books b ON b.universe_id = e.universe_id
     LEFT JOIN codex_types t ON t.id = e.type_id
-  WHERE b.id = ? AND coalesce(t.key, '') NOT IN (${NO_AUTO_MENTION_TYPES.map((key) => `'${key}'`).join(", ")})`
+  WHERE b.id = ? AND e.deleted_at IS NULL
+    AND coalesce(t.key, '') NOT IN (${NO_AUTO_MENTION_TYPES.map((key) => `'${key}'`).join(", ")})`
 
 /**
  * Scenes are optional (DESIGN.md §5): a chapter without them writes into one implicit scene, created the first

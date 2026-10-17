@@ -56,12 +56,6 @@ export interface WriteNavState {
 
 export const navState = (state: unknown): WriteNavState => (state && typeof state === "object" ? state : {})
 
-/** Whether focus is nowhere in particular, so arriving somewhere may take it. */
-export const nothingFocused = () => {
-  const active = document.activeElement
-  return !active || active === document.body
-}
-
 export interface WriteContextValue {
   db: Db
   bookId: string

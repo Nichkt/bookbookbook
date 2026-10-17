@@ -19,6 +19,9 @@ export const EMPTY_MATCHER: MentionMatcher = { find: () => [] }
 
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 
+/** Shorter names and aliases are never matched: a single letter would underline every "A". */
+export const MIN_TERM_LENGTH = 2
+
 /**
  * Auto-mention rules from DESIGN.md §7: whole words, case-sensitive, longest match wins ("Jonas Quill" over
  * "Jonas"), and a term shared by two entries is never linked. Possessives work because "'" isn't a word character.
@@ -29,7 +32,7 @@ export function buildMentionMatcher(entries: readonly MentionTarget[]): MentionM
   for (const entry of entries) {
     for (const raw of [entry.name, ...entry.aliases]) {
       const term = raw.trim()
-      if (term.length < 2) continue
+      if (term.length < MIN_TERM_LENGTH) continue
       let ids = owners.get(term)
       if (!ids) owners.set(term, (ids = new Set()))
       ids.add(entry.id)

@@ -30,6 +30,16 @@ export interface TrashedBookRow {
   deleted_at: string
 }
 
+export interface TrashedEntryRow {
+  id: string
+  name: string | null
+  deleted_at: string
+  /** Null when the entry has no type. */
+  type_name: string | null
+  type_key: string | null
+  type_builtin: number | null
+}
+
 export const TRASHED_CHAPTERS_SQL = `
   SELECT id, title, deleted_at FROM chapters
   WHERE book_id = ? AND deleted_at IS NOT NULL ORDER BY deleted_at DESC, id`
@@ -41,6 +51,14 @@ export const TRASHED_SCENES_SQL = `
 
 export const TRASHED_BOOKS_SQL = `
   SELECT id, title, deleted_at FROM books WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC, id`
+
+/** Codex entries in the Trash, from the book's universe. */
+export const TRASHED_ENTRIES_SQL = `
+  SELECT e.id, e.name, e.deleted_at, t.name AS type_name, t.key AS type_key, t.builtin AS type_builtin
+  FROM codex_entries e
+    JOIN books b ON b.universe_id = e.universe_id
+    LEFT JOIN codex_types t ON t.id = e.type_id
+  WHERE b.id = ? AND e.deleted_at IS NOT NULL ORDER BY e.deleted_at DESC, e.id`
 
 const IN_LIST = "IN (SELECT value FROM json_each(?))"
 
@@ -67,6 +85,18 @@ export async function purgeChapters(tx: Tx, ids: readonly string[]) {
   await tx.execute(`DELETE FROM beats WHERE parent_kind = 'chapter' AND parent_id ${IN_LIST}`, list)
   await tx.execute(`DELETE FROM entity_links WHERE chapter_id ${IN_LIST}`, list)
   await tx.execute(`DELETE FROM chapters WHERE id ${IN_LIST}`, list)
+}
+
+/** Deletes codex entries, their links, and the plan's references to them. */
+export async function purgeEntries(tx: Tx, ids: readonly string[]) {
+  if (ids.length === 0) return
+  const list = [JSON.stringify(ids)]
+  await tx.execute(`DELETE FROM mention_index WHERE entry_id ${IN_LIST}`, list)
+  await tx.execute(`DELETE FROM entity_links WHERE entry_id ${IN_LIST}`, list)
+  await tx.execute(`UPDATE chapters SET pov_entry_id = NULL WHERE pov_entry_id ${IN_LIST}`, list)
+  await tx.execute(`UPDATE chapters SET location_entry_id = NULL WHERE location_entry_id ${IN_LIST}`, list)
+  await tx.execute(`UPDATE scenes SET pov_entry_id = NULL WHERE pov_entry_id ${IN_LIST}`, list)
+  await tx.execute(`DELETE FROM codex_entries WHERE id ${IN_LIST}`, list)
 }
 
 /** Deletes a book and everything in it, and its universe and codex if no other book shares them. */
@@ -110,10 +140,14 @@ export async function purgeExpiredTrash(db: Db, now = new Date()) {
     for (const id of await expired("books")) await purgeBook(tx, id)
     await purgeChapters(tx, await expired("chapters"))
     await purgeScenes(tx, await expired("scenes"))
+    await purgeEntries(tx, await expired("codex_entries"))
   })
 }
 
-/** Deletes for good everything in the Trash that the Trash dialog lists: this book's chapters and scenes, and books. */
+/**
+ * Deletes for good everything in the Trash that the Trash dialog lists: this book's chapters and scenes, its
+ * universe's codex entries, and books.
+ */
 export async function emptyTrash(db: Db, bookId: string) {
   await db.writeTransaction(async (tx) => {
     const ids = async (sql: string, parameters: string[] = []) =>
@@ -127,15 +161,26 @@ export async function emptyTrash(db: Db, bookId: string) {
       ),
     )
     await purgeChapters(tx, await ids("SELECT id FROM chapters WHERE book_id = ? AND deleted_at IS NOT NULL", [bookId]))
+    await purgeEntries(
+      tx,
+      await ids(
+        `SELECT e.id FROM codex_entries e JOIN books b ON b.universe_id = e.universe_id
+         WHERE b.id = ? AND e.deleted_at IS NOT NULL`,
+        [bookId],
+      ),
+    )
     for (const id of await ids("SELECT id FROM books WHERE deleted_at IS NOT NULL")) await purgeBook(tx, id)
   })
 }
 
+export type TrashKind = "book" | "chapter" | "scene" | "entry"
+
 /** Deletes one Trash item for good. */
-export async function purgeItem(db: Db, kind: "book" | "chapter" | "scene", id: string) {
+export async function purgeItem(db: Db, kind: TrashKind, id: string) {
   await db.writeTransaction(async (tx) => {
     if (kind === "book") await purgeBook(tx, id)
     else if (kind === "chapter") await purgeChapters(tx, [id])
+    else if (kind === "entry") await purgeEntries(tx, [id])
     else await purgeScenes(tx, [id])
   })
 }

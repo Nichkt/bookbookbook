@@ -71,6 +71,17 @@ async function smallTargets(page: Page, scope: string) {
   )
 }
 
+/** Checks for small targets, and closes what a check opened. */
+function checker(page: Page) {
+  return {
+    check: async (where: string, scope = "body") => expect(await smallTargets(page, scope), where).toEqual([]),
+    closeWith: async (key: string, scope: string) => {
+      await page.keyboard.press(key)
+      await expect(page.locator(scope)).toHaveCount(0)
+    },
+  }
+}
+
 for (const [device, viewport] of [
   ["phone", { width: 412, height: 915 }],
   ["tablet", { width: 900, height: 1200 }],
@@ -79,11 +90,7 @@ for (const [device, viewport] of [
     test.use({ viewport, isMobile: true, hasTouch: true })
 
     test("every control is at least a 44px target", async ({ page }) => {
-      const check = async (where: string, scope = "body") => expect(await smallTargets(page, scope), where).toEqual([])
-      const closeWith = async (key: string, scope: string) => {
-        await page.keyboard.press(key)
-        await expect(page.locator(scope)).toHaveCount(0)
-      }
+      const { check, closeWith } = checker(page)
 
       await openFirstChapter(page)
       await check("Write")
@@ -155,6 +162,50 @@ for (const [device, viewport] of [
       await page.getByRole("navigation", { name: "Plan views" }).getByRole("link", { name: "Outline" }).click()
       await page.getByRole("textbox", { name: "Title of chapter 1", exact: true }).waitFor()
       await check("Outline")
+    })
+
+    test("every Codex control is at least a 44px target", async ({ page }) => {
+      const { check, closeWith } = checker(page)
+
+      await openFirstChapter(page)
+      await page.getByRole("navigation", { name: "Screens" }).getByRole("link", { name: "Codex" }).click()
+      const agnes = page.locator("[data-codex-row]").filter({ hasText: "Agnes Morrow" })
+      await agnes.waitFor()
+      await check("Codex")
+
+      await page.getByRole("combobox", { name: "Codex type" }).click()
+      await check("Type options", "[role=listbox]")
+      await closeWith("Escape", "[role=listbox]")
+
+      await page.getByRole("combobox", { name: "Filter by tag" }).click()
+      await check("Tag options", "[role=listbox]")
+      await closeWith("Escape", "[role=listbox]")
+
+      await page.getByRole("button", { name: "More for types" }).click()
+      await check("Types menu", "[role=menu]")
+      await page.getByRole("menuitem", { name: "New type…" }).click()
+      await page.getByRole("dialog", { name: "New type" }).waitFor()
+      await check("New type", "[role=dialog]")
+      await closeWith("Escape", "[role=dialog]")
+
+      // On the tablet she's open already.
+      await agnes.click()
+      const entry = page.locator("[data-codex-entry]")
+      await entry.getByRole("heading", { name: "Character: Agnes Morrow" }).waitFor()
+      await check("Codex entry")
+
+      await entry.getByRole("combobox", { name: "Type", exact: true }).click()
+      await check("Entry type options", "[role=listbox]")
+      await closeWith("Escape", "[role=listbox]")
+
+      await entry.getByRole("button", { name: /^Color: / }).click()
+      await check("Color picker", "[data-slot=popover-content]")
+      await closeWith("Escape", "[data-slot=popover-content]")
+
+      await entry.getByRole("button", { name: "More for this entry" }).click()
+      await check("Entry menu", "[role=menu]")
+      await page.getByRole("menuitem", { name: "Move to Trash" }).click()
+      await check("Undo toast", "[data-sonner-toast]")
     })
   })
 }

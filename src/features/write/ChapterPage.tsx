@@ -7,13 +7,13 @@ import { whenEditor } from "@/editor/activeEditor"
 import { createScene } from "@/features/plan/mutations"
 import type { PlanChapter, PlanSceneRow } from "@/features/plan/planData"
 import { chapterTitle, statusOf } from "@/features/plan/status"
-import { byData, focusPending, focusSoon } from "@/lib/focus"
+import { byData, focusPending, focusSoon, nothingFocused } from "@/lib/focus"
 import { formatCount } from "@/lib/numbers"
 import { cn } from "@/lib/utils"
 import { revealScene, useEnsureScene } from "./pageHooks"
 import { SceneBlock } from "./SceneBlock"
 import { sceneNeighbors, sceneToShow, stopPath, type SceneStop } from "./sequence"
-import { navState, nothingFocused, useWrite, writePath, type WriteNavState } from "./writeContext"
+import { navState, useWrite, writePath, type WriteNavState } from "./writeContext"
 
 /** A chapter's heading block: number, status, title, summary and words, with a way to its plan. */
 export function ChapterHeader({
