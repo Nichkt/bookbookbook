@@ -3,7 +3,7 @@
  * example from the sample book where one helps. Ids are stable: TermHint buttons and tours link to them.
  */
 
-export type GlossaryGroup = "story" | "chapter" | "world" | "app"
+export type GlossaryGroup = "story" | "chapter" | "world" | "app" | "ai"
 
 export interface GlossaryTerm {
   id: string
@@ -26,6 +26,7 @@ export const GLOSSARY_GROUPS: { id: GlossaryGroup; title: string }[] = [
   { id: "chapter", title: "Planning a chapter" },
   { id: "world", title: "Your world" },
   { id: "app", title: "Pages and tools" },
+  { id: "ai", title: "AI tools" },
 ]
 
 export const GLOSSARY: GlossaryTerm[] = [
@@ -150,6 +151,18 @@ export const GLOSSARY: GlossaryTerm[] = [
     related: ["characters-present", "scene"],
   },
   {
+    id: "tense",
+    term: "Tense",
+    aka: ["Past tense", "Present tense"],
+    group: "story",
+    body: [
+      "Whether the story is told as if it has already happened, in the past tense, or as it happens, in the present tense. Most novels use the past tense; the present can feel more immediate.",
+      "Say which yours uses in Book settings, so the AI tools write in the same tense.",
+    ],
+    example: "Past: “Mara opened the ledger.” Present: “Mara opens the ledger.”",
+    related: ["point-of-view", "style-guide"],
+  },
+  {
     id: "story-point",
     term: "Story point",
     aka: ["Plot thread", "Subplot", "Storyline", "Thread"],
@@ -170,6 +183,18 @@ export const GLOSSARY: GlossaryTerm[] = [
     ],
     example: "The Salt Ledger's theme is “What we inherit”: from parents, from a place, from the past.",
     related: ["story-point"],
+  },
+  {
+    id: "show-dont-tell",
+    term: "Show, don't tell",
+    aka: ["Showing", "Telling"],
+    group: "story",
+    body: [
+      "Common writing advice: rather than telling readers what a character feels or what something is like, show it through action, detail and dialogue, and let them work it out. Telling is quicker, and fine for what matters less.",
+      "Rewrite, in the AI tools, has a Show, don't tell option that tries it on the words you select.",
+    ],
+    example: "Telling: “Mara was afraid.” Showing: “Mara's hand shook as she turned the key.”",
+    related: ["ai-tools"],
   },
   {
     id: "draft",
@@ -359,6 +384,7 @@ export const GLOSSARY: GlossaryTerm[] = [
     body: [
       "Whether the AI tools may read an entry when they help with your text: always, only when the chapter mentions it, or never. The AI tools are optional, and only run when you ask.",
     ],
+    related: ["ai-tools", "context"],
   },
 
   {
@@ -606,6 +632,118 @@ export const GLOSSARY: GlossaryTerm[] = [
     body: [
       "Where deleted chapters, scenes, entries and books go. They stay there for 30 days, so you can restore them, and are then deleted for good.",
     ],
+  },
+
+  {
+    id: "ai-tools",
+    term: "AI tools",
+    aka: ["AI", "Artificial intelligence", "AI assistant"],
+    group: "ai",
+    body: [
+      "Optional helpers that write with you when you ask. Open AI tools on the Write page's toolbar, pick a tool and run it: an AI model reads part of your book and comes back with text or ideas on a card. Nothing goes into your book until you choose Insert or Replace.",
+      "Connect them once, in AI settings: to an AI company, with your own key, or to a model running on this computer. Nothing is sent anywhere until you run a tool.",
+    ],
+    items: [
+      "Continue writes what could come next, from your cursor. Ctrl+J (⌘J on a Mac) runs it from your text.",
+      "Draft from moments drafts the next stretch of the chapter from its moments.",
+      "Describe gives ideas for describing something, sense by sense.",
+      "Rewrite gives three new versions of the words you select: more vivid, shorter, or as you ask.",
+      "Expand and Condense make a passage longer and richer, or about half as long.",
+      "Dialogue polish makes what characters say sound more like them.",
+      "Chapter feedback gives an editor's notes on the chapter.",
+      "Brainstorm gives ten ideas: twists, characters, titles and more.",
+      "Name generator gives names that fit your world and don't clash with the ones you have.",
+      "Summarize chapter writes a summary and lists the chapter's moments, for your plan.",
+    ],
+    related: ["model", "api-key", "context", "ai-written", "custom-tool"],
+  },
+  {
+    id: "model",
+    term: "Model",
+    aka: ["AI model", "Language model", "LLM"],
+    group: "ai",
+    body: [
+      "The AI program that does the writing, trained on huge amounts of text to carry on from what it's given. Each AI company offers several: bigger models write better and cost more, while smaller ones are quicker and cheaper.",
+      "AI settings suggests a model for each company, and Check connection lists the ones you can use.",
+    ],
+    related: ["api-key", "local-model", "token"],
+  },
+  {
+    id: "api-key",
+    term: "API key",
+    aka: ["Key", "Your own key", "BYOK"],
+    group: "ai",
+    body: [
+      "A long, password-like code from an AI company, such as OpenAI, Anthropic or OpenRouter, that lets bookbookbook use its models on your account. You make one on the company's website, and it bills you for what you use, usually a fraction of a cent a run.",
+      "Paste it into AI settings. It's kept in this browser, on this device, and only ever sent to that company. Anyone with the key can spend from your account, so keep it to yourself.",
+    ],
+    related: ["model", "local-model"],
+  },
+  {
+    id: "local-model",
+    term: "Local model",
+    aka: ["On this computer", "Ollama", "LM Studio"],
+    group: "ai",
+    body: [
+      "An AI model that runs on your own computer, in a free program such as Ollama or LM Studio, rather than on a company's servers. It costs nothing to use and your book never leaves the computer, but it needs a powerful machine, and its writing is usually weaker than the big companies' models.",
+      "Install the program and download a model in it. Then choose On this computer in AI settings, which shows the setting each program needs to let bookbookbook in.",
+    ],
+    related: ["model", "api-key"],
+  },
+  {
+    id: "token",
+    term: "Token",
+    aka: ["Tokens"],
+    group: "ai",
+    body: [
+      "The pieces AI models read and write text in: a short word, or part of a longer one. A token is about three quarters of a word, so 1,000 tokens is about 750 words.",
+      "Models can read only so many tokens at once, and AI companies charge by the token. How much it can read, in AI settings, sets the most a tool sends; when your book is longer, it leaves out the parts that matter least.",
+    ],
+    related: ["context", "model"],
+  },
+  {
+    id: "context",
+    term: "Context",
+    aka: ["What the AI sees", "Prompt", "Context window"],
+    group: "ai",
+    body: [
+      "Everything a tool sends the AI with its request: the text around your cursor, the chapter's plan, the World entries it mentions, your book's style and more. The AI knows only what's in it, so the more it has, the better its answers fit your book.",
+      "What the AI sees, in the AI tools panel, lists each part and its size. Untick a part to leave it out, and open The whole prompt to read exactly what will be sent.",
+    ],
+    related: ["token", "ai-context", "style-guide"],
+  },
+  {
+    id: "ai-written",
+    term: "AI-written",
+    aka: ["AI tint", "AI share", "Provenance"],
+    group: "ai",
+    body: [
+      "Text from the AI tools is tinted in your book, so you can tell it from your own words. Edit it, and the words you change become yours and lose the tint.",
+      "The AI tools panel shows how much of the chapter and of the book is still AI-written. AI settings can hide the tint, though the text still counts. Exports never show it.",
+    ],
+    related: ["ai-tools"],
+  },
+  {
+    id: "custom-tool",
+    term: "Your own tools",
+    aka: ["Custom tool", "Prompt template"],
+    group: "ai",
+    body: [
+      "AI tools you make yourself, by writing what to ask the AI in your own words. Words in braces are filled in as it runs: {selection} becomes the text you selected, {moments} the chapter's moments, and so on.",
+      "Make them with Your own tools, at the top of the AI tools panel. They're kept on this device, for all your books.",
+    ],
+    example: "Rewrite {selection} the way Mara would say it: short, dry and a little sad.",
+    related: ["ai-tools", "context"],
+  },
+  {
+    id: "style-guide",
+    term: "Style guide",
+    group: "ai",
+    body: [
+      "Your rules for how the book is written, in a few lines: sentence length, spelling, words to avoid, how dialogue is tagged. The AI tools follow it, with the point of view, tense and sample passages, all in Book settings.",
+    ],
+    example: "Short sentences. No adverbs in dialogue tags. British spelling.",
+    related: ["tense", "point-of-view", "context"],
   },
 ]
 

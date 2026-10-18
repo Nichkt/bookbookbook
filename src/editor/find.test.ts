@@ -3,7 +3,7 @@ import { StarterKit } from "@tiptap/starter-kit"
 import { prosemirrorToYXmlFragment, yXmlFragmentToProseMirrorRootNode } from "@tiptap/y-tiptap"
 import { describe, expect, test } from "vitest"
 import * as Y from "yjs"
-import { PROSE_FIELD } from "@/yjs/prose"
+import { AI_MARK, PROSE_FIELD } from "@/yjs/prose"
 import {
   compileFind,
   docMatches,
@@ -287,5 +287,16 @@ describe("replaceAllInDoc", () => {
     expect(texts(yRuns(doc))).toEqual(["ab", "bc"])
     expect(replaceAllInDoc(doc, regexFor("b"), "XY", false, ORIGIN)).toBe(2)
     expect(text.toDelta()).toEqual([{ insert: "aXY" }, { insert: { thing: 1 } }, { insert: "XYc" }])
+  })
+
+  test("replacement text does not inherit AI attributes", () => {
+    const doc = new Y.Doc()
+    const paragraph = new Y.XmlElement("paragraph")
+    doc.getXmlFragment(PROSE_FIELD).insert(0, [paragraph])
+    const text = new Y.XmlText()
+    paragraph.insert(0, [text])
+    text.insert(0, "Mara", { [AI_MARK]: { card: "c" }, bold: true })
+    expect(replaceAllInDoc(doc, regexFor("Mara"), "Maya", false, ORIGIN)).toBe(1)
+    expect(text.toDelta()).toEqual([{ insert: "Maya", attributes: { bold: true } }])
   })
 })

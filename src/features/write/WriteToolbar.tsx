@@ -15,6 +15,7 @@ import {
   ScrollTextIcon,
   SearchIcon,
   SeparatorHorizontalIcon,
+  SparklesIcon,
   TargetIcon,
   TextAlignCenterIcon,
   TextQuoteIcon,
@@ -50,6 +51,7 @@ import { formatCount } from "@/lib/numbers"
 import { useMediaQuery } from "@/lib/useMediaQuery"
 import { cn } from "@/lib/utils"
 import { addToWorldFromMenu } from "./addToWorld"
+import { CONTINUE_KEYS } from "./ai/aiState"
 import { FIND_KEYS } from "./findActions"
 import { FOCUS_KEYS, setFocusMode, useFocusMode } from "./focusMode"
 import { openGoals } from "./goals"
@@ -346,6 +348,13 @@ function WideToolbar({ active, format }: ToolbarProps) {
       <PanelButton page="plan" label="Chapter plan" icon={NotebookTextIcon} tour="write-plan-panel" />
       <PanelButton page="codex" label="World" icon={BookUserIcon} tour="write-world-panel" />
       <PanelButton page="find" label="Find" icon={SearchIcon} tour="write-find" keys={FIND_KEYS} />
+      <PanelButton
+        page="ai"
+        label="AI tools"
+        icon={SparklesIcon}
+        tour="write-ai"
+        tooltip={`AI tools · Continue ${shortcutLabel(CONTINUE_KEYS)}`}
+      />
     </Bar>
   )
 }
@@ -358,10 +367,12 @@ interface PanelButtonProps {
   tour: string
   /** Its shortcut, as shortcutLabel takes it, for its tooltip. */
   keys?: string
+  /** Its tooltip, when it isn't the label and the shortcut. */
+  tooltip?: string
 }
 
 /** Opens the panel at its page, or closes it when the page is showing: the toolbar's buttons are the panel's tabs. */
-function PanelButton({ page, label, icon: Icon, tour, keys }: PanelButtonProps) {
+function PanelButton({ page, label, icon: Icon, tour, keys, tooltip }: PanelButtonProps) {
   const { panel, setPanel } = useWrite()
   const showing = panel === page
   const button = (
@@ -379,13 +390,12 @@ function PanelButton({ page, label, icon: Icon, tour, keys }: PanelButtonProps) 
       <span className="sr-only xl:not-sr-only">{label}</span>
     </Button>
   )
-  if (!keys) return button
+  const tip = tooltip ?? (keys ? `${label} · ${shortcutLabel(keys)}` : null)
+  if (!tip) return button
   return (
     <Tooltip>
       <TooltipTrigger asChild>{button}</TooltipTrigger>
-      <TooltipContent>
-        {label} · {shortcutLabel(keys)}
-      </TooltipContent>
+      <TooltipContent>{tip}</TooltipContent>
     </Tooltip>
   )
 }
@@ -571,7 +581,7 @@ function PhoneMenu({ active, format }: ToolbarProps) {
           size="icon-sm"
           aria-label="More writing tools"
           data-write-panel-return="menu"
-          data-tour="write-views write-focus write-more write-history write-plan-panel write-world-panel write-find write-today"
+          data-tour="write-views write-focus write-more write-history write-plan-panel write-world-panel write-find write-ai write-today"
           className="shrink-0 text-ink-2"
         >
           <EllipsisIcon />
@@ -636,6 +646,10 @@ function PhoneMenu({ active, format }: ToolbarProps) {
         <DropdownMenuItem onSelect={() => after(() => setPanel("find"))}>
           <SearchIcon />
           Find and replace
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => after(() => setPanel("ai"))}>
+          <SparklesIcon />
+          AI tools
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => after(() => addToWorldFromMenu(trigger.current))}>
           <BookPlusIcon />

@@ -9,9 +9,11 @@ import {
   isCapitalized,
   looksLikeName,
   namesAnEntry,
+  openAddToWorldWith,
   offersToAdd,
   selectedName,
   tidyName,
+  useAddToWorld,
 } from "./addToWorld"
 
 const matcher = buildMentionMatcher([
@@ -125,15 +127,28 @@ describe("the dialog", () => {
     expect(aliasSuggestions("A B")).toEqual([])
   })
 
-  test("offers first the type used last, else Characters, else the first there is", () => {
+  test("offers first the preferred key, then last used, else Characters, else the first there is", () => {
     const types = [
       { id: "places", key: "locations" },
       { id: "people", key: "characters" },
     ]
+    expect(defaultTypeId(types, "people", "locations")).toBe("places")
     expect(defaultTypeId(types, "places")).toBe("places")
     expect(defaultTypeId(types, "deleted")).toBe("people")
     expect(defaultTypeId(types, null)).toBe("people")
     expect(defaultTypeId([types[0]], undefined)).toBe("places")
     expect(defaultTypeId([], "places")).toBeNull()
+  })
+
+  test("opens the dialog filled with an AI idea", () => {
+    openAddToWorldWith({ name: "Wren", notes: "A ferry pilot.", typeKey: "characters" }, null)
+    expect(useAddToWorld.getState()).toMatchObject({
+      open: true,
+      name: "Wren",
+      notes: "A ferry pilot.",
+      typeKey: "characters",
+      editor: null,
+      range: null,
+    })
   })
 })

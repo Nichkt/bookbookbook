@@ -6,12 +6,35 @@ takes after NovelCrafter, the writing side after Sudowrite.
 - **Design:** [docs/DESIGN.md](docs/DESIGN.md) covers every product and technical decision and the milestone plan.
 - **Prototype:** [prototype/](prototype/README.md) is a clickable mock of the whole app. Open `prototype/index.html`.
 
-## Status: home, planner, World, editor, writing aids, help, import, export and backups
+## Status: home, planner, World, editor, writing aids, AI tools, help, import, export and backups
 
-Milestones 0 to 3 and 5 to 7 from DESIGN.md §19 are built, plus a home screen, a glossary and a tour of every page.
-Everything stays on the device; there are no accounts or sync yet, so keep backups: Backups… in the book menu downloads
-one, or backs every book up to a folder as it changes (Chrome and Edge).
+Milestones 0 to 7 from DESIGN.md §19 are built, plus a home screen, a glossary and a tour of every page.
+Everything stays on the device, except what an AI tool reads when you run it, which goes only to the AI you chose.
+There are no accounts or sync yet, so keep backups: Backups… in the book menu downloads one, or backs every book up to
+a folder as it changes (Chrome and Edge).
 The Inbox tab is a placeholder until M11.
+
+**M4, AI tools** (DESIGN.md §9, "Built in M4"):
+- **Set up:** AI tools, in Write's toolbar (the ⋯ menu on phones), starts with Set up AI. Choose where the AI runs, a
+  model on this computer (Ollama or LM Studio, free and private) or your own OpenAI, Anthropic or OpenRouter key, and
+  the model to use. See [Setting up the AI tools](#setting-up-the-ai-tools).
+- **Ctrl+J** (⌘J on a Mac) opens AI tools and continues from your cursor: two versions to insert or copy, while you
+  read on or keep writing.
+- **Tools:** Continue (told what should happen, if you like), Draft from moments, Describe (the five senses and a
+  metaphor), Rewrite, Expand, Condense, Dialogue polish, Brainstorm, Name generator, Summarize chapter and Chapter
+  feedback. Ideas can become moments, World entries or the chapter's title, and a summary the chapter's.
+- **Your own tools:** write what to ask the AI, with buttons that put in your selection, the text around it, the
+  chapter's plan, World and your style, and choose what comes back: two versions, a list of ideas or a draft.
+- **What the AI sees:** each part a run would send with its size, which you can untick, and the whole prompt word for
+  word. When there's too much, the least needed parts go first, and the result says so.
+- **Results** come as cards, as the AI writes them, with Stop, Run again, Insert or Replace, and Copy. Each book keeps
+  its newest 100, and Clear all has Undo.
+- **AI-written text** has a faint tint (AI settings can hide it); what you type into it is yours. The panel shows how
+  much of the chapter and the book the AI wrote, and Today and your goals count only your own words.
+- **Book style:** Book settings has a part for the AI tools: point of view, tense, who the book is for, a style guide
+  and sample passages of your writing.
+- **Not yet:** hosted AI without a key of your own (it waits for accounts, M10), AI from the selection bubble, a
+  right-click menu or a command palette, cost estimates, and keys encrypted on the device.
 
 **M6, Writing aids** (DESIGN.md §8, "Built in M6"):
 - **Focus mode:** Ctrl+. (⌘. on a Mac), or the toolbar's Focus mode button, clears away everything but your text
@@ -174,6 +197,24 @@ site's data (DevTools → Application → Storage → Clear site data) and reloa
 | `npm test` | Unit tests (Vitest) |
 | `npm run test:e2e` | End-to-end tests (Playwright) |
 
+## Setting up the AI tools
+
+The AI tools need a model to talk to: one on your computer, free and private, or an AI company's, with your own key.
+Open a chapter in Write, then AI tools → Set up AI.
+- **Ollama:** install it from <https://ollama.com>, get a model (`ollama pull llama3.1`, or any chat model) and leave
+  Ollama running. Choose On this computer, then Ollama, Check connection and the model. It answers pages on
+  `localhost` as it is; served from any other address, the app needs Ollama started with `OLLAMA_ORIGINS` set to
+  that address, as AI settings shows. Ollama reads 4k tokens at a time on most computers, so to let it read more,
+  start it with `OLLAMA_CONTEXT_LENGTH` set (say to `16384`) and set How much it can read to match.
+  [Ollama's FAQ](https://docs.ollama.com/faq) shows how to set these.
+- **LM Studio:** load a model, start its local server with "Enable CORS" turned on, then choose On this computer and
+  LM Studio.
+- **Your own key:** choose OpenAI, Anthropic or OpenRouter, follow Get a key and paste it in. You pay the company for
+  what you use. The key stays on this device, out of backups, and goes only to its own company. It isn't encrypted
+  yet, so give it a spending limit.
+
+The end-to-end tests fake the model's API, so they need none of this.
+
 ## Tests
 
 **Unit tests** live next to the code (`src/**/*.test.ts`) and run in Node. Tests that write to the database use an
@@ -201,6 +242,9 @@ in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). 
 - the Matrix (marks, mentions and quiet story points), the Timeline (story and reading order, flashbacks, time
   jumps), story structures (placing moments, stacking the ribbon's pins, a new book's chapters, files), saving your
   own structures and planning step by step, with their exact undo;
+- AI tools: settings and providers, streamed answers (Server-Sent Events, errors, stopping), what a run sends and how
+  it's trimmed to fit, what it gathers from the book, the tools and your own, reading answers, cards and runs,
+  inserting and replacing text, the AI mark, AI-written word counts and the book's style;
 - help: every glossary term's links and search (old names included), every tour step's copy on touch and narrow
   screens and in each Plan view, and where a tour card goes beside, over or without what it points at.
 
@@ -228,6 +272,10 @@ They cover:
   read aloud (from the cursor or a selection, speed and voice, where it stops, phones), focus mode, typewriter
   scrolling, goals and sprints (a sprint through a reload, phones), and find and replace (the whole book, Replace,
   Replace all with its versions and Undo, patterns, Ctrl+Shift+F, narrow screens, and keys pressed quickly);
+- AI tools (`ai.spec.ts`), the model's API faked in the browser: setting up a model on this computer and Ctrl+J (the
+  tint, the AI's share and the day's words), Rewrite with Replace and Undo, Stop, Run again and Clear all, a key
+  turned away and then put right, What the AI sees, Brainstorm's moments and World entries, Summarize chapter, a tool
+  of your own, the book's style in the prompt, and a phone;
 - export (`export.spec.ts`): a Word manuscript with the last words typed and the author, Markdown as one file and a
   file per chapter, a backup restored beside its original, a file that isn't a backup, nothing to export, and
   restoring into an empty library;
@@ -251,9 +299,9 @@ They cover:
   Done, the Plan tour opening a chapter's pop-out and closing it, a term explained mid-tour, and leaving the page;
 - touch targets (`touch.spec.ts`): on a phone and a tablet, every control on the Board, its menus, the chapter
   pop-out, a toast, the Outline, the Write screen with its menus, History, chapter plan and World panel, World, the
-  writing aids (Goals and sprints, Find and replace, Add to World, the reading bar and focus mode), the Import dialog
-  with its menus, the backup reminder, the Backups dialog, the home screen, the help menu, the glossary and a tour
-  card must be at least 44 px.
+  writing aids (Goals and sprints, Find and replace, Add to World, the reading bar and focus mode), the AI tools
+  (the panel and its cards, AI settings and your own tools), the Import dialog with its menus, the backup reminder,
+  the Backups dialog, the home screen, the help menu, the glossary and a tour card must be at least 44 px.
 
 Use `npx playwright test --ui` to debug. A failed test keeps a trace in `test-results/`; open it with
 `npx playwright show-trace <path>`.
@@ -282,6 +330,7 @@ one replaces the live doc's prose with a copy in a single edit, so it's saved, a
 
 ```text
 src/
+  ai/             providers, requests and streamed answers, what a run sends, the tools and your own, cards and runs
   app/            shell, routes, startup and error screens, theme, toasts and announcements, dev hooks
   backup/         backup status, folder backups, and when backups run
   components/     fields that save as you type; ui/ holds the shadcn components
@@ -290,10 +339,10 @@ src/
   editor/         TipTap scene editor, its extensions, open scene docs, the active editor, codex name matching
   export/         manuscript, Word, Markdown and plain-text files, backups and restoring them
   features/       plan/ (Board, Outline, chapter pop-out), write/ (views, toolbar, navigator, History, side panel with
-                  the chapter plan and World, hover cards), home/ (the home screen), help/ (glossary, tours, "?"
-                  buttons), books/, export/ (Export and Restore dialogs), import/ (Import dialog and its preview),
-                  backup/ (the reminder and the Backups dialog), codex/ (the World screen, entry pages, Appears in),
-                  lab/ (IME lab)
+                  the chapter plan and World, hover cards, and ai/ with the AI tools panel, its cards and settings),
+                  home/ (the home screen), help/ (glossary, tours, "?" buttons), books/ (book dialogs and style),
+                  export/ (Export and Restore dialogs), import/ (Import dialog and its preview), backup/ (the
+                  reminder and the Backups dialog), codex/ (the World screen, entry pages, Appears in), lab/ (IME lab)
   import/         reading Word, Markdown and plain text, splitting into acts, chapters and scenes, writing the book
   lib/            small helpers (ids, word counts, numbers, keys, focus, colors, plain text as rich text)
   test/           in-memory SQLite and book builders for unit tests

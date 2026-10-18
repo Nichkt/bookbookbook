@@ -329,9 +329,24 @@
       color: HighlightText;
     }
   }
+  /*
+   * Text from the AI tools (DESIGN.md §8 "Provenance and stats"), until the writer types over it. AI settings can
+   * hide the tint; the text keeps its mark, so word counts still tell it apart.
+   */
   .ai-generated {
     background: var(--ai-tint);
     border-radius: 2px;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+  @media (forced-colors: active) {
+    .ai-generated {
+      border-bottom: 1px dashed CanvasText;
+    }
+  }
+  [data-ai-tint="off"] .ai-generated {
+    background: none;
+    border-bottom: none;
   }
   /* Corkboard index cards: faint ruled lines 1.5rem apart that scroll with the text. */
   .ruled-lines {

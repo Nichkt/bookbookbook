@@ -1,5 +1,5 @@
 import { usePowerSync, useQuery } from "@powersync/react"
-import { useCallback } from "react"
+import { useCallback, useState } from "react"
 import type { Db } from "./tx"
 
 /*
@@ -37,4 +37,31 @@ export function usePref(key: string): {
     [db, key],
   )
   return { value: data[0]?.value ?? null, isLoading, setValue }
+}
+
+interface PendingPref {
+  key: string
+  value: string
+  /** Its writes still on their way to the database. */
+  writing: number
+}
+
+/**
+ * A pref that changes on screen at once, ahead of its write to the database. The choice shows until every write has
+ * landed and the database has caught up with it, or an earlier write landing late would undo it for a moment.
+ */
+export function usePrefState(key: string) {
+  const { value, isLoading, setValue } = usePref(key)
+  const [pending, setPending] = useState<PendingPref | null>(null)
+  if (pending && (pending.key !== key || (pending.writing === 0 && value === pending.value))) setPending(null)
+  const set = useCallback(
+    (next: string) => {
+      setPending((previous) => ({ key, value: next, writing: (previous?.key === key ? previous.writing : 0) + 1 }))
+      void setValue(next).finally(() =>
+        setPending((previous) => (previous?.key === key ? { ...previous, writing: previous.writing - 1 } : previous)),
+      )
+    },
+    [key, setValue],
+  )
+  return { value: pending?.key === key ? pending.value : value, isLoading, set }
 }

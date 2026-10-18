@@ -7,9 +7,9 @@ import { rememberBook, useCurrentBook } from "@/app/books"
 import { attempt } from "@/app/feedback"
 import { PlaceholderScreen } from "@/app/PlaceholderScreens"
 import { Button, buttonVariants } from "@/components/ui/button"
-import { usePref } from "@/db/prefs"
+import { usePrefState } from "@/db/prefs"
 import type { BookListRow } from "@/db/queries"
-import { activeEditor } from "@/editor/activeEditor"
+import { activeEditor, useEditors } from "@/editor/activeEditor"
 import { onEditorEscape } from "@/editor/extensions/EscapeKey"
 import { setTypewriterScrolling } from "@/editor/extensions/Typewriter"
 import { useMentionMatcherState } from "@/editor/useMentionMatcher"
@@ -21,6 +21,10 @@ import { isComposing } from "@/lib/keys"
 import { useMediaQuery } from "@/lib/useMediaQuery"
 import { cn } from "@/lib/utils"
 import { AddToWorldDialog } from "./AddToWorldDialog"
+import { AiSettingsDialog } from "./ai/AiSettingsDialog"
+import { isContinueShortcut, requestRun } from "./ai/aiState"
+import { CustomToolsDialog } from "./ai/CustomToolsDialog"
+import { useAiTint } from "./ai/useAi"
 import { ChapterUnit, SceneUnit } from "./ChapterPage"
 import { isFindShortcut, openFind } from "./findActions"
 import { isFocusShortcut, leaveFocusMode, resetFocusMode, setFocusMode, settleCaret, useFocusMode } from "./focusMode"
@@ -104,33 +108,6 @@ function WriteBook({ bookId }: { bookId: string }) {
   return <WriteWorkspace book={book} plan={plan} chapterId={chapterId} sceneId={sceneId ?? null} prefs={prefs} />
 }
 
-interface PendingPref {
-  key: string
-  value: string
-  /** Its writes still on their way to the database. */
-  writing: number
-}
-
-/**
- * A pref that changes on screen at once, ahead of its write to the database. The choice shows until every write has
- * landed and the database has caught up with it, or an earlier write landing late would undo it for a moment.
- */
-function usePrefState(key: string) {
-  const { value, isLoading, setValue } = usePref(key)
-  const [pending, setPending] = useState<PendingPref | null>(null)
-  if (pending && (pending.key !== key || (pending.writing === 0 && value === pending.value))) setPending(null)
-  const set = useCallback(
-    (next: string) => {
-      setPending((previous) => ({ key, value: next, writing: (previous?.key === key ? previous.writing : 0) + 1 }))
-      void setValue(next).finally(() =>
-        setPending((previous) => (previous?.key === key ? { ...previous, writing: previous.writing - 1 } : previous)),
-      )
-    },
-    [key, setValue],
-  )
-  return { value: pending?.key === key ? pending.value : value, isLoading, set }
-}
-
 type WritePrefs = ReturnType<typeof useWritePrefs>
 
 /** The view per book; whether the navigator is open, the docked panel's page and typewriter scrolling, per device. */
@@ -175,6 +152,7 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
   const { unit, saveUnit, navOpen, saveNavOpen, dockedPanel, saveDockedPanel, typewriter, saveTypewriter } = prefs
   const known = plan.chapterById.has(chapterId)
   const focusMode = useFocusMode((state) => state.on)
+  const { tint } = useAiTint()
 
   useEffect(() => {
     rememberBook(bookId, "write")
@@ -269,8 +247,8 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
   )
 
   // Ctrl+. switches focus mode, and Esc stops reading aloud, else leaves focus mode (Esc in the text comes by
-  // onEditorEscape). Ctrl+Shift+F: Find and replace. Ctrl+Alt+S: a snapshot of the scene in the History dialog, else
-  // of the one the writer is in.
+  // onEditorEscape). Ctrl+Shift+F: Find and replace. Ctrl+J: Continue. Ctrl+Alt+S: a snapshot of the scene in the
+  // History dialog, else of the one the writer is in.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.repeat) return
@@ -293,6 +271,18 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
         if (fromOverlay) return
         event.preventDefault()
         openFind({ setPanel, setPanelOpener })
+        return
+      }
+      // Ctrl+J: Continue, in the AI panel, from the caret. Focus stays in the text, to read on or keep writing.
+      if (isContinueShortcut(event)) {
+        if (fromOverlay) return
+        event.preventDefault()
+        const focused = useEditors.getState().focused
+        const fromText =
+          focused && !focused.editor.isDestroyed && focused.editor.view.hasFocus() ? focused.editor : null
+        setPanel("ai")
+        if (fromText) setPanelOpener(fromText)
+        requestRun("continue")
         return
       }
       if (!isSnapshotShortcut(event)) return
@@ -363,7 +353,7 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
 
   return (
     <WriteContext.Provider value={context}>
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col" data-ai-tint={tint ? "on" : "off"}>
         <WriteToolbar />
         <div className="flex flex-1 items-start">
           {navOpen && !focusMode && <Navigator />}
@@ -376,6 +366,8 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
         </div>
         <HistoryDialog />
         <AddToWorldDialog />
+        <AiSettingsDialog />
+        <CustomToolsDialog />
         <ReadAloudBar />
       </div>
     </WriteContext.Provider>

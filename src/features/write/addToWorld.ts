@@ -31,6 +31,10 @@ interface AddToWorldState {
   session: number
   /** What the name field starts with: the selected name, or nothing. */
   name: string
+  /** What the notes start with, as an idea from the AI tools gives them. */
+  notes: string
+  /** The key of the type to offer first, as "locations" for a place the AI tools thought up. */
+  typeKey: string | null
   /** The editor the selection was in, and where, to go back to once the dialog closes. */
   editor: Editor | null
   range: { from: number; to: number } | null
@@ -45,6 +49,8 @@ export const useAddToWorld = create<AddToWorldState>(() => ({
   open: false,
   session: 0,
   name: "",
+  notes: "",
+  typeKey: null,
   editor: null,
   range: null,
   returnFocus: null,
@@ -60,8 +66,33 @@ export function openAddToWorld(editor: Editor | null, returnFocus: HTMLElement |
     open: true,
     session: state.session + 1,
     name: live ? selectedName(live.state) : "",
+    notes: "",
+    typeKey: null,
     editor: live,
     range: selection ? { from: selection.from, to: selection.to } : null,
+    returnFocus,
+    after: "text",
+    then: null,
+  }))
+}
+
+export interface NamedIdea {
+  name: string
+  notes: string
+  /** The key of the type to offer first. */
+  typeKey: string | null
+}
+
+/** Opens the dialog filled in with something that has a name, like an idea from the AI tools. */
+export function openAddToWorldWith(idea: NamedIdea, returnFocus: HTMLElement | null) {
+  useAddToWorld.setState((state) => ({
+    open: true,
+    session: state.session + 1,
+    name: idea.name,
+    notes: idea.notes,
+    typeKey: idea.typeKey,
+    editor: null,
+    range: null,
     returnFocus,
     after: "text",
     then: null,
@@ -177,11 +208,14 @@ export function aliasSuggestions(name: string): string[] {
   )
 }
 
-/** The type the dialog offers first: the one used last, else Characters, else the first there is. */
+/** The type the dialog offers first: the one asked for, else the one used last, else Characters, else the first. */
 export function defaultTypeId(
   types: readonly Pick<CodexType, "id" | "key">[],
   lastUsed: string | null | undefined,
+  preferredKey: string | null = null,
 ): string | null {
+  const preferred = preferredKey ? types.find((type) => type.key === preferredKey) : undefined
+  if (preferred) return preferred.id
   if (lastUsed && types.some((type) => type.id === lastUsed)) return lastUsed
   return (types.find((type) => type.key === "characters") ?? types[0])?.id ?? null
 }

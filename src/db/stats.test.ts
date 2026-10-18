@@ -22,6 +22,11 @@ beforeEach(async () => {
 afterEach(() => db.close())
 
 const day = (date: string, book = "book") => db.get<DayStatsRow>(DAY_STATS_SQL, [book, date])
+const aiDay = (date: string) =>
+  db.get<{ words_added: number; words_removed: number; ai_words_inserted: number }>(
+    "SELECT words_added, words_removed, ai_words_inserted FROM writing_stats WHERE id = ?",
+    [`phone:book:${date}`],
+  )
 
 describe("recordWordCount", () => {
   test("saves the count and adds growth and shrinkage to the day's stats", async () => {
@@ -48,6 +53,37 @@ describe("recordWordCount", () => {
     await recordWordCount(db, "nope", 10, "phone", "2025-03-01")
     expect(await db.getAll("SELECT id FROM writing_stats")).toEqual([])
     expect(await day("2025-03-01")).toEqual({ added: 0, removed: 0 })
+  })
+
+  test("counts AI inserts and writer edits to AI text separately", async () => {
+    await recordWordCount(db, "sc-One-1", 120, "phone", "2025-03-01", 20)
+    expect(await sceneRow(db, "sc-One-1")).toMatchObject({ word_count: 120, ai_word_count: 20 })
+    expect(await aiDay("2025-03-01")).toEqual({
+      words_added: 0,
+      words_removed: 0,
+      ai_words_inserted: 20,
+    })
+
+    await recordWordCount(db, "sc-One-1", 120, "phone", "2025-03-01", 5)
+    expect(await aiDay("2025-03-01")).toEqual({
+      words_added: 15,
+      words_removed: 0,
+      ai_words_inserted: 20,
+    })
+
+    await recordWordCount(db, "sc-One-1", 115, "phone", "2025-03-01", 0)
+    expect(await aiDay("2025-03-01")).toEqual({
+      words_added: 15,
+      words_removed: 0,
+      ai_words_inserted: 20,
+    })
+    await recordWordCount(db, "sc-One-1", 105, "phone", "2025-03-01", 0)
+    await recordWordCount(db, "sc-One-1", 105, "phone", "2025-03-01", 0)
+    expect(await aiDay("2025-03-01")).toEqual({
+      words_added: 15,
+      words_removed: 10,
+      ai_words_inserted: 20,
+    })
   })
 })
 

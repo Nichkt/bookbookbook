@@ -40,7 +40,9 @@ import { useWrite } from "./writeContext"
 function backToText() {
   const editor = activeEditor()?.editor
   if (!editor || editor.isDestroyed) return false
-  editor.commands.focus(null, { scrollIntoView: false })
+  // At once, not a frame later as TipTap's focus command does: by then the panel may be open again, and focus
+  // leaving it would close it.
+  editor.view.focus()
   return true
 }
 
@@ -115,16 +117,22 @@ export function GoalsPopover({ children }: { children: ReactNode }) {
           event.preventDefault()
           content.current?.focus()
         }}
-        onInteractOutside={() => {
+        onInteractOutside={(event) => {
+          // Not on the button that opens and closes the panel, where focus goes back to anyway. Radix tells of a
+          // click only once it lands, so one that opens the panel again as it fades out comes after it's open.
+          if (event.target instanceof Element && event.target.closest(GOALS_TRIGGER)) return
           clickedAway.current = true
         }}
         onCloseAutoFocus={(event) => {
+          event.preventDefault()
+          // This comes a moment after the panel goes. Opened again since, focus is the open panel's, as is what
+          // happens after it closes.
+          if (useGoalsPopover.getState().open) return
           const { afterClose } = useGoalsPopover.getState()
           useGoalsPopover.setState({ afterClose: null })
           const away = clickedAway.current
           clickedAway.current = false
           // Focus stays wherever the writer clicked or tapped; else it goes where the opener asked, or to the button.
-          event.preventDefault()
           if (away || afterClose?.()) return
           document.querySelector<HTMLElement>(GOALS_TRIGGER)?.focus()
         }}

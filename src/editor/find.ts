@@ -1,6 +1,6 @@
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model"
 import * as Y from "yjs"
-import { PROSE_FIELD } from "@/yjs/prose"
+import { isAiAttribute, PROSE_FIELD } from "@/yjs/prose"
 
 /*
  * Find and replace (DESIGN.md §8 "Writing aids"), apart from the screen. Prose is searched a run at a time: a
@@ -256,6 +256,8 @@ function replaceInRun(run: YRun, start: number, end: number, text: string) {
   if (!first) return
   const at = first.index + Math.max(0, start - first.offset)
   const format = formatAt(first.node, at)
+  // What the writer puts in is theirs, even over an AI tool's text (DESIGN.md §8 "Provenance and stats").
+  for (const key of Object.keys(format)) if (isAiAttribute(key)) delete format[key]
   for (const part of parts.reverse()) {
     const from = Math.max(start, part.offset)
     const to = Math.min(end, part.offset + part.length)

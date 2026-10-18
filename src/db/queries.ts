@@ -17,10 +17,18 @@ export interface BookListRow {
   template_key: string | null
   premise: string | null
   synopsis: string | null
+  /** How the book is told, for the AI tools (see features/books/bookStyle.ts). */
+  pov: string | null
+  tense: string | null
+  audience: string | null
+  style_guide: string | null
+  /** A JSON array of strings: see features/books/bookStyle.ts. */
+  sample_passages: string | null
 }
 
 export const BOOKS_SQL = `
-  SELECT id, title, author, genre, target_words, daily_goal, universe_id, template_key, premise, synopsis
+  SELECT id, title, author, genre, target_words, daily_goal, universe_id, template_key, premise, synopsis, pov, tense,
+    audience, style_guide, sample_passages
   FROM books WHERE deleted_at IS NULL ORDER BY created_at, id`
 
 export interface LibraryRow {

@@ -351,6 +351,45 @@ export async function deleteBeat(db: Db, id: string): Promise<ChangeSet> {
   })
 }
 
+/** Adds moments after a chapter's last, as one edit. Returns what Undo needs. */
+export async function appendBeats(db: Db, chapterId: string, texts: readonly string[]): Promise<ChangeSet> {
+  return db.writeTransaction(async (tx) => {
+    const changes = new ChangeSet()
+    if (texts.length === 0) return changes
+    const beats = await chapterBeats(tx, chapterId)
+    const { keys, rekeyed } = keysForInsert(beats, beats.length, texts.length)
+    await writeKeys(tx, "beats", rekeyed, changes)
+    for (const [index, text] of texts.entries()) {
+      const id = newId()
+      await insertRow(tx, "beats", {
+        id,
+        parent_kind: "chapter",
+        parent_id: chapterId,
+        position: keys[index],
+        text,
+        done: 0,
+        template_beat_key: null,
+      })
+      changes.created("beats", id)
+    }
+    return changes
+  })
+}
+
+/** Sets a chapter's summary or title, as an edit to undo: unlike typing, it replaces them whole. */
+export async function replaceChapterText(
+  db: Db,
+  id: string,
+  patch: Pick<ChapterPatch, "summary" | "title">,
+): Promise<ChangeSet> {
+  return db.writeTransaction(async (tx) => {
+    const changes = new ChangeSet()
+    await changes.captureIds(tx, "chapters", [id])
+    await updateRow(tx, "chapters", id, pick(patch, ["summary", "title"]))
+    return changes
+  })
+}
+
 export async function moveBeat(db: Db, id: string, index: number) {
   await db.writeTransaction(async (tx) => {
     const beat = await tx.getOptional<BeatRow>("SELECT * FROM beats WHERE id = ?", [id])

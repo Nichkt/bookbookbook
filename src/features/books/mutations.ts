@@ -87,6 +87,11 @@ export interface BookPatch {
   template_key?: string | null
   premise?: string
   synopsis?: string
+  pov?: string
+  tense?: string
+  audience?: string
+  style_guide?: string
+  sample_passages?: string
 }
 
 const BOOK_FIELDS = [
@@ -98,6 +103,11 @@ const BOOK_FIELDS = [
   "template_key",
   "premise",
   "synopsis",
+  "pov",
+  "tense",
+  "audience",
+  "style_guide",
+  "sample_passages",
 ] as const
 
 export async function updateBook(db: Db, id: string, patch: BookPatch) {

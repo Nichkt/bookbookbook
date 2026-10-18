@@ -5,6 +5,7 @@ import { Focus, Placeholder } from "@tiptap/extensions"
 import { StarterKit } from "@tiptap/starter-kit"
 import type * as Y from "yjs"
 import { PROSE_FIELD } from "@/yjs/prose"
+import { AiText } from "./extensions/AiText"
 import { EscapeKey } from "./extensions/EscapeKey"
 import { FindHighlight } from "./extensions/FindHighlight"
 import { MentionHighlight } from "./extensions/MentionHighlight"
@@ -56,6 +57,8 @@ export function sceneExtensions(
     CenterAlign.configure({ types: ["heading", "paragraph"], alignments: ["center"] }),
     Collaboration.configure({ document: doc, field: PROSE_FIELD }),
     UndoSelection,
+    // AI tools' text, tinted until the writer makes it theirs (DESIGN.md §8 "Provenance and stats").
+    AiText,
     Placeholder.configure({ placeholder }),
     // Focus marks the blocks around the caret, which focus mode leaves undimmed (index.css). Typewriter keeps the
     // caret's line mid-window while typewriter scrolling is on. EscapeKey hands Esc to the page, to leave focus mode.

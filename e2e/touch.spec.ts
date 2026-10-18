@@ -1,8 +1,10 @@
 import { expect, type Page } from "@playwright/test"
 import {
+  fakeAi,
   fakeSpeech,
   FIRST_LOAD_TIMEOUT,
   focusEnd,
+  LOCAL_AI,
   openFirstChapter,
   seedBackupRecord,
   selectText,
@@ -30,7 +32,8 @@ async function settle(page: Page) {
 
 /**
  * Visible controls in `scope` whose hit area is under 44px either way (DESIGN.md §16). The hit area includes an
- * absolute ::after that stretches it, as checkboxes, label chips and Board cards use.
+ * absolute ::after that stretches it, as checkboxes, label chips and Board cards use, and a label wrapped around it,
+ * which takes its taps, as the radio cards in AI settings do.
  */
 async function smallTargets(page: Page, scope: string) {
   await page.locator(scope).first().waitFor()
@@ -51,6 +54,13 @@ async function smallTargets(page: Page, scope: string) {
           top = Math.min(top, y + t)
           right = Math.max(right, x + block.clientWidth - r)
           bottom = Math.max(bottom, y + block.clientHeight - b)
+        }
+        const label = element.closest("label")?.getBoundingClientRect()
+        if (label) {
+          left = Math.min(left, label.left)
+          top = Math.min(top, label.top)
+          right = Math.max(right, label.right)
+          bottom = Math.max(bottom, label.bottom)
         }
         return { width: right - left, height: bottom - top }
       }
@@ -379,6 +389,75 @@ for (const [device, viewport] of [
       const dialog = page.getByRole("dialog", { name: "Backups" })
       await dialog.getByRole("region", { name: "This browser" }).getByText(/^The browser /).first().waitFor()
       await check("Backups", "[role=dialog]")
+    })
+
+    test("every AI control is at least a 44px target", async ({ page }) => {
+      const { check, closeWith } = checker(page)
+      const ai = await fakeAi(page, LOCAL_AI)
+
+      const editor = await openFirstChapter(page)
+      await focusEnd(editor)
+      if (device === "phone") {
+        await page.getByRole("button", { name: "More writing tools" }).click()
+        await page.getByRole("menuitem", { name: "AI tools" }).click()
+      } else {
+        await page.getByRole("button", { name: "AI tools", exact: true }).click()
+      }
+      const panel = page.getByRole("dialog", { name: "AI tools" })
+      const setUp = panel.getByRole("button", { name: "Set up AI" })
+      await setUp.waitFor()
+      await check("AI tools, before they're set up", "[role=dialog]")
+
+      // For OpenAI with a key saved, then for a model on this computer, its connection checked.
+      const settings = page.getByRole("dialog", { name: "AI settings" })
+      const inSettings = "[role=dialog]:has([data-ai-settings])"
+      await setUp.click()
+      await settings.getByRole("radio", { name: "OpenAI" }).check()
+      await settings.getByLabel("OpenAI API key").fill("sk-test-9999")
+      await settings.getByRole("button", { name: "Save", exact: true }).click()
+      await expect(settings).toBeHidden()
+      await panel.getByRole("button", { name: "AI settings", exact: true }).click()
+      await expect(settings).toContainText("Saved key: ••••9999")
+      await check("AI settings for OpenAI", inSettings)
+      await settings.getByRole("combobox", { name: "How much it can read" }).click()
+      await check("Sizes", "[role=listbox]")
+      await closeWith("Escape", "[role=listbox]")
+      await settings.getByRole("radio", { name: "On this computer" }).check()
+      await settings.getByRole("button", { name: "Check connection" }).click()
+      await expect(settings.locator("[data-ai-check-result]")).toHaveText("Connected. 1 model to choose from.")
+      await check("AI settings for this computer", inSettings)
+      await settings.getByRole("button", { name: "Save", exact: true }).click()
+      await expect(settings).toBeHidden()
+
+      // Brainstorm's characters have every kind of idea button; Continue's versions, every kind of version button.
+      await panel.locator("[data-ai-tool]").click()
+      await check("Tools", "[role=listbox]")
+      await page.getByRole("option", { name: "Brainstorm", exact: true }).click()
+      await panel.getByRole("combobox", { name: "Ideas for" }).click()
+      await check("Ideas for", "[role=listbox]")
+      await page.getByRole("option", { name: "Characters", exact: true }).click()
+      ai.reply("1. Old Sal: keeps the tide book for the harbor")
+      await panel.getByRole("button", { name: "Run Brainstorm" }).click()
+      await panel.getByRole("button", { name: "Add to World" }).waitFor()
+      await panel.locator("[data-ai-tool]").click()
+      await page.getByRole("option", { name: "Continue", exact: true }).click()
+      await panel.getByRole("button", { name: "Run Continue" }).click()
+      await expect(panel.locator('[data-ai-card-status="done"]')).toHaveCount(2)
+      await panel.getByRole("button", { name: "What the AI sees" }).click()
+      await panel.getByRole("button", { name: "The whole prompt" }).click()
+      await panel.locator('pre[aria-label="The whole prompt"]').waitFor()
+      await check("AI tools, with results", "[role=dialog]")
+
+      await panel.getByRole("button", { name: "Your own tools" }).click()
+      const tools = page.getByRole("dialog", { name: "Your own tools" })
+      await tools.getByRole("button", { name: "New tool" }).click()
+      const form = page.getByRole("dialog", { name: "New tool" })
+      await form.getByRole("textbox", { name: "Name" }).fill("Harbor gossip")
+      await check("New tool", "[role=dialog]:has([data-custom-tool-form])")
+      await form.getByRole("textbox", { name: "What it asks the AI" }).fill("What does the harbor say?")
+      await form.getByRole("button", { name: "Make the tool" }).click()
+      await tools.getByRole("button", { name: "Edit" }).waitFor()
+      await check("Your own tools", "[role=dialog]:has([data-custom-tool-new])")
     })
   })
 }

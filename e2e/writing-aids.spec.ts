@@ -195,7 +195,10 @@ test.describe("Read aloud", () => {
           descendants(visit: (node: { isText: boolean; text?: string }, pos: number) => void): void
         }
       }
-      chain(): { focus(): { setTextSelection(pos: number): { run(): boolean } } }
+      chain(): {
+        focus(): { setTextSelection(pos: number): { run(): boolean } }
+        insertContentAt(pos: number, content: { type: string }[]): { run(): boolean }
+      }
     }
   }
 
@@ -348,6 +351,29 @@ test.describe("Read aloud", () => {
     await expect(next.locator(".read-aloud").first()).toBeInViewport()
   })
 
+  test("in the Manuscript, reads on into a scene whose text hasn't loaded yet", async ({ page }) => {
+    await openFirstChapter(page)
+    await page.getByRole("radio", { name: "Manuscript" }).click()
+    const ferry = page.getByRole("textbox", { name: "Ferry wake" })
+    const next = page.getByRole("textbox", { name: "The locked room" })
+    // Blank lines after the scene's last sentence take the next scene far enough down for its text to go.
+    await ferry.evaluate((element) => {
+      const { editor } = element as ReadingEditor
+      const blank = Array.from({ length: 200 }, () => ({ type: "paragraph" }))
+      editor.chain().insertContentAt(editor.state.doc.content.size, blank).run()
+    })
+    await caretAt(ferry, ABSENCE)
+    await expect(next).toHaveCount(0)
+
+    await readAloud(page)
+    await expect.poll(() => lastSaid(page)).toBe(ABSENCE)
+    await finishSentence(page)
+    await expect.poll(() => marked(next)).toBe("The keeper's room had kept his shape.")
+    expect(await lastSaid(page)).toBe("The keeper's room had kept his shape.")
+    await expect(bar(page)).toBeVisible()
+    await expect(next.locator(".read-aloud").first()).toBeInViewport()
+  })
+
   test.describe("on a phone", () => {
     test.use({ viewport: { width: 412, height: 915 }, isMobile: true, hasTouch: true })
 
@@ -482,15 +508,18 @@ test.describe("Goals and sprints", () => {
     await settleAll(page)
     await expect(sprintClock(page)).toBeVisible()
 
-    // With a few seconds of it left, it finishes after the reload.
+    // It runs on through a reload.
+    await page.reload()
+    await expect(sprintClock(page)).toBeVisible()
+
+    // With a few seconds of it left, it finishes after another: on time, or as the page opens if that takes longer.
     await page.evaluate(() => {
       const sprint = JSON.parse(localStorage.getItem("bbb.sprint") ?? "null")
       sprint.startedAt = Date.now() - sprint.minutes * 60_000 + 3000
       localStorage.setItem("bbb.sprint", JSON.stringify(sprint))
     })
     await page.reload()
-    await expect(sprintClock(page)).toBeVisible()
-    await expect(toast(page, "Sprint done")).toContainText(/Sprint done: \d+ words? in 15 minutes/, { timeout: 10_000 })
+    await expect(toast(page, "Sprint done")).toContainText(/Sprint done: \d+ words? in 15 minutes/, { timeout: 15_000 })
     await expect(today(page)).toBeVisible()
     const [stats] = await queryDb<{ sprints: number }>(page, "SELECT SUM(sprints) AS sprints FROM writing_stats")
     expect(stats.sprints).toBe(1)

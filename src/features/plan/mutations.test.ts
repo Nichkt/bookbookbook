@@ -5,6 +5,7 @@ import { buildBook, chapterRow, dump, outline, sceneRow } from "@/test/book"
 import { createTestDb } from "@/test/sqliteDb"
 import {
   addBeat,
+  appendBeats,
   createAct,
   createChapter,
   createScene,
@@ -16,6 +17,7 @@ import {
   moveBeat,
   moveChapter,
   moveScene,
+  replaceChapterText,
   restoreChapter,
   restoreScene,
   setChapterLink,
@@ -391,6 +393,27 @@ describe("beats and links", () => {
     expect(await texts()).toEqual(["two", "one"])
     await undo(changes)
     expect(await texts()).toEqual(["middle", "two", "one"])
+  })
+
+  test("appendBeats adds moments at the end in one undoable change", async () => {
+    await buildBook(db, { chapters: [{ title: "A", beats: ["one"] }] })
+    const before = await dump(db)
+    const changes = await appendBeats(db, "ch-A", ["two", "three"])
+    const texts = await db.getAll<{ text: string }>("SELECT text FROM beats ORDER BY position")
+    expect(texts.map((row) => row.text)).toEqual(["one", "two", "three"])
+    await undo(changes)
+    expect(await dump(db)).toEqual(before)
+    const empty = await appendBeats(db, "ch-A", [])
+    expect(empty.isEmpty).toBe(true)
+  })
+
+  test("replaceChapterText changes title and summary with undo", async () => {
+    await buildBook(db, { chapters: [{ title: "A", summary: "old" }] })
+    const before = await chapterRow(db, "ch-A")
+    const changes = await replaceChapterText(db, "ch-A", { title: "New", summary: "new summary" })
+    expect(await chapterRow(db, "ch-A")).toMatchObject({ title: "New", summary: "new summary" })
+    await undo(changes)
+    expect(await chapterRow(db, "ch-A")).toEqual(before)
   })
 
   test("setChapterLinks makes the set exact and drops duplicates", async () => {

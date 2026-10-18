@@ -281,6 +281,17 @@ const WRITE: TourDefinition = {
       term: "find-and-replace",
     },
     {
+      target: "write-ai",
+      title: "AI tools",
+      body: (context) =>
+        inMenu(
+          context.coarse
+            ? "Optional help from an AI when you ask: it can carry on from your cursor, rewrite what you select, brainstorm and more. Connect it once in AI settings. Nothing goes into your book until you put it there."
+            : `Optional help from an AI when you ask: it can carry on from your cursor (${shortcutLabel("Mod+J")}), rewrite what you select, brainstorm and more. Connect it once in AI settings. Nothing goes into your book until you put it there.`,
+        )(context),
+      term: "ai-tools",
+    },
+    {
       target: "write-today",
       title: "Today, goals and sprints",
       body: (context) =>

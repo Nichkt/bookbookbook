@@ -93,6 +93,25 @@ test("premise and synopsis save with the other book settings", async () => {
   })
 })
 
+test("AI style settings save with the other book settings", async () => {
+  const { bookId } = await createBook(db, { title: "Draft", targetWords: null })
+  await updateBook(db, bookId, {
+    pov: "first",
+    tense: "past",
+    audience: "adult",
+    style_guide: "Lean and specific.",
+    sample_passages: JSON.stringify(["One", "Two"]),
+  })
+  expect(await db.get("SELECT pov, tense, audience, style_guide, sample_passages FROM books WHERE id = ?", [bookId]))
+    .toEqual({
+      pov: "first",
+      tense: "past",
+      audience: "adult",
+      style_guide: "Lean and specific.",
+      sample_passages: JSON.stringify(["One", "Two"]),
+    })
+})
+
 test("update, trash, undo and restore", async () => {
   const { bookId } = await createBook(db, { title: "Draft", targetWords: null })
   await updateBook(db, bookId, { title: "Final", author: "Ann Lee", genre: "Mystery", target_words: 70_000 })

@@ -62,17 +62,19 @@ export function AddToWorldDialog() {
 function AddToWorldForm({ codex }: { codex: Codex }) {
   const { db, bookId, openEntryFromText } = useWrite()
   const startName = useAddToWorld((state) => state.name)
+  const startNotes = useAddToWorld((state) => state.notes)
+  const typeKey = useAddToWorld((state) => state.typeKey)
   const lastType = usePref(WORLD_TYPE_PREF)
   const id = useId()
   const nameInput = useRef<HTMLInputElement>(null)
   const [name, setName] = useState(startName)
   const [pickedType, setPickedType] = useState<string | null>(null)
   const [aliases, setAliases] = useState<readonly string[]>([])
-  const [notes, setNotes] = useState("")
+  const [notes, setNotes] = useState(startNotes)
   const [tried, setTried] = useState(false)
   const [busy, setBusy] = useState(false)
 
-  const typeId = pickedType ?? defaultTypeId(codex.types, lastType.value)
+  const typeId = pickedType ?? defaultTypeId(codex.types, lastType.value, typeKey)
   const type = typeId ? codex.typeById.get(typeId) : undefined
   const trimmed = name.trim()
   const existing = entryNamed(codex.entries, trimmed)
@@ -249,9 +251,6 @@ export function AddToWorldBubble({ editor }: { editor: Editor }) {
   const { matcher, matcherLoading } = useWrite()
   // Null until the World's names load, as until then every name would look new.
   const latestMatcher = useRef(matcherLoading ? null : matcher)
-  useEffect(() => {
-    latestMatcher.current = matcherLoading ? null : matcher
-  }, [matcher, matcherLoading])
   const [pluginKey] = useState(() => new PluginKey("addToWorld"))
   // A selection the writer dismissed the bubble from with Esc, which it stays away from.
   const dismissed = useRef<{ from: number; to: number } | null>(null)
@@ -262,13 +261,27 @@ export function AddToWorldBubble({ editor }: { editor: Editor }) {
     if (menu.current) menu.current.tabIndex = -1
   }, [editor])
 
-  const shouldShow = useCallback<ShouldShow>(({ editor: current, view, state, element }) => {
+  const offers = useCallback((current: Editor, element: HTMLElement) => {
+    // TipTap may still ask once the editor has gone, from a timer it leaves running.
+    if (current.isDestroyed) return false
+    const { view, state } = current
     const { from, to } = state.selection
     if (dismissed.current && (dismissed.current.from !== from || dismissed.current.to !== to)) dismissed.current = null
     if (dismissed.current || !current.isEditable || view.composing || coarsePointer()) return false
     if (!view.hasFocus() && !element.contains(document.activeElement)) return false
     return latestMatcher.current !== null && offersToAdd(latestMatcher.current, selectedName(state))
   }, [])
+  const shouldShow = useCallback<ShouldShow>(({ editor: current, element }) => offers(current, element), [offers])
+
+  // TipTap asks only as the selection changes, so a name selected before the World's names loaded, or one the World
+  // has gained since, is looked at again as they change.
+  useEffect(() => {
+    latestMatcher.current = matcherLoading ? null : matcher
+    const element = menu.current
+    if (!element || editor.isDestroyed || editor.view.composing || editor.state.selection.empty) return
+    const show = offers(editor, element)
+    if (show !== element.isConnected) editor.view.dispatch(editor.state.tr.setMeta(pluginKey, show ? "show" : "hide"))
+  }, [editor, matcher, matcherLoading, offers, pluginKey])
 
   return (
     <BubbleMenu

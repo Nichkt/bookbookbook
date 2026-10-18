@@ -3,9 +3,8 @@ import { db } from "@/db/powersync"
 import { createPowerSyncSceneStore } from "@/db/powersyncSceneStore"
 import { deviceId, localDay, recordWordCount } from "@/db/stats"
 import { saveVersion } from "@/db/versions"
-import { countWords } from "@/lib/words"
 import { SceneDocProvider } from "@/yjs/SceneDocProvider"
-import { proseText } from "@/yjs/prose"
+import { proseCounts } from "@/yjs/prose"
 import type { SceneStore } from "@/yjs/sceneStore"
 import { docFromState } from "@/yjs/versions"
 
@@ -54,8 +53,8 @@ function requestPersistentStorage() {
 async function saveWordCount(sceneId: string, scene: OpenScene) {
   clearTimeout(scene.wordsTimer)
   scene.wordsTimer = undefined
-  const words = countWords(proseText(scene.provider.doc))
-  await recordWordCount(db, sceneId, words, deviceId(), localDay())
+  const { words, aiWords } = proseCounts(scene.provider.doc)
+  await recordWordCount(db, sceneId, words, deviceId(), localDay(), aiWords)
 }
 
 async function saveAutoVersion(sceneId: string, scene: OpenScene) {

@@ -36,6 +36,16 @@ import { ImportForm } from "@/features/import/ImportForm"
 import { BUILTIN_STRUCTURES } from "@/features/plan/structures"
 import { useCustomStructures } from "@/features/plan/useStructures"
 import { formatCount, parseCount, tidyCount } from "@/lib/numbers"
+import {
+  AUDIENCE_OPTIONS,
+  NOT_SET,
+  passagesText,
+  POV_OPTIONS,
+  storedPassages,
+  styleChoice,
+  TENSE_OPTIONS,
+  type StyleOption,
+} from "./bookStyle"
 import { closeBookDialog, returnFocusOnClose, useBookDialogs } from "./dialogStore"
 import { createBook, DEFAULT_BOOK_TARGET, trashBook, updateBook } from "./mutations"
 import { START_BLANK, START_WIZARD, startAbout, startValue } from "./newBookStart"
@@ -216,6 +226,11 @@ function BookSettingsForm({ book }: { book: BookListRow }) {
   const [target, setTarget] = useState(book.target_words ? formatCount(book.target_words) : "")
   const [premise, setPremise] = useState(book.premise ?? "")
   const [synopsis, setSynopsis] = useState(book.synopsis ?? "")
+  const [pov, setPov] = useState(book.pov ?? "")
+  const [tense, setTense] = useState(book.tense ?? "")
+  const [audience, setAudience] = useState(book.audience ?? "")
+  const [styleGuide, setStyleGuide] = useState(book.style_guide ?? "")
+  const [samples, setSamples] = useState(passagesText(book.sample_passages))
   const name = book.title?.trim() || "Untitled book"
 
   const save = async (event: FormEvent) => {
@@ -228,6 +243,11 @@ function BookSettingsForm({ book }: { book: BookListRow }) {
       target_words: parseCount(target),
       premise: premise.trim(),
       synopsis: synopsis.trim(),
+      pov,
+      tense,
+      audience,
+      style_guide: styleGuide.trim(),
+      sample_passages: storedPassages(samples),
     }
     const saved = await attempt("book settings", updateBook(db, book.id, patch).then(() => true))
     if (saved) closeBookDialog()
@@ -301,6 +321,68 @@ function BookSettingsForm({ book }: { book: BookListRow }) {
           rows={4}
         />
       </div>
+      <section aria-labelledby="book-ai-heading" className="grid gap-4 border-t pt-4">
+        <div className="grid gap-1">
+          <h3 id="book-ai-heading" className="font-medium text-ink">
+            For the AI tools
+          </h3>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            How the book is told, so what the AI tools write fits it. Any of it can stay empty.
+          </p>
+        </div>
+        <StyleSelect
+          id="book-pov"
+          label="Point of view"
+          term="point-of-view"
+          options={POV_OPTIONS}
+          value={pov}
+          onChange={setPov}
+        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <StyleSelect
+            id="book-tense"
+            label="Tense"
+            term="tense"
+            options={TENSE_OPTIONS}
+            value={tense}
+            onChange={setTense}
+          />
+          <StyleSelect
+            id="book-audience"
+            label="Who it's for"
+            options={AUDIENCE_OPTIONS}
+            value={audience}
+            onChange={setAudience}
+          />
+        </div>
+        <div className="grid gap-2">
+          <div className="flex items-center gap-1">
+            <Label htmlFor="book-style-guide">Style guide</Label>
+            <TermHint term="style-guide" />
+          </div>
+          <Textarea
+            id="book-style-guide"
+            value={styleGuide}
+            onChange={(event) => setStyleGuide(event.target.value)}
+            placeholder="Short sentences. No adverbs in dialogue tags. British spelling."
+            rows={3}
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="book-samples">Sample passages</Label>
+          <Textarea
+            id="book-samples"
+            aria-describedby="book-samples-about"
+            value={samples}
+            onChange={(event) => setSamples(event.target.value)}
+            placeholder="A few paragraphs you're proud of"
+            rows={4}
+          />
+          <p id="book-samples-about" className="text-xs text-muted-foreground">
+            Your own writing, for the AI tools to match your voice. Put a blank line between passages.
+          </p>
+        </div>
+      </section>
       <DialogFooter className="sm:justify-between">
         <Button
           type="button"
@@ -325,6 +407,41 @@ function BookSettingsForm({ book }: { book: BookListRow }) {
 }
 
 const isBadCount = (text: string) => text.trim() !== "" && parseCount(text) === null
+
+interface StyleSelectProps {
+  id: string
+  label: string
+  /** A glossary term explaining it. */
+  term?: string
+  options: readonly StyleOption[]
+  /** As the book stores it: "" for none. */
+  value: string
+  onChange: (value: string) => void
+}
+
+function StyleSelect({ id, label, term, options, value, onChange }: StyleSelectProps) {
+  return (
+    <div className="grid gap-2">
+      <div className="flex items-center gap-1">
+        <Label htmlFor={id}>{label}</Label>
+        {term && <TermHint term={term} />}
+      </div>
+      <Select value={styleChoice(options, value)} onValueChange={(next) => onChange(next === NOT_SET ? "" : next)}>
+        <SelectTrigger id={id} className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent position="popper">
+          <SelectItem value={NOT_SET}>Not set</SelectItem>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+}
 
 /** A book's word count target: takes "80000" or "80,000", and shows separators once you leave it. */
 function WordTargetInput({ id, value, onChange }: { id: string; value: string; onChange: (value: string) => void }) {

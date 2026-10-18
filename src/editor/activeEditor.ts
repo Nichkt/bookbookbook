@@ -84,6 +84,9 @@ export const editorOf = (sceneId: string): MountedEditor | undefined =>
 /**
  * Runs `work` with a scene's editor once it's on the page, e.g. after navigating to the scene. Returns a cancel
  * function for effect cleanups.
+ *
+ * An editor that arrives gets a moment to settle first: in development, StrictMode unmounts and remounts it at once,
+ * taking it off the page and rebuilding its text in between.
  */
 export function whenEditor(sceneId: string, work: (entry: MountedEditor) => void): () => void {
   const found = editorOf(sceneId)
@@ -91,11 +94,22 @@ export function whenEditor(sceneId: string, work: (entry: MountedEditor) => void
     work(found)
     return () => undefined
   }
-  const unsubscribe = useEditors.subscribe(() => {
-    const entry = editorOf(sceneId)
-    if (!entry) return
+  let done = false
+  let settling = false
+  const cancel = () => {
+    done = true
     unsubscribe()
-    work(entry)
+  }
+  const unsubscribe = useEditors.subscribe(() => {
+    if (settling || !editorOf(sceneId)) return
+    settling = true
+    queueMicrotask(() => {
+      settling = false
+      const entry = editorOf(sceneId)
+      if (done || !entry) return
+      cancel()
+      work(entry)
+    })
   })
-  return unsubscribe
+  return cancel
 }

@@ -1,6 +1,6 @@
 import * as Y from "yjs"
 import { describe, expect, it } from "vitest"
-import { PROSE_FIELD, proseState, proseText } from "./prose"
+import { AI_MARK, isAiAttribute, PROSE_FIELD, proseCounts, proseForReading, proseState, proseText } from "./prose"
 
 const docFrom = (state: Uint8Array) => {
   const doc = new Y.Doc()
@@ -45,5 +45,35 @@ describe("proseState / proseText", () => {
     text.insert(8, "never", { italic: true })
     text.insert(13, " late.")
     expect(proseText(doc)).toBe("She was never late.")
+  })
+
+  it("reads prose for AI with blank lines and scene breaks", () => {
+    const doc = new Y.Doc()
+    const fragment = doc.getXmlFragment(PROSE_FIELD)
+    const first = new Y.XmlElement("paragraph")
+    const empty = new Y.XmlElement("paragraph")
+    const rule = new Y.XmlElement("horizontalRule")
+    const second = new Y.XmlElement("paragraph")
+    fragment.insert(0, [first, empty, rule, second])
+    first.insert(0, [new Y.XmlText("First paragraph.")])
+    second.insert(0, [new Y.XmlText("Second paragraph.")])
+    expect(proseForReading(doc)).toBe("First paragraph.\n\n* * *\n\nSecond paragraph.")
+  })
+
+  it("counts AI words when most of the word is AI marked", () => {
+    expect(isAiAttribute(AI_MARK)).toBe(true)
+    expect(isAiAttribute(`${AI_MARK}--abc`)).toBe(true)
+    expect(isAiAttribute("bold")).toBe(false)
+
+    const doc = new Y.Doc()
+    const paragraph = new Y.XmlElement("paragraph")
+    const text = new Y.XmlText()
+    doc.getXmlFragment(PROSE_FIELD).insert(0, [paragraph])
+    paragraph.insert(0, [text])
+    text.insert(0, "writer ")
+    text.insert(7, "mostlyai", { [AI_MARK]: { card: "c" } })
+    text.insert(15, " h", { [AI_MARK]: { card: "c" } })
+    text.insert(17, "alfmine")
+    expect(proseCounts(doc)).toEqual({ words: 3, aiWords: 2 })
   })
 })

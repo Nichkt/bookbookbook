@@ -179,7 +179,7 @@ automatically and the UI hides the concept. "Series" later means several books s
 | `codex_progressions` *(v1.x)* | id, entry_id, from_chapter_id, field_key, value | "As of chapter N, X is true" |
 | `codex_relationships` *(v1.x)* | id, from_entry_id, to_entry_id, label, reverse_label | "Jonas — brother of — Mara" |
 | `inbox_notes` | id, book_id?, text, source (typed/voice-live/voice-memo), stt_engine, filed_to (json), created_at | Audio is never stored |
-| `ai_cards` | id, book_id, scene_id?, tool, model, route (hosted/byok/local), output (json), credits, created_at | User-visible history; "Clear AI history" in settings |
+| `ai_cards` | id, book_id, scene_id?, tool, model, route (hosted/byok/local), output (json), credits, created_at | User-visible history, the newest 100 per book; Clear all in the AI panel |
 | `custom_tools` | id, owner_id, name, prompt_template, output_mode, default_model | User prompt templates |
 | `templates` | id, owner_id? (null = built-in), name, kind (overlay/wizard), beats (json: key, name, pct, description) | 9 built-ins + custom |
 | `writing_stats` | id, book_id, date, words_added, words_removed, ai_words_inserted, dictated_words, sprints | Goals, streaks, % AI |
@@ -277,7 +277,7 @@ The Matrix, Timeline, Corkboard and templates followed in M5 (below). Details it
 - **Plot threads** are codex entries of type `plot_threads`, picked in the drawer like POV, location and characters.
 - **Write** lists chapters under their acts. A chapter's Plan link opens its details, and Back returns to writing.
 - **Not yet:** characters present are manual links only. Auto-detected mentions, Summarize with AI and dictating
-  beats come with M3, M4 and M11.
+  beats come with M3, M4 and M11. Summarize chapter came in M4, in Write's AI tools (§9, "Built in M4").
 
 ### Built after M7: the chapter pop-out
 The docked drawer read as a sidebar, so a chapter's details now pop out over the Plan instead, at every width:
@@ -480,7 +480,7 @@ A toolbar toggle: **Scene** · **Chapter** · **Manuscript**.
 | Typing comfort | Typography (smart quotes, em/en dashes, ellipses), markdown input rules (`*italic*`, `**bold**`, `> `) |
 | Collaboration / storage | Collaboration (y-prosemirror) bound to the scene's Y.Doc; Yjs UndoManager |
 | Mentions | Mention (`@`) node with codex suggestions; decoration plugin for auto-mentions |
-| AI provenance | `aiGenerated` mark `{cardId, model, at}`; a plugin removes it from any range the user edits |
+| AI provenance | `aiGenerated` mark `{card, model}`; a plugin removes it from any text the writer types into it |
 | Comments | `comment` mark with id + Yjs relative-position anchors; thread in the margin |
 | Menus | BubbleMenu (selection tools), Suggestion-based slash menu, custom context menu |
 | Writing aids | Focus (dims other paragraphs), typewriter-scroll plugin, CharacterCount (words) |
@@ -506,10 +506,11 @@ changes; comments, read-through, prose checks, grammar and a session goal are st
 - **Read aloud:** `speechSynthesis` with voice/rate settings and sentence highlighting. Cloud voices maybe later.
 
 ### Provenance and stats
-- AI-inserted text carries the `aiGenerated` mark → soft tint (toggle in view settings; the data keeps the mark).
+*Built in M4, all but the AI-usage report (§9, "Built in M4").*
+- AI-inserted text carries the `aiGenerated` mark → soft tint (toggle in AI settings; the data keeps the mark).
 - Editing inside a tinted range removes the mark for the edited span only.
-- **% AI-assisted** = words still marked ÷ total words, at scene, chapter and book level.
-  `writing_stats.ai_words_inserted` keeps the historical count.
+- **% AI-assisted** = words still marked ÷ total words, kept per scene and shown for the chapter and the book.
+  `writing_stats.ai_words_inserted` keeps the historical count, and Today counts only the writer's own words.
 - Dictated text is the author's words: never tinted.
 - Exports never include tint. A later **AI-usage report** can help with publisher disclosure questions (e.g. KDP's AI
   content question).
@@ -517,7 +518,8 @@ changes; comments, read-through, prose checks, grammar and a session goal are st
 ### Keyboard
 Ctrl+J Continue · Ctrl/Cmd+K palette · Ctrl+Shift+F find & replace · Ctrl+. focus mode · Ctrl+Alt+S snapshot ·
 Ctrl+Shift+M dictate · `/` slash menu at the start of an empty line · Esc closes overlays.
-All shortcuts can be remapped later. Built so far: Ctrl+Shift+F, Ctrl+., Ctrl+Alt+S, the formatting keys and Esc.
+All shortcuts can be remapped later. Built so far: Ctrl+J, Ctrl+Shift+F, Ctrl+., Ctrl+Alt+S, the formatting keys
+and Esc.
 
 ### Built in M2
 M2 built the Write screen: the three views, the navigator, formatting, word counts, History and the chapter plan
@@ -637,6 +639,9 @@ aloud, and find and replace across the book. Details it settled:
 ## 9. AI system
 
 ### Tools
+*M4 built every tool here, with some changes, run from the toolbar's AI tools, the ⋯ menu and Ctrl+J. The other
+triggers, thumbs, credits, the draft's preview and feedback as comments are still to come. See "Built in M4" below.*
+
 | Tool | Input | Output (card) | Insert behavior |
 |---|---|---|---|
 | **Continue** (Ctrl+J) | Text before the caret | 2 variants, ~150–300 words | At caret |
@@ -709,6 +714,103 @@ estimated cost for the current request. Per-tool default models in Settings.
 ### Later: chat
 Not in v1. The context assembler, model routing and cards are tool-agnostic, so a "Chat with your book" panel can be
 added later as one more tool with a conversation history.
+
+### Built in M4
+M4 built the AI tools on the writer's own key or a model on their own computer: eleven tools and the writer's own,
+result cards, the context preview, and the tint on AI-written text with its share of the book. Hosted AI and credits
+wait for accounts (M10). Details it settled:
+- **Where it runs.** AI settings, from the panel or an error's AI settings button, starts with **Where the AI
+  runs**: *On this computer* (Ollama or LM Studio, free and private), *OpenAI*, *Anthropic* or *OpenRouter*, one at a
+  time. On this computer takes an address, which buttons fill in for Ollama and LM Studio, and says what each needs
+  to answer the page: LM Studio its "Enable CORS", and Ollama nothing on `localhost` (it answers this computer's
+  addresses) or else `OLLAMA_ORIGINS` set to the app's origin. The companies take an API key, with a link to get one
+  and a way to remove it. The model is typed, picked from suggestions, or picked from those **Check connection**
+  finds, embedding models left out. **How much it can read**, 4k to 200k tokens (4k to begin with on this computer,
+  32k with a key), caps what a run sends, and so what it costs.
+- **Requests.** Nothing of the book is sent until a tool runs, and then straight from the browser: to Anthropic with
+  its `anthropic-dangerous-direct-browser-access` header, to OpenRouter with the app's name. Models that think first
+  get 2,048 tokens of room beyond the answer and are asked for low effort, and `<think>` blocks are cut from answers.
+  A tool's versions are asked for side by side. Prompts frame the work as fiction that can go to dark places, so
+  refusals are rarer. Errors are put in the writer's words (a key turned away, an account out of credit, a request
+  too big to read, no connection), with AI settings a click away.
+- **Settings** are per device: the provider, and each provider's model, address and size (so switching back keeps
+  them), in `ui_prefs`; keys in `provider_keys`, never synced or backed up, and sent only to their own company.
+- **The panel.** AI tools, in Write's toolbar (the ⋯ menu on phones), is a page of the side panel from 1280 px, like
+  the chapter plan, World and Find, and a sheet over the text below that. From the top: AI settings and Your own
+  tools; the tool, picked from Write, Revise, Plan and Your tools; its choices, remembered per tool; a line saying
+  what it will work on ("Works on the 84 words you selected.", "Writes at your cursor in “Ferry wake”."); What the AI
+  sees; Run; the cards; and at the foot, "AI-written: 12% of this chapter · 3% of the book". Until the AI is set up,
+  the panel offers Set up AI. **Ctrl+J** (⌘J) opens the panel and runs Continue from the caret; beside the text, the
+  caret stays put, to read on or keep writing.
+- **Tools**, as in the table above, with these changes:
+  - **Continue** gives 2 versions of about 100, 250 or 500 words, and takes an optional "What should happen", so
+    Guided continue is part of it. It reads up to 12,000 characters before the caret and 1,200 after, and is told
+    the chapter's next moment that isn't done.
+  - **Draft from moments** writes one draft of about 500, 1,000 or 2,000 words at the caret, through the moments
+    that aren't done, in order.
+  - **Describe** takes a subject, typed or selected, and gives lines under Sight, Sound, Smell, Taste, Touch and
+    Metaphor, each to insert or copy.
+  - **Rewrite** gives 3 versions: Rephrase, More vivid, Show don't tell, More tension, Shorter, or the writer's own
+    instruction. **Expand**, **Condense** and **Dialogue polish** (sent the speakers' Voice & speech) give 2. All
+    four replace the text they worked on.
+  - **Brainstorm** gives 10 ideas: what could happen next, plot twists, obstacles, characters, places, telling
+    details, chapter titles or lines of dialogue, with an optional steer. An idea can be copied, added as a moment,
+    added to World (characters and places) or used as the chapter's title (titles).
+  - **Name generator** gives 12 names for what's asked, in an optional sound or culture, told the book's names to
+    avoid. Each can be added to World.
+  - **Summarize chapter** gives a summary and the chapter's moments, with "Use as the chapter's summary" and "Add
+    these moments to the chapter", each with Undo.
+  - **Chapter feedback** gives notes under What works, Pacing, Clarity, Character and Continuity, to copy.
+- **Your own tools** (Your own tools, at the top of the panel) have a name; what they ask the AI, with buttons that
+  put in `{selection}`, `{before}`, `{after}`, `{summary}`, `{moments}`, `{world}` and `{style}` (`{beats}` and
+  `{codex}` work too); and what comes back: two versions (replacing the selection if the prompt has `{selection}`,
+  else at the caret), a list of ideas, or one longer draft of up to about 2,000 words. They're kept in `custom_tools`
+  for every book on the device and listed under Your tools. Deleting one has Undo.
+- **What the AI sees** (§9, "Context assembly"), folded under the tool, lists each part a run would send with its
+  size, the total against what it can send, and **The whole prompt**, word for word. The instructions, the book's
+  settings and style, and the text always go. The rest can be unticked, remembered per device: "This chapter's
+  summary and moments", "World entries set to Always", "World entries your text mentions" (those the chapter's plan
+  links first, then the most mentioned, 40 at most), "Voices of the characters in the scene" (8 at most, for Dialogue
+  polish), "Earlier chapters' summaries" (the nearest 30) and "Your sample passages". Entries set to Never are left
+  out, names and all. Your own tools send what their prompt names, so their boxes only show it.
+- **Fitting it in.** Tokens are estimated at four characters each and shown with "~". A run may send 90% of what the
+  model can read, less room for the answer, and the text may take 60% of that. When there's too much, it drops the
+  sample passages, then the oldest summaries, the voices, the mentioned entries, the Always entries and the
+  chapter's plan, then shortens the text, to no less than 400 characters before the caret or 1,000 of a chapter.
+  The card then says "Some of the book was left out to fit what the AI can read." What still doesn't fit isn't
+  sent, and the panel says to select less or let it read more.
+- **Cards**, newest first, 100 kept per book in `ai_cards`. Each names the tool, where it went ("OpenAI ·
+  gpt-5.4-mini") and when. It streams as the answer comes, with Stop, then has Run again and Dismiss. Run again sends
+  the same request if this page sent it and the connection hasn't changed, else puts it together afresh, on the same
+  selected text where it still is. Each version has Insert (or Replace), Copy, and "Used" once it's been put in.
+  Notes say a run was stopped, ran out of room, or left some of the book out. Replace finds the text it worked on
+  where it was, going to its scene first if need be, and says so if that text has changed. **Clear all** has Undo.
+  Screen readers hear "Rewrite is ready."
+- **AI-written text** (§8, "Provenance and stats") carries the `aiGenerated` mark, naming its card and model, and a
+  faint tint, which AI settings can hide. The mark doesn't spread to text typed next to it, and what the writer types
+  inside it loses the mark, once a phone keyboard's composition is over. Undo, other tabs, History and backups keep
+  the marks, as does copying and pasting with formatting; plain paste and exports drop them. Each scene counts its
+  AI-written words (`scenes.ai_word_count`) for the panel's foot. AI text going in counts toward
+  `writing_stats.ai_words_inserted`, not toward Today and its goals.
+- **Book settings** gained a "For the AI tools" part: Point of view (first, second, third close, third omniscient, or
+  "It changes from chapter to chapter"), Tense, Who it's for (adults to children), a Style guide and Sample passages
+  (a blank line between them). Prompts say them as a writer would ("Point of view: first person").
+- **Help.** The glossary gained an AI tools group (AI tools, model, API key, local model, token, context, AI-written,
+  your own tools, style guide) plus Tense and Show, don't tell; the Write tour gained a step on AI tools; and "?"
+  buttons sit beside AI settings' fields and What the AI sees.
+- **Not yet:** hosted AI and credits (M10); the selection bubble, right-click menu, slash commands and palette as
+  ways in; thumbs up and down; cost estimates and a model picker in the panel; per-tool default models; a real
+  tokenizer; pinning World entries in the preview; entries "as of" a chapter (progressions, v1.x); Draft from
+  moments' preview, Replace scene and Insert as new scene; feedback attached as comments (no comments yet); the
+  AI-usage report; and keys encrypted at rest with a WebCrypto key (§18). AI cards and your own tools stay out of
+  backups: cards are scratch work, and what was used is in the text, with its marks.
+- `e2e/ai.spec.ts` fakes the model's API in the browser and covers setting up a local model and Ctrl+J (the tint,
+  the share and the day's words), Rewrite with Replace and Undo, Stop, Run again and Clear all with Undo, a key not
+  accepted and then fixed, What the AI sees, Brainstorm's moments and Add to World, Summarize chapter, a tool of the
+  writer's own (made, run, edited, deleted with Undo), the book's style in the prompt, and Insert from a phone's
+  sheet. `e2e/touch.spec.ts` holds the AI controls to 44 px on a phone and a tablet. Unit tests cover putting the
+  prompt together and trimming it, streams and their errors, reading answers, the tools, settings, cards and runs,
+  the AI mark, AI word counts and the book's style.
 
 ---
 
@@ -1008,9 +1110,9 @@ M7 has built export, backups, restoring them, import, folder backups and the bac
   - Each scene's prose goes in as its first version, so the words don't count as the day's writing.
   - It opens at the first chapter, with "Imported “Title”".
 - **Not yet:** choosing chapters, scene-break style, front matter, act headings, a localized "Chapter", comments
-  (M6), importing into an existing book, images in imports, AI cards and codex images in backups (M4, v1.x), folder
-  backups beyond Chrome and Edge (Tauri, M12), and checks in a worker. The app already asks the browser to keep its
-  storage (`persist()`) at the first edit.
+  (M6), importing into an existing book, images in imports, codex images in backups (v1.x; AI cards stay out, §9
+  "Built in M4"), folder backups beyond Chrome and Edge (Tauri, M12), and checks in a worker. The app already asks
+  the browser to keep its storage (`persist()`) at the first edit.
 
 ---
 
@@ -1166,13 +1268,15 @@ menu. Labels say what a thing is for in the first place (§6, "Plain labels"), a
 words as "also called".
 
 **Glossary**
-- 55 terms in four groups: *Story basics* (act, chapter, scene, moment, structure moment, story structure, premise,
-  synopsis, flashback, point of view, story point, theme, draft, manuscript), *Planning a chapter* (each field of a
-  chapter's details), *Your world* (World, entries, entry types, aliases, mentions, and the kinds of entry that need
-  explaining) and *Pages and tools* (home, Plan, Board, Corkboard, Outline, Matrix, Timeline, structure ribbon,
-  Write and its writing aids, Inbox, versions, backups, export, import, Trash). M5 added the eight about structures
-  and its views, and M6 the nine about writing aids: focus mode, typewriter scrolling, daily goal, streak, sprint,
-  find and replace, pattern, read aloud and Add to World.
+- 66 terms in five groups: *Story basics* (act, chapter, scene, moment, structure moment, story structure, premise,
+  synopsis, flashback, point of view, tense, story point, theme, show don't tell, draft, manuscript), *Planning a
+  chapter* (each field of a chapter's details), *Your world* (World, entries, entry types, aliases, mentions, AI
+  context, and the kinds of entry that need explaining), *Pages and tools* (home, Plan, Board, Corkboard, Outline,
+  Matrix, Timeline, structure ribbon, Write and its writing aids, Inbox, versions, backups, export, import, Trash) and
+  *AI tools* (AI tools, model, API key, local model, token, context, AI-written, your own tools, style guide). M5
+  added the eight about structures and its views, M6 the nine about writing aids (focus mode, typewriter scrolling,
+  daily goal, streak, sprint, find and replace, pattern, read aloud and Add to World), and M4 the eleven about the AI
+  tools and a book's style.
 - Each is a few sentences of plain English, an example from the sample book where one helps, and "See also" links.
   **Scene** says what starts a new one: a jump in place, time or point of view. **Moment** explains beats: one thing
   that happens, the smallest piece of a story; a few make a scene, and a few scenes a chapter.
@@ -1184,7 +1288,7 @@ words as "also called".
   the glossary, and focus goes back to the button that opened it.
 
 **Tours**
-- One per page: Home (9 steps), Plan (13 on the Board), Write (13), World (7) and Inbox (1, until M11 builds it).
+- One per page: Home (9 steps), Plan (13 on the Board), Write (14), World (7) and Inbox (1, until M11 builds it).
   A step can belong to some views only, so each Plan view skips the steps about what it doesn't show: the ribbon,
   acts and chapter cards, the Display menu, the Matrix or the Timeline. The Matrix and Timeline have 10.
 - **The card** is a modal dialog with "Step N of M", Back, Next (Done on the last) and an X. ← and → move between
@@ -1271,10 +1375,11 @@ words as "also called".
 1. Name clearance for "bookbookbook" (trademark, domain, app stores).
 2. The phone keyboard test on real devices with Gboard and Samsung Keyboard
    ([ime-smoke-test.md](ime-smoke-test.md)), left over from M0.
-3. M2, Editor core, M3, Codex core, M5, Planner II, M6, Writing aids, and M7, Import / export / backups, are built
-   and tested ([README](../README.md)), M6 without comments, prose checks, Harper, read-through and @-mentions (§8,
-   "Built in M6"). So are the home screen, the chapter pop-out, plain labels, World, the glossary and the page tours
-   (§4, §6, §7, §17a).
+3. M2, Editor core, M3, Codex core, M4, AI core, M5, Planner II, M6, Writing aids, and M7, Import / export /
+   backups, are built and tested ([README](../README.md)): M4 with the writer's own key or a model on their computer,
+   as hosted AI waits for M10 (§9, "Built in M4"), and M6 without comments, prose checks, Harper, read-through and
+   @-mentions (§8, "Built in M6"). So are the home screen, the chapter pop-out, plain labels, World, the glossary and
+   the page tours (§4, §6, §7, §17a).
 
 ---
 
@@ -1345,3 +1450,4 @@ words as "also called".
 | 25 | Glossary and tours | Two header buttons on every page, How to use this and Glossary (a Help menu on phones); 38 terms with examples from the sample book, found by their old names too; "?" beside each chapter field; a spotlight tour per page that stages the pop-out, fits touch and narrow screens, and ends on leaving the page | Details in §17a |
 | 26 | M5 planner II | The Matrix's character cells open a menu (not in it, present, point of view instead of whom) and quiet story points are flagged after 3 chapters away; the Timeline toggles story and reading order, flashbacks first and time jumps badged; Corkboard cards are written on directly; 7 built-in structures under descriptive names plus the writer's own, shared as JSON files; a ribbon of structure moments on the Board and Corkboard, hideable per book; a new book can start from a structure (a chapter per moment, Moments left empty) or step by step; planning step by step is four steps whose result, draft included, one Undo takes back; Undo toasts work over dialogs | Details in §6, "Built in M5" |
 | 27 | M6 writing aids | Focus mode for the Write screen's visit only, dimming all but the caret's paragraph; typewriter scrolling per device; a daily goal per book in net words, with a streak that can be hidden; sprints kept in localStorage that survive a reload; Add to World from a bubble over a selected name or the ⋯ menus; read aloud with the device's voices, a sentence at a time; find and replace across the whole book as a side panel page, searching scene text (live or stored) a paragraph at a time, Replace all editing the Yjs text directly after saving versions, with one Undo; navigations that pair with urgent state or quick keys use `flushSync`; comments, prose checks, Harper, read-through and @-mentions deferred | Details in §8, "Built in M6" |
+| 28 | M4 AI tools | The writer's own key (OpenAI, Anthropic, OpenRouter) or a model on their computer (Ollama, LM Studio), one at a time, set per device, keys never synced or backed up; 11 tools in Write, Revise and Plan groups plus the writer's own (placeholders, three kinds of answer), in a side panel page from 1280 px and a sheet below, run from the toolbar, the ⋯ menu or Ctrl+J; prompts built from labeled parts the writer can untick and read whole, trimmed least-needed first by a four-characters-a-token estimate; cards per book (100 kept), streamed, stoppable and run again, Replace finding the text where it was; AI text marked and tinted until the writer types in it, its share shown per chapter and book, and Today counting only the writer's words; the book's point of view, tense, audience, style guide and samples in Book settings; AI cards and own tools left out of backups; hosted AI, other triggers and key encryption deferred | Details in §9, "Built in M4" |

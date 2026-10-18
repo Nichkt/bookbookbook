@@ -7,6 +7,8 @@ import { chapterTitle } from "@/features/plan/status"
 import { useBookStructures } from "@/features/plan/useStructures"
 import { byData, focusPending, focusSoon } from "@/lib/focus"
 import { isComposing } from "@/lib/keys"
+import { AiPanel } from "./ai/AiPanel"
+import { AI_PANEL_HEADING } from "./ai/aiState"
 import { CodexPanel } from "./CodexPanel"
 import { CODEX_PANEL_HEADING } from "./codexPanelData"
 import { FIND_INPUT, matchToReturnTo } from "./findActions"
@@ -18,11 +20,17 @@ const OPENER = "[data-write-panel-return]"
 /** The toolbar's button for a page, or on phones the menu that holds them. */
 const openerOf = (page: PanelPage) => `[data-write-panel-return="${page}"], [data-write-panel-return="menu"]`
 
-const LABELS: Record<PanelPage, string> = { plan: "Chapter details", codex: "World", find: "Find and replace" }
+const LABELS: Record<PanelPage, string> = {
+  plan: "Chapter details",
+  codex: "World",
+  find: "Find and replace",
+  ai: "AI tools",
+}
 
 /** Where focus goes as a page opens: its heading, or for Find and replace its search. */
 function headingOf(page: PanelPage, chapterId: string) {
   if (page === "plan") return byData("drawer-heading", chapterId)
+  if (page === "ai") return AI_PANEL_HEADING
   return page === "codex" ? CODEX_PANEL_HEADING : FIND_INPUT
 }
 
@@ -97,6 +105,7 @@ function DockedPanel({ page, chapterId, onClose }: { page: PanelPage; chapterId:
 
 function PageBody({ page, chapterId, onClose }: { page: PanelPage; chapterId: string; onClose: () => void }) {
   if (page === "plan") return <ChapterDrawer chapterId={chapterId} onClose={onClose} />
+  if (page === "ai") return <AiPanel onClose={onClose} />
   return page === "codex" ? <CodexPanel onClose={onClose} /> : <FindPanel onClose={onClose} />
 }
 
@@ -104,6 +113,7 @@ const SHEET_DESCRIPTIONS: Record<PanelPage, string> = {
   plan: "The chapter's plan. Changes save as you type.",
   codex: "The people, places and things this chapter names, and a search through the rest of your world.",
   find: "Search the whole book's text, and replace what you find.",
+  ai: "Tools that write, rewrite and brainstorm with you when you ask, and what they came up with.",
 }
 
 interface PanelSheetProps {

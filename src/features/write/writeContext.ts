@@ -24,7 +24,7 @@ export const TYPEWRITER_PREF = "write.typewriter"
 export const PANEL_DOCKED_QUERY = "(min-width: 80rem)"
 
 /** The panel's pages (DESIGN.md §8), each opened by its own button in the toolbar. */
-export const PANEL_PAGES = ["plan", "codex", "find"] as const
+export const PANEL_PAGES = ["plan", "codex", "find", "ai"] as const
 export type PanelPage = (typeof PANEL_PAGES)[number]
 
 /** The docked panel's page as the pref stores it. Before the Codex page, "open" meant the plan. */
