@@ -592,10 +592,21 @@ export const GLOSSARY: GlossaryTerm[] = [
     aka: ["Quick-create", "New entry"],
     group: "app",
     body: [
-      "Making a World entry for a name without leaving your text. Select a name that isn't in your World yet and click Add to World over it, or choose Add to World… from the ⋯ menu. Then pick what kind of thing it is, such as a character or a place, and add any other names it goes by.",
+      "Making a World entry for a name without leaving your text. Select a name that isn't in your World yet and click Add to World over it, or choose Add to World… from the ⋯ menu. On a phone or tablet, tap Add to World in the bar above the keyboard. Then pick what kind of thing it is, such as a character or a place, and add any other names it goes by.",
       "From then on, the name is underlined wherever it appears, like every other entry.",
     ],
-    related: ["world", "entry", "aliases", "mention"],
+    related: ["world", "entry", "aliases", "mention", "keyboard-tools"],
+  },
+  {
+    id: "keyboard-tools",
+    term: "Tools above the keyboard",
+    aka: ["Keyboard bar", "Writing tools"],
+    group: "app",
+    body: [
+      "On a phone or tablet, while you type in a scene, a bar sits just above the on-screen keyboard with Undo and Redo, Bold and Italic, and Dictate. Done puts the keyboard away.",
+      "Select a name that isn't in your World yet and Add to World joins the start of the bar. Focus mode hides the bar along with everything else.",
+    ],
+    related: ["add-to-world", "dictation", "focus-mode"],
   },
   {
     id: "inbox",

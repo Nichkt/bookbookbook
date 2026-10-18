@@ -16,13 +16,17 @@ export function setTypewriterScrolling(on: boolean) {
 
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches
 
-/** The middle of the text's part of the window: below the Write toolbar, and above a phone's keyboard. */
+/**
+ * The middle of the text's part of the window: below the Write toolbar, and above a phone's keyboard and the tools
+ * docked on it.
+ */
 function writingLine(): number {
   const viewport = window.visualViewport
   const toolbar = document.querySelector("[data-write-toolbar]")?.getBoundingClientRect().bottom ?? 0
   const top = Math.max(toolbar, viewport?.offsetTop ?? 0)
   const bottom = viewport ? viewport.offsetTop + viewport.height : window.innerHeight
-  return (top + bottom) / 2
+  const docked = document.querySelector("[data-docked-tools]")?.getBoundingClientRect().top ?? bottom
+  return (top + Math.min(bottom, docked)) / 2
 }
 
 /** Scrolls the window so the caret's line sits on the writing line. Leaves a selection being made alone. */

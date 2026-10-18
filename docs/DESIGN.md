@@ -632,7 +632,7 @@ aloud, and find and replace across the book. Details it settled:
   and it warns of one the World has. The dialog takes the name, the type (the one used last, per device, else
   Characters), the shorter names the text might use ("Jonas" and "Quill" for "Jonas Quill") and notes. The text
   underlines the new entry at once, and the toast's Details opens it. On touch screens the system's selection menu
-  keeps its place, so the ⋯ menu is the way in.
+  keeps its place, so the ⋯ menu was the way in until M8 put Add to World in the bar above the keyboard (§16).
 - **Read aloud** (the ⋯ menus) uses the device's voices (`speechSynthesis`), a sentence at a time
   (`Intl.Segmenter`, with a fallback), marking each sentence and keeping it in view above the reading bar. It starts
   at the caret's sentence and goes on through the scenes the view shows (the chapter, or in the Manuscript the
@@ -1367,7 +1367,7 @@ soft layered shadows, nothing loud while writing.
 
 **Mobile editing specifics**
 - On touch devices the OS selection menu competes with ours. Show our tools in a compact bar **docked above the
-  keyboard** instead of a floating bubble.
+  keyboard** instead of a floating bubble. Built in M8 (below).
 - **Android IME** (Gboard composition, autocorrect, backspace) is ProseMirror's riskiest area. Test on real devices
   from M0. Never recompute decorations inside an active composition (`view.composing`).
   - The M0 spike confirmed the risk. Recomputing mention underlines during a composition left them permanently
@@ -1377,6 +1377,39 @@ soft layered shadows, nothing loud while writing.
   - Device test bench: `/lab/ime`, with the checklist in [ime-smoke-test.md](ime-smoke-test.md).
 - Big mic button in the phone toolbar: dictation is often faster than typing on a phone. Built in M11 as Dictate,
   beside the ⋯ menu in Write's phone toolbar, with Quick note in the header (§10, "Built in M11").
+
+### Built in M8: Tools above the keyboard, and bottom sheets
+- **Tools above the keyboard.** On a touch screen, while a scene's text has focus and an on-screen keyboard is up, a
+  bar sits on the keyboard's top edge, as wide as the part of the page in sight. It has Undo and Redo, Bold and
+  Italic, Dictate, and Done, which puts the keyboard away. Selecting a name the World doesn't have adds **Add to
+  World** at the start, scrolled into view. Taps on the bar leave focus in the text, so the keyboard stays up and the
+  selection with it. It stays put as focus moves from one scene to the next, and focus mode hides it with the rest.
+- **Finding the keyboard.** Browsers don't say where it is. Chrome on Android (from 108) and Safari on iOS leave the
+  window its height and shrink only the visual viewport, so what's fixed to the window's bottom ends up behind the
+  keyboard; Firefox on Android shrinks the window too. `src/lib/keyboard.ts` takes a keyboard to be open when the
+  visual viewport is at least 150 px shorter than the window at its tallest at that width, so an address bar coming
+  back doesn't count, and never while the page is pinched bigger. The bar follows the visual viewport's bottom edge
+  as the page scrolls under the keyboard.
+- **Out of the way.** While the bar is up, the phone's tab bar goes, and toasts, the reading bar and the listening
+  pill rise above it (`--toast-bottom`). ProseMirror keeps the caret in the visual viewport, so above the keyboard,
+  and the bar's height becomes its scroll threshold and margin at the bottom, so typing keeps the caret above the bar
+  too. As the keyboard comes up or changes height, the caret is brought back into sight. Typewriter scrolling's line
+  is halfway between the toolbar and the bar.
+- **Bottom sheets.** On phones, Write's panel (Chapter details, World, Find and replace, AI tools) rises from the
+  bottom to just below the header, so a tap above it closes it. It has a handle: dragged down, the sheet follows,
+  and let go a quarter of its height down, or flicked, it closes; otherwise it springs back. A finger held still
+  before letting go isn't a flick. From 768 px it comes in from the right, 440 px wide, and from 1280 px it docks.
+- **Not yet tried on a real device.** The tests stand in for the keyboard by shrinking the visual viewport as Chrome
+  on Android does. Still to check on devices, with the checklist in [ime-smoke-test.md](ime-smoke-test.md): that taps
+  on the bar keep iOS's keyboard up, which relies on the tap's `mousedown` being cancelled; Android's split screen,
+  which can look like a keyboard, though the bar also needs the text in focus; and an iPad's floating or undocked
+  keyboard, which doesn't shrink the viewport, so gets no bar.
+- `e2e/mobile.spec.ts` opens a fake keyboard (`fakeKeyboard` in `e2e/fixtures.ts`): the bar on its edge, only with
+  the text in focus; the tab bar going and toasts rising; Done; Undo, Redo and Bold leaving the text in focus and
+  the selection kept; Add to World first in line; the caret kept above the bar as the keyboard comes up and while
+  typing; focus mode; and the panel's place on a phone and a tablet, its handle closing it, and a short drag held
+  still springing back. `touch.spec.ts` checks the bar's targets are 44 px. `src/lib/keyboard.test.ts` covers
+  finding the keyboard.
 
 ---
 
@@ -1422,17 +1455,17 @@ menu. Labels say what a thing is for in the first place (§6, "Plain labels"), a
 words as "also called".
 
 **Glossary**
-- 72 terms in five groups: *Story basics* (act, chapter, scene, moment, structure moment, story structure, premise,
+- 73 terms in five groups: *Story basics* (act, chapter, scene, moment, structure moment, story structure, premise,
   synopsis, flashback, point of view, tense, story point, theme, show don't tell, draft, manuscript), *Planning a
   chapter* (each field of a chapter's details), *Your world* (World, entries, entry types, aliases, mentions, AI
   context, and the kinds of entry that need explaining), *Pages and tools* (home, Search, Plan, Board, Corkboard,
   Outline, Matrix, Timeline, structure ribbon, Write and its writing aids, Inbox, filing a note, dictation, versions,
-  backups, export, import, Trash, installing the app) and *AI tools* (AI tools, model, API key, local model, token,
-  context, AI-written, your own tools, style guide). M5 added the eight about structures and its views, M6 the nine
-  about writing aids (focus mode, typewriter scrolling, daily goal, streak, sprint, find and replace, pattern, read
-  aloud and Add to World), M4 the eleven about the AI tools and a book's style, M11 the four about dictation and the
-  Inbox (filing a note, dictation, voice commands, and on this device or online), and M8 Search (the command palette)
-  and installing the app.
+  backups, export, import, Trash, installing the app, the tools above the keyboard) and *AI tools* (AI tools, model,
+  API key, local model, token, context, AI-written, your own tools, style guide). M5 added the eight about structures
+  and its views, M6 the nine about writing aids (focus mode, typewriter scrolling, daily goal, streak, sprint, find
+  and replace, pattern, read aloud and Add to World), M4 the eleven about the AI tools and a book's style, M11 the
+  four about dictation and the Inbox (filing a note, dictation, voice commands, and on this device or online), and M8
+  Search (the command palette), installing the app and the tools above the keyboard.
 - Each is a few sentences of plain English, an example from the sample book where one helps, and "See also" links.
   **Scene** says what starts a new one: a jump in place, time or point of view. **Moment** explains beats: one thing
   that happens, the smallest piece of a story; a few make a scene, and a few scenes a chapter.
@@ -1530,15 +1563,16 @@ words as "also called".
 
 **Immediate next steps:**
 1. Name clearance for "bookbookbook" (trademark, domain, app stores).
-2. The phone keyboard test on real devices with Gboard and Samsung Keyboard
-   ([ime-smoke-test.md](ime-smoke-test.md)), left over from M0.
+2. The phone keyboard tests on real devices ([ime-smoke-test.md](ime-smoke-test.md)): Gboard and Samsung Keyboard,
+   left over from M0, and the tools above the keyboard from M8.
 3. M2, Editor core, M3, Codex core, M4, AI core, M5, Planner II, M6, Writing aids, M7, Import / export /
    backups, and M11, Speech-to-text, are built and tested ([README](../README.md)): M4 with the writer's own key or a
    model on their computer, as hosted AI waits for M10 (§9, "Built in M4"), M6 without comments, prose checks,
    Harper, read-through and @-mentions (§8, "Built in M6"), and M11 on the browser's own speech recognition, without
    voice memos, the in-browser models, cloud transcription and the AI helpers (§10, "Built in M11"). So are the home
    screen, the chapter pop-out, plain labels, World, the glossary and the page tours (§4, §6, §7, §17a), and from
-   M8, Search, the command palette (§4), and the app opening offline, installing and asking to be installed (§11).
+   M8, Search, the command palette (§4), the app opening offline, installing and asking to be installed (§11), and
+   the tools above the keyboard and bottom sheets (§16).
 
 ---
 
@@ -1614,3 +1648,4 @@ words as "also called".
 | 30 | M8 command palette | Search in every page's header and Ctrl/Cmd+K, the page's before the browser's but left to other dialogs and menus; finds chapters, titled scenes, World entries, views, books and glossary terms once something's typed, and does what each page's toolbars and menus do, the AI tools included (Continue at once, the rest in the panel); every word typed must match, the label over keywords and a word's start over letters inside, glossary terms a step lower; a command runs after the palette closes, with focus back where it was, so dialogs return there; each page opens a chapter, scene or entry its own way, the Plan through `?chapter=` even while loading; Back closes it, the app's redirects don't; opened again as it fades, it starts afresh | Details in §4, "Built in M8" |
 | 31 | M8 offline and installing | Production builds keep a copy of the app in a service worker (vite-plugin-pwa): the app, its fonts and icons and the one SQLite build it loads, 60 files and 6.8 MB, not PowerSync's encrypted and OPFS builds; every address falls back to the app's page, so any opens offline; a new version downloads in the background and waits for the writer, a toast offering Reload or Later, rather than reloading under them mid-sentence, and starts by itself once every tab has closed; Reload saves pending edits first and every open tab reloads into the new version, the tab clicked watching for it itself when no version controlled it as it opened; hourly checks on long visits; the startup and error screens update too; the title bar takes the header's color in each theme; icons drawn from the favicon by a script; tested on a production build, each test publishing its own new version through a cookie | Details in §11, "Built in M8" |
 | 32 | M8 install prompts | A notice on the home screen alone, above the books, saying why: Chrome's and Edge's offer held for Install, which opens the browser's own dialog, and Safari's steps where no offer comes, on an iPhone or iPad in any browser and in Safari 17 or later on a Mac, as Safari may clear a website's data after a week away but not an installed app's; an app added from Safari keeps its own books, so the notice says to back up and restore those begun in the browser; Not now and Got it are for good on the device, a dismissed browser dialog only for the visit; Search and the glossary keep a way to install, and the Backups dialog offers it when the browser won't promise to keep the books; nothing's offered in the installed app; no tour step, as the notice comes and goes | Details in §11, "Built in M8" |
+| 33 | M8 tools above the keyboard and bottom sheets | On a touch screen, with a scene's text in focus and an on-screen keyboard up, a bar on the keyboard's top edge: Add to World for a new name, at the start, then Undo, Redo, Bold, Italic, Dictate and Done; taps leave focus in the text; the keyboard found by the visual viewport shrinking 150 px or more from the window's tallest at that width, never while pinched; the tab bar goes and toasts rise above the bar; the bar's height is ProseMirror's scroll threshold and margin at the bottom, so the caret stays above it; focus mode hides it; on phones Write's panel rises from the bottom below the header, with a handle that closes it dragged a quarter down or flicked; not yet tried on a real device | Details in §16, "Built in M8" |

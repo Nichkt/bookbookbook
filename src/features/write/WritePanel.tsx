@@ -1,12 +1,13 @@
 import type { Editor } from "@tiptap/react"
 import { Dialog as DialogPrimitive } from "radix-ui"
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from "react"
 import { ChapterDrawer } from "@/features/plan/ChapterDrawer"
 import { ChapterDetailsContext, type ChapterDetailsValue } from "@/features/plan/planContext"
 import { chapterTitle } from "@/features/plan/status"
 import { useBookStructures } from "@/features/plan/useStructures"
 import { focusPending, focusSoon } from "@/lib/focus"
 import { isComposing } from "@/lib/keys"
+import { cn } from "@/lib/utils"
 import { AiPanel } from "./ai/AiPanel"
 import { CodexPanel } from "./CodexPanel"
 import { matchToReturnTo } from "./findActions"
@@ -35,7 +36,8 @@ function returnFocus(page: PanelPage, opener: Editor | null, soon: boolean) {
 
 /**
  * The panel beside the text (DESIGN.md §8): the chapter's plan, as the Plan's chapter details show it, its World page,
- * or Find and replace. Docked on wide screens, where it stays open across visits; a sheet over the text elsewhere.
+ * or Find and replace. Docked on wide screens, where it stays open across visits; a sheet over the text elsewhere,
+ * rising from the bottom on phones.
  */
 export function WritePanel() {
   const { db, bookId, book, plan, focusItem, chapterId, panelDocked, panel, setPanel, setPanelOpener } = useWrite()
@@ -117,6 +119,7 @@ interface PanelSheetProps {
 
 function PanelSheet({ page, chapterId, onClose }: PanelSheetProps) {
   const { plan, panelOpener } = useWrite()
+  const sheet = useRef<HTMLDivElement>(null)
   // Keeps showing the page while the sheet slides away.
   const [shown, setShown] = useState({ page, chapterId })
   if (page && chapterId && (page !== shown.page || chapterId !== shown.chapterId)) setShown({ page, chapterId })
@@ -124,14 +127,19 @@ function PanelSheet({ page, chapterId, onClose }: PanelSheetProps) {
   let title = LABELS[shown.page ?? "plan"]
   if (shown.page === "plan" && chapter) title = `Chapter ${chapter.number}: ${chapterTitle(chapter.title)}`
 
+  // On phones it rises from the bottom (DESIGN.md §16), leaving the top of the page in sight to tap away to.
   return (
     <DialogPrimitive.Root open={page !== null} onOpenChange={(next) => !next && onClose()}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-black/30 duration-200 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
         <DialogPrimitive.Content
+          ref={sheet}
           tabIndex={-1}
-          data-write-panel-scroller
-          className="fixed inset-y-0 right-0 z-50 flex w-full flex-col overflow-y-auto bg-surface shadow-xl outline-none duration-200 data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:animate-in data-[state=open]:slide-in-from-right md:w-[440px] md:border-l"
+          className={cn(
+            "fixed inset-x-0 top-14 bottom-0 z-50 flex flex-col overflow-hidden rounded-t-2xl border-t bg-surface shadow-xl outline-none duration-200 data-[state=closed]:animate-out data-[state=open]:animate-in",
+            "max-md:data-[state=closed]:slide-out-to-bottom max-md:data-[state=open]:slide-in-from-bottom",
+            "md:inset-y-0 md:left-auto md:w-[440px] md:rounded-none md:border-t-0 md:border-l md:data-[state=closed]:slide-out-to-right md:data-[state=open]:slide-in-from-right",
+          )}
           onOpenAutoFocus={(event) => {
             event.preventDefault()
             if (shown.page && shown.chapterId) focusSoon(panelHeading(shown.page, shown.chapterId))
@@ -145,9 +153,95 @@ function PanelSheet({ page, chapterId, onClose }: PanelSheetProps) {
           <DialogPrimitive.Description className="sr-only">
             {SHEET_DESCRIPTIONS[shown.page ?? "plan"]}
           </DialogPrimitive.Description>
-          {shown.page && shown.chapterId && <PageBody page={shown.page} chapterId={shown.chapterId} onClose={onClose} />}
+          <SheetGrabber sheet={sheet} onClose={onClose} />
+          <div data-write-panel-scroller className="min-h-0 flex-1 overflow-y-auto">
+            {shown.page && shown.chapterId && (
+              <PageBody page={shown.page} chapterId={shown.chapterId} onClose={onClose} />
+            )}
+          </div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
   )
+}
+
+/** Dragged down past a quarter of the sheet's height, or flicked down, the sheet closes. */
+const CLOSE_FRACTION = 1 / 4
+/** A flick: in pixels a millisecond, how far it must go at that speed, and how lately it must still have moved. */
+const FLICK_SPEED = 0.5
+const FLICK_DISTANCE = 24
+const FLICK_WITHIN_MS = 100
+
+interface Drag {
+  pointerId: number
+  startY: number
+  lastY: number
+  lastTime: number
+  /** Downward, in pixels a millisecond, as of the last move. */
+  speed: number
+}
+
+/**
+ * The bottom sheet's handle, on phones: the sheet follows it down, and closes if let go far enough down or with a
+ * flick, else springs back. Esc, the page's own close button and tapping above the sheet close it too.
+ */
+function SheetGrabber({ sheet, onClose }: { sheet: RefObject<HTMLDivElement | null>; onClose: () => void }) {
+  const drag = useRef<Drag | null>(null)
+  const ours = (event: { pointerId: number }) => drag.current?.pointerId === event.pointerId
+
+  return (
+    <div
+      aria-hidden="true"
+      data-sheet-grabber=""
+      onPointerDown={(event) => {
+        if (!event.isPrimary || event.button !== 0 || !sheet.current) return
+        event.currentTarget.setPointerCapture(event.pointerId)
+        const { pointerId, clientY, timeStamp } = event
+        drag.current = { pointerId, startY: clientY, lastY: clientY, lastTime: timeStamp, speed: 0 }
+      }}
+      onPointerMove={(event) => {
+        const current = drag.current
+        if (!current || !ours(event) || !sheet.current) return
+        const elapsed = event.timeStamp - current.lastTime
+        if (elapsed > 0) current.speed = (event.clientY - current.lastY) / elapsed
+        current.lastY = event.clientY
+        current.lastTime = event.timeStamp
+        holdSheet(sheet.current, Math.max(0, event.clientY - current.startY))
+      }}
+      onPointerUp={(event) => {
+        const current = drag.current
+        if (!current || !ours(event)) return
+        drag.current = null
+        const element = sheet.current
+        if (!element) return
+        const distance = event.clientY - current.startY
+        const moving = event.timeStamp - current.lastTime < FLICK_WITHIN_MS
+        const flicked = distance > FLICK_DISTANCE && moving && current.speed > FLICK_SPEED
+        // Closing slides it the rest of the way down from where it was let go.
+        if (distance > element.offsetHeight * CLOSE_FRACTION || flicked) onClose()
+        else springBack(element)
+      }}
+      onPointerCancel={(event) => {
+        if (!ours(event)) return
+        drag.current = null
+        if (sheet.current) springBack(sheet.current)
+      }}
+      className="flex h-7 shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing md:hidden"
+    >
+      <div className="h-1 w-10 rounded-full bg-ink-2/30" />
+    </div>
+  )
+}
+
+/** Holds the sheet `offset` pixels below where it sits open, as it follows the pointer. */
+function holdSheet(element: HTMLElement, offset: number) {
+  element.style.transition = "none"
+  element.style.transform = `translateY(${offset}px)`
+}
+
+/** Lets the sheet spring back up to where it sits open. */
+function springBack(element: HTMLElement) {
+  element.style.transition = "transform 200ms ease-out"
+  element.style.transform = ""
+  element.addEventListener("transitionend", () => (element.style.transition = ""), { once: true })
 }

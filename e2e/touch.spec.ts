@@ -2,6 +2,7 @@ import { expect, type Page } from "@playwright/test"
 import {
   fakeAi,
   fakeDictation,
+  fakeKeyboard,
   fakeSpeech,
   FIRST_LOAD_TIMEOUT,
   focusEnd,
@@ -10,6 +11,7 @@ import {
   openFirstChapter,
   seedBackupRecord,
   selectText,
+  settle,
   test,
 } from "./fixtures"
 
@@ -22,15 +24,6 @@ const CONTROLS = [
   '[contenteditable="true"]',
   ...["checkbox", "radio", "option", "menuitem", "menuitemcheckbox", "menuitemradio"].map((role) => `[role="${role}"]`),
 ].join(", ")
-
-/** Lets open and close animations finish, so nothing is measured mid-zoom. Endless ones (spinners) don't count. */
-async function settle(page: Page) {
-  await page.waitForFunction(() =>
-    document
-      .getAnimations()
-      .every((animation) => animation.playState !== "running" || animation.effect?.getComputedTiming().endTime === Infinity),
-  )
-}
 
 /**
  * Visible controls in `scope` whose hit area is under 44px either way (DESIGN.md §16). The hit area includes an
@@ -202,6 +195,7 @@ for (const [device, viewport] of [
     test("every writing aid's control is at least a 44px target", async ({ page }) => {
       const { check, closeWith } = checker(page)
       await fakeSpeech(page)
+      await fakeKeyboard(page)
 
       const editor = await openFirstChapter(page)
       const moreTools = page.getByRole("button", { name: "More writing tools" })
@@ -243,6 +237,13 @@ for (const [device, viewport] of [
       await focusEnd(editor)
       await page.keyboard.type(" Wren Harrow waved.")
       await selectText(editor, "Wren Harrow")
+      // With the on-screen keyboard up, the tools docked on it, offering to add the name.
+      await page.evaluate(() => window.__keyboard(300))
+      const docked = page.getByRole("toolbar", { name: "Writing tools" })
+      await docked.getByRole("button", { name: "Add to World" }).waitFor()
+      await check("Tools above the keyboard", "[data-docked-tools]")
+      await page.evaluate(() => window.__keyboard(0))
+      await expect(docked).toBeHidden()
       await fromMenu("Add to World…")
       const addToWorld = page.getByRole("dialog", { name: "Add to World" })
       await addToWorld.getByRole("checkbox", { name: "Harrow" }).waitFor()

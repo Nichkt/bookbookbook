@@ -26,6 +26,7 @@ import { isContinueShortcut, requestRun } from "./ai/aiState"
 import { CustomToolsDialog } from "./ai/CustomToolsDialog"
 import { useAiTint } from "./ai/useAi"
 import { ChapterUnit, SceneUnit } from "./ChapterPage"
+import { DockedTools } from "./DockedTools"
 import { isFindShortcut, openFind } from "./findActions"
 import { isFocusShortcut, leaveFocusMode, resetFocusMode, setFocusMode, settleCaret, useFocusMode } from "./focusMode"
 import { isSnapshotShortcut, useHistoryDialog } from "./history"
@@ -386,6 +387,7 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
         <AiSettingsDialog />
         <CustomToolsDialog />
         <ReadAloudBar />
+        <DockedTools />
       </div>
     </WriteContext.Provider>
   )

@@ -22,6 +22,8 @@ declare global {
     __dictation: FakeDictation
     /** What offerInstall's stand-in for the browser's offer to install has seen. */
     __install: FakeInstall
+    /** Opens fakeKeyboard's stand-in for an on-screen keyboard, `height` pixels tall, or with 0, puts it away. */
+    __keyboard(height: number): void
   }
 }
 
@@ -133,6 +135,15 @@ export async function selectText(editor: Locator, text: string) {
 
 /** Resolves once every edit in the page has been written to SQLite. */
 export const flushAll = (page: Page) => page.evaluate(() => window.__bbb.flushAll())
+
+/** Lets open and close animations finish, so nothing is measured mid-zoom. Endless ones (spinners) don't count. */
+export async function settle(page: Page) {
+  await page.waitForFunction(() =>
+    document
+      .getAnimations()
+      .every((animation) => animation.playState !== "running" || animation.effect?.getComputedTiming().endTime === Infinity),
+  )
+}
 
 /** Saves the pending word counts, daily stats and versions now, instead of after their delays. */
 export const settleAll = (page: Page) => page.evaluate(() => window.__bbb.settleAll())
@@ -300,6 +311,33 @@ export async function fakeDictation(page: Page) {
     }
     Object.defineProperty(window, "SpeechRecognition", { value: Recognition, configurable: true })
     Object.defineProperty(window, "__dictation", { value: dictation })
+  })
+}
+
+/**
+ * Puts a stand-in for an on-screen keyboard in place before the app loads, as these tests' browsers never show one.
+ * `window.__keyboard(height)` opens it: the visual viewport loses that much from its bottom while the window keeps its
+ * height, as in Chrome on Android and Safari on iOS (DESIGN.md §16).
+ */
+export async function fakeKeyboard(page: Page) {
+  await page.addInitScript(() => {
+    const real = window.visualViewport
+    if (!real) throw new Error("This browser has no visual viewport.")
+    let keyboard = 0
+    const viewport = new Proxy(real, {
+      get(target, key) {
+        if (key === "height") return Math.max(0, target.height - keyboard)
+        const value: unknown = Reflect.get(target, key, target)
+        return typeof value === "function" ? value.bind(target) : value
+      },
+    })
+    Object.defineProperty(window, "visualViewport", { get: () => viewport, configurable: true })
+    Object.defineProperty(window, "__keyboard", {
+      value: (height: number) => {
+        keyboard = height
+        real.dispatchEvent(new Event("resize"))
+      },
+    })
   })
 }
 

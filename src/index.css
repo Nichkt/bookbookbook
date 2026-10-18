@@ -173,6 +173,13 @@
       --toast-bottom: 24px;
     }
   }
+  /*
+   * While writing tools sit above the on-screen keyboard (src/features/write/DockedTools.tsx), the phone's tab bar,
+   * which would be behind or on them, goes. The tools lift --toast-bottom themselves.
+   */
+  :root[data-keyboard-tools] [data-sticky-bottom] {
+    display: none !important;
+  }
   /* An open dialog turns off pointer events around it, which left a toast's Undo unclickable (src/lib/toasts.ts). */
   [data-sonner-toast][data-visible="true"] {
     pointer-events: auto;

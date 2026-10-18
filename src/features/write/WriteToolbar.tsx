@@ -1,4 +1,4 @@
-import { useEditorState, type Editor } from "@tiptap/react"
+import type { Editor } from "@tiptap/react"
 import {
   BoldIcon,
   BookPlusIcon,
@@ -35,12 +35,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Toggle } from "@/components/ui/toggle"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAfterMenu } from "@/components/useAfterMenu"
-import { activeEditor, useActiveEditor, type MountedEditor } from "@/editor/activeEditor"
-import { DictateButton } from "@/features/dictation/DictateButton"
+import { useActiveEditor, type MountedEditor } from "@/editor/activeEditor"
 import { actLabel, chapterTitle } from "@/features/plan/status"
 import { focusSoon } from "@/lib/focus"
 import { ariaShortcut, shortcutLabel } from "@/lib/keys"
@@ -52,13 +50,23 @@ import { addToWorldFromMenu } from "./addToWorld"
 import { CONTINUE_KEYS } from "./ai/aiState"
 import { FIND_KEYS } from "./findActions"
 import { FOCUS_KEYS, setFocusMode, useFocusMode } from "./focusMode"
+import {
+  command,
+  sceneBreak,
+  toggleBold,
+  toggleCenter,
+  toggleItalic,
+  toggleQuote,
+  useFormatState,
+  type FormatState,
+} from "./formatting"
 import { openGoals } from "./goals"
 import { GoalsAnchor, GoalsPopover, SprintChip, TodayButton } from "./GoalsPopover"
 import { SNAPSHOT_KEYS } from "./history"
 import { NAVIGATOR_ID } from "./Navigator"
-import { DICTATE_KEYS, PROSE_TARGET } from "./proseDictation"
 import { canReadAloud, READ_ALOUD_PLAY, startReading, stopReading, useReadAloud } from "./readAloud"
 import { useGoalCelebration, useToday } from "./today"
+import { DictateProse, Divider, FormatToggle } from "./ToolbarParts"
 import {
   isWriteUnit,
   UNIT_LABELS,
@@ -155,43 +163,6 @@ interface ToolbarProps {
   active: MountedEditor | null
   format: FormatState
 }
-
-interface FormatState {
-  bold: boolean
-  italic: boolean
-  quote: boolean
-  centered: boolean
-}
-
-const NO_FORMAT: FormatState = { bold: false, italic: false, quote: false, centered: false }
-
-function useFormatState(editor: Editor | null): FormatState {
-  const state = useEditorState({
-    editor,
-    selector: ({ editor: current }): FormatState =>
-      !current || current.isDestroyed
-        ? NO_FORMAT
-        : {
-            bold: current.isActive("bold"),
-            italic: current.isActive("italic"),
-            quote: current.isActive("blockquote"),
-            centered: current.isActive({ textAlign: "center" }),
-          },
-  })
-  return state ?? NO_FORMAT
-}
-
-/** Runs a command on the scene the writer is in, focusing it first: after a toolbar button, the writer carries on typing. */
-const command = (run: (editor: Editor) => void) => {
-  const editor = activeEditor()?.editor
-  if (editor && !editor.isDestroyed) run(editor)
-}
-
-const toggleBold = (editor: Editor) => editor.chain().focus().toggleBold().run()
-const toggleItalic = (editor: Editor) => editor.chain().focus().toggleItalic().run()
-const toggleQuote = (editor: Editor) => editor.chain().focus().toggleBlockquote().run()
-const toggleCenter = (editor: Editor) => editor.chain().focus().toggleTextAlign("center").run()
-const sceneBreak = (editor: Editor) => editor.chain().focus().setHorizontalRule().run()
 
 function WideToolbar({ active, format }: ToolbarProps) {
   const { plan, unit, setUnit, navOpen, toggleNav } = useWrite()
@@ -456,64 +427,6 @@ function ReadAloudItem({ after, trigger }: ReadAloudItemProps) {
       <Volume2Icon />
       Read aloud
     </DropdownMenuItem>
-  )
-}
-
-const Divider = () => <div aria-hidden="true" className="mx-1 h-5 w-px shrink-0 bg-border" />
-
-interface DictateProseProps {
-  editor: Editor | undefined
-  /** For the word "Dictate", e.g. "sr-only xl:not-sr-only" to show only the microphone below xl. */
-  labelClassName: string
-  size?: "sm" | "icon-sm"
-}
-
-/** Dictation into the text (DESIGN.md §10). Reading aloud stops as it starts, as the microphone would hear it. */
-const DictateProse = ({ editor, labelClassName, size = "sm" }: DictateProseProps) => (
-  <DictateButton
-    target={PROSE_TARGET}
-    keys={DICTATE_KEYS}
-    variant="ghost"
-    size={size}
-    labelClassName={labelClassName}
-    disabled={!editor}
-    onStart={() => stopReading()}
-    className="shrink-0 text-ink-2"
-  />
-)
-
-interface FormatToggleProps {
-  label: string
-  /** As shortcutLabel takes them, e.g. "Mod+Shift+B". */
-  keys: string
-  icon: LucideIcon
-  pressed: boolean
-  editor: Editor | undefined
-  run: (editor: Editor) => void
-}
-
-function FormatToggle({ label, keys, icon: Icon, pressed, editor, run }: FormatToggleProps) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Toggle
-          size="sm"
-          aria-label={label}
-          aria-keyshortcuts={ariaShortcut(keys)}
-          pressed={pressed}
-          disabled={!editor}
-          // Keeps the selection in the text, so the format applies to it.
-          onMouseDown={(event) => event.preventDefault()}
-          onPressedChange={() => command(run)}
-          className="shrink-0 text-ink-2"
-        >
-          <Icon />
-        </Toggle>
-      </TooltipTrigger>
-      <TooltipContent>
-        {label} · {shortcutLabel(keys)}
-      </TooltipContent>
-    </Tooltip>
   )
 }
 

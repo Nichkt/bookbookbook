@@ -113,3 +113,32 @@ the keyboard → App details**). Fill in a table like this:
 | Gboard 15.x | 5 | on | pass | |
 
 For any failure, describe what you typed and what you saw, then tap **Copy log** and paste its output with it.
+
+## Tools above the keyboard (M8)
+
+On a touch screen, Write puts a bar on the on-screen keyboard's top edge (DESIGN.md §16, "Built in M8").
+`e2e/mobile.spec.ts` stands in for the keyboard by shrinking the visual viewport as Chrome on Android does, which
+can't show how real keyboards and browsers behave. Set up as above, open `http://localhost:5173/`, then the sample
+book's first chapter in Write. An iPhone or iPad needs the app on an `https://` address, which that setup doesn't
+give.
+
+Test on an Android phone in Chrome and, when you can, an iPhone in Safari:
+
+| # | Do this | Expect |
+|---|---|---|
+| 1 | Tap into the text | The keyboard comes up with the bar on its top edge, across the screen. The tab bar at the bottom goes |
+| 2 | Tap **Bold**, type a word, then tap **Undo** and **Redo** | The word is bold. Undo takes it back and Redo puts it back. The keyboard stays up and the caret where it was, throughout: this is the case most likely to differ on an iPhone |
+| 3 | Keep typing, line after line, until you're past the bar | The page scrolls so the line you're on stays just above the bar |
+| 4 | Type `Wren Harrow`, then select both words | **Add to World** comes in at the start of the bar. Tapping it opens Add to World with the name filled in |
+| 5 | Tap **Dictate** (set it up the first time) and say a sentence | It's typed at the caret |
+| 6 | Tap **Done** | The keyboard and the bar go, and the tab bar comes back |
+| 7 | Tap into the text again and rotate the phone | The bar moves to the keyboard's new top edge |
+| 8 | Turn focus mode on, then tap into the text | No bar |
+| 9 | Open **World** from the ⋯ menu. Drag its handle down a little and let go, then drag it most of the way down | The short drag springs back. The long one, or a flick, closes the panel |
+| 10 | Android: split the screen with another app, tap into the text, then put the keyboard away with Back | The bar goes with the keyboard. **A known risk:** after the app has been used full screen, the split can look like a keyboard, leaving the bar at the foot of the app |
+
+An iPad's floating or undocked keyboard doesn't shrink the page, so it gets no bar. The toolbar at the top still has
+bold, italic, Dictate and Add to World, though not Undo and Redo.
+
+For any failure, note the device, its system and browser versions, what you did and what you saw, with a screenshot
+if you can.

@@ -33,6 +33,15 @@ a folder as it changes (Chrome and Edge).
 - **Back where you were:** what you pick runs with the cursor where you left it, and Esc closes Search having done
   nothing.
 
+**M8, Phones and tablets** (DESIGN.md §16, "Built in M8"):
+- **Tools above the keyboard:** while you type on a phone or tablet, a bar on top of the on-screen keyboard has Undo,
+  Redo, Bold, Italic and Dictate, and Done puts the keyboard away. Select a name your World doesn't have and **Add to
+  World** joins them. As you type, the cursor stays above the bar, and messages rise above it too.
+- **Panels from the bottom:** on a phone, Write's panel (Chapter details, World, Find and replace, AI tools) rises
+  from the bottom. Drag its handle down, or flick it, to close it.
+- **Not yet tried on a real phone:** the tests stand in for the keyboard. See [Phone keyboards](#phone-keyboards)
+  for what to check on one.
+
 **M11, Inbox and dictation** (DESIGN.md §10, "Built in M11"):
 - **Inbox:** the Inbox tab catches ideas as they come, typed or dictated, to sort into the book later. **File…** adds
   a note to a chapter's notes, moments or summary, or to a World entry's notes, and **Add to World** makes it an
@@ -289,6 +298,8 @@ in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). 
   book it writes;
 - the home screen's order, links and "Opened …" labels, and the visits it remembers;
 - installing: which devices and browsers are given Safari's steps to add the app;
+- the on-screen keyboard: finding its top edge from the visual viewport, whether or not it shrinks the window too,
+  as the page scrolls under it, and not mistaking the browser's own bars or a pinch for one;
 - writing aids: find and replace (searching a paragraph at a time, whole words, patterns and their replacements,
   the panel's list and counts, where Next goes), its marks in the text, read aloud's sentences and its mark, goals,
   streaks and sprints, the day's words, and which selections Add to World takes for a name;
@@ -372,13 +383,17 @@ They cover:
 - installing (`install.spec.ts`), the browser's offer faked: Install on the home screen, accepted or dismissed, Not
   now remembered, Safari's steps on an iPhone and a Mac and Search taking them to the glossary, Install in the
   Backups dialog when the browser won't keep the books, and nothing offered once installed;
+- phones and tablets (`mobile.spec.ts`), with a stand-in on-screen keyboard: the tools above it, there only while
+  the text has focus, the tab bar making way and toasts rising, Done, Undo, Redo and Bold leaving the text in focus,
+  Add to World first in line, the cursor kept above the bar as the keyboard comes up and while typing, focus mode,
+  and Write's panel on a phone and a tablet, its handle closing it, and a short drag springing back;
 - touch targets (`touch.spec.ts`): on a phone and a tablet, every control on the Board, its menus, the chapter
   pop-out, a toast, the Outline, the Write screen with its menus, History, chapter plan and World panel, World, the
-  writing aids (Goals and sprints, Find and replace, Add to World, the reading bar and focus mode), the AI tools
-  (the panel and its cards, AI settings and your own tools), the Import dialog with its menus, the backup reminder,
-  the Backups dialog, the Inbox (its menus, File this note, Quick note), dictation (Set up dictation and the
-  Listening pill), the home screen and its install notice, the help menu, the glossary, a tour card and Search must
-  be at least 44 px.
+  writing aids (Goals and sprints, Find and replace, Add to World, the tools above the keyboard, the reading bar and
+  focus mode), the AI tools (the panel and its cards, AI settings and your own tools), the Import dialog with its
+  menus, the backup reminder, the Backups dialog, the Inbox (its menus, File this note, Quick note), dictation (Set
+  up dictation and the Listening pill), the home screen and its install notice, the help menu, the glossary, a tour
+  card and Search must be at least 44 px.
 
 Use `npx playwright test --ui` to debug, and `--project=chrome` or `--project=pwa` for the dev server's tests or the
 offline ones alone. A failed test keeps a trace in `test-results/`; open it with `npx playwright show-trace <path>`.
@@ -388,6 +403,9 @@ offline ones alone. A failed test keeps a trace in `test-results/`; open it with
 Android keyboards compose words before committing them, and that's where ProseMirror editors break. `/lab/ime` is a
 test bench for it: the scene editor with live checks and an event log. The desktop e2e suite replays one composition,
 but real keyboards need a manual pass: [docs/ime-smoke-test.md](docs/ime-smoke-test.md).
+
+The tools above the keyboard are tested with a stand-in, `fakeKeyboard` in `e2e/fixtures.ts`, which shrinks the
+visual viewport as Chrome on Android does. The same doc lists what to check on a real phone or tablet.
 
 ## How scene text is stored
 
@@ -416,15 +434,16 @@ src/
                   writing stats, scene versions
   editor/         TipTap scene editor, its extensions, open scene docs, the active editor, codex name matching
   export/         manuscript, Word, Markdown and plain-text files, backups and restoring them
-  features/       plan/ (Board, Outline, chapter pop-out), write/ (views, toolbar, navigator, History, side panel with
-                  the chapter plan and World, hover cards, dictation into the text, and ai/ with the AI tools panel,
-                  its cards and settings), home/ (the home screen and its install notice), help/ (glossary, tours,
-                  "?" buttons), books/ (book dialogs and style), export/ (Export and Restore dialogs), import/ (Import
-                  dialog and its preview), backup/ (the reminder and the Backups dialog), codex/ (the World screen,
-                  entry pages, Appears in), inbox/ (the Inbox, filing and Quick note), dictation/ (Dictate, its setup
-                  and the Listening pill), lab/ (IME lab)
+  features/       plan/ (Board, Outline, chapter pop-out), write/ (views, toolbar, the tools above the keyboard,
+                  navigator, History, side panel with the chapter plan and World, hover cards, dictation into the
+                  text, and ai/ with the AI tools panel, its cards and settings), home/ (the home screen and its
+                  install notice), help/ (glossary, tours, "?" buttons), books/ (book dialogs and style), export/
+                  (Export and Restore dialogs), import/ (Import dialog and its preview), backup/ (the reminder and the
+                  Backups dialog), codex/ (the World screen, entry pages, Appears in), inbox/ (the Inbox, filing and
+                  Quick note), dictation/ (Dictate, its setup and the Listening pill), lab/ (IME lab)
   import/         reading Word, Markdown and plain text, splitting into acts, chapters and scenes, writing the book
-  lib/            small helpers (ids, word counts, numbers, keys, focus, colors, plain text as rich text)
+  lib/            small helpers (ids, word counts, numbers, keys, focus, colors, plain text as rich text, where the
+                  on-screen keyboard is)
   speech/         speech recognition: the engine, dictation sessions, voice commands and their settings
   test/           in-memory SQLite and book builders for unit tests
   yjs/            SceneDocProvider, the scene store interface, Yjs helpers

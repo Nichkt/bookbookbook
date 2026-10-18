@@ -258,7 +258,7 @@ const WRITE: TourDefinition = {
       title: "The page",
       body: (context) =>
         context.coarse
-          ? "Tap and type. Select words and use the toolbar for bold and italic. Names from your World are underlined: open World to read about them."
+          ? "Tap and type. While you type, a bar above the on-screen keyboard has Undo, Redo, bold, italic and Dictate, and Done puts the keyboard away. Names from your World are underlined: open World to read about them."
           : `Click and type. Select words and use the toolbar, or ${shortcutLabel("Mod+B")} and ${shortcutLabel("Mod+I")}, for bold and italic. Names from your World are underlined: rest the mouse on one to see who or what it is.`,
       term: "mention",
     },

@@ -246,7 +246,8 @@ const coarsePointer = () => window.matchMedia("(pointer: coarse)").matches
 
 /**
  * "Add to World" over a selected name, for a mouse or a keyboard (Tab reaches it from the text). Touch screens leave
- * the space to the system's own selection menu and use the ⋯ menu's item instead (DESIGN.md §16).
+ * the space to the system's own selection menu and offer it in the bar above the on-screen keyboard instead
+ * (DockedTools), or the ⋯ menu's item (DESIGN.md §16).
  */
 export function AddToWorldBubble({ editor }: { editor: Editor }) {
   const { matcher, matcherLoading } = useWrite()
