@@ -109,8 +109,8 @@ App
 ```
 
 **Global elements:** the bookbookbook logo (home), book menu, How to use this and Glossary, today's word goal ring,
-quick-capture mic, theme switch, command palette, sync / "Saved locally" status, account chip ("Guest · Local only"
-before sign-up).
+Quick note (an idea for the Inbox, typed or dictated), theme switch, command palette, sync / "Saved locally" status,
+account chip ("Guest · Local only" before sign-up).
 
 **Navigation rules**
 - The app opens on the home screen. A book opens on the screen it was last open on (Plan, Write or World, per
@@ -178,7 +178,7 @@ automatically and the UI hides the concept. "Series" later means several books s
 | `entity_links` | id, book_id, chapter_id?, scene_id?, entry_id, role (pov/present/thread/location), source (manual/auto) | Drives cards, Matrix, Appears-in |
 | `codex_progressions` *(v1.x)* | id, entry_id, from_chapter_id, field_key, value | "As of chapter N, X is true" |
 | `codex_relationships` *(v1.x)* | id, from_entry_id, to_entry_id, label, reverse_label | "Jonas — brother of — Mara" |
-| `inbox_notes` | id, book_id?, text, source (typed/voice-live/voice-memo), stt_engine, filed_to (json), created_at | Audio is never stored |
+| `inbox_notes` | id, book_id?, text, source (typed/voice-live/voice-memo), stt_engine, filed_to (json), created_at | Audio is never stored. M11 writes `typed` and `voice-live`; `stt_engine` is who heard it (on-device, google, microsoft, apple), `filed_to` where it went (§10) |
 | `ai_cards` | id, book_id, scene_id?, tool, model, route (hosted/byok/local), output (json), credits, created_at | User-visible history, the newest 100 per book; Clear all in the AI panel |
 | `custom_tools` | id, owner_id, name, prompt_template, output_mode, default_model | User prompt templates |
 | `templates` | id, owner_id? (null = built-in), name, kind (overlay/wizard), beats (json: key, name, pct, description) | 9 built-ins + custom |
@@ -277,7 +277,9 @@ The Matrix, Timeline, Corkboard and templates followed in M5 (below). Details it
 - **Plot threads** are codex entries of type `plot_threads`, picked in the drawer like POV, location and characters.
 - **Write** lists chapters under their acts. A chapter's Plan link opens its details, and Back returns to writing.
 - **Not yet:** characters present are manual links only. Auto-detected mentions, Summarize with AI and dictating
-  beats come with M3, M4 and M11. Summarize chapter came in M4, in Write's AI tools (§9, "Built in M4").
+  beats come with M3, M4 and M11. Summarize chapter came in M4, in Write's AI tools (§9, "Built in M4"). M11
+  dictates moments by way of the Inbox: a note said with "new moment" between them, filed as moments (§10, "Built in
+  M11"). The pop-out has no Dictate of its own yet.
 
 ### Built after M7: the chapter pop-out
 The docked drawer read as a sidebar, so a chapter's details now pop out over the Plan instead, at every width:
@@ -518,8 +520,8 @@ changes; comments, read-through, prose checks, grammar and a session goal are st
 ### Keyboard
 Ctrl+J Continue · Ctrl/Cmd+K palette · Ctrl+Shift+F find & replace · Ctrl+. focus mode · Ctrl+Alt+S snapshot ·
 Ctrl+Shift+M dictate · `/` slash menu at the start of an empty line · Esc closes overlays.
-All shortcuts can be remapped later. Built so far: Ctrl+J, Ctrl+Shift+F, Ctrl+., Ctrl+Alt+S, the formatting keys
-and Esc.
+All shortcuts can be remapped later. Built so far: Ctrl+J, Ctrl+Shift+F, Ctrl+., Ctrl+Alt+S, Ctrl+Shift+M (M11),
+the formatting keys and Esc. Ctrl+Shift+M is also Chrome's and Edge's profile menu, but the page has it first.
 
 ### Built in M2
 M2 built the Write screen: the three views, the navigator, formatting, word counts, History and the chapter plan
@@ -816,8 +818,9 @@ wait for accounts (M10). Details it settled:
 
 ## 10. Speech-to-text
 
-**Where:** notes fields (chapter notes, codex notes, comments) · the global quick-capture mic → **Inbox** · beats and
-summaries · the prose editor. Dictated text counts as the author's own words (no AI tint).
+**Where:** notes fields (chapter notes, codex notes, comments) · Quick note, the header's quick capture → **Inbox** ·
+beats and summaries · the prose editor. Dictated text counts as the author's own words (no AI tint). M11 built the
+Inbox, Quick note and the prose editor ("Built in M11", below).
 
 ### Capture modes
 - **Live dictation:** partial results appear in a floating "Listening… [Stop]" pill. Final text is inserted at the
@@ -851,6 +854,68 @@ Commands can be turned off in Settings.
 - **File to…** a chapter's or codex entry's notes.
 - *Open question:* should accepted clean-up of dictated **prose** get a lighter "AI-polished" marker? See
   [Open questions](#21-open-questions).
+
+### Built in M11
+M11 built live dictation on the browser's own speech recognition, the Inbox and Quick note. Voice memos, the
+in-browser models, cloud transcription and the AI helpers wait ("Not yet", below). Details it settled:
+- **Setting it up.** The first Dictate opens **Set up dictation**: the language you'll speak (20 to choose from,
+  starting with the nearest to the browser's), **Where speech becomes text**, and Voice commands.
+  - *On this device (recommended)* is private and works without the internet. The dialog says whether the device
+    is ready for the language, needs a one-time download, or can't do it. The download starts from the dialog's
+    button, as it must start from a click.
+  - *Online, with Google* (Microsoft in Edge, Apple in Safari and on iPhones and iPads) says the sound of your
+    voice goes to that company's servers while you dictate.
+  - The choice is per device, in `ui_prefs`. **Dictation settings…** in Write's ⋯ menu opens it again, as does
+    the badge beside Dictate in the Inbox and Quick note ("On this device", "Online · Google").
+  - Firefox has no speech recognition, so it's told so, and that a phone keyboard's microphone works anywhere.
+- **The engine** is the Web Speech API: with `processLocally` on this device (Chrome 139 and later, the language
+  pack through `SpeechRecognition.available()` and `install()`), else the browser maker's servers.
+  - It listens continuously, with interim results, and starts again after the silences that end a browser's
+    session, until it's stopped. Three quick ends with nothing heard turn it off, with a message.
+  - Errors are put in the writer's words: the microphone blocked, none found, no internet for online.
+- **The Listening pill** floats above the toasts while it listens: "Listening · into your note" (or "your scene"),
+  the words still being heard, where speech becomes text, and Stop. Words are typed only once they settle. Screen
+  readers hear "Listening".
+- **Voice commands**, English only, on unless unticked: period, comma, question and exclamation marks, colon,
+  semicolon, open and close quote, new line and new paragraph. Also "scratch that" (takes back what was said last),
+  "stop listening", and "literal" before a command to type its words. In a note, "new moment" (or "new beat")
+  starts a new line. Words are spaced and capitalized to follow on from what's before them.
+- **Into the text.** Dictate is in Write's toolbar, and in focus mode's and the phone's.
+  - It types at the caret of the scene you're in, over any selection, as if typed. Before you've clicked into the
+    text, it carries on from the end of the scene in view.
+  - Undo takes it back, and "scratch that" does too until the text is changed some other way (50 times at most).
+    Dictated words are yours: never tinted, and counted in Today.
+  - **Ctrl+Shift+M** (⌘⇧M) starts and stops it, as the toolbar's tooltip says.
+  - Dictation and Read aloud stop each other, as the microphone would hear the reading. Leaving Write stops it.
+- **The Inbox** (`/b/:bookId/inbox`, a tab beside Plan, Write and World) has a box to type or dictate a note into.
+  Where there's a mouse, Enter adds it and Shift+Enter starts a new line. Below are **To sort** and **Filed**, each
+  with a count.
+  - A note to sort can be edited where it is. It has **File…**, **Add to World**, and a ⋯ menu with Copy text and
+    Delete note. A note with any dictation in it says so ("Dictated on this device") beside when it was made.
+  - **File…** puts it in a chapter, after its notes, as moments (one per line, without list bullets) or after its
+    summary; or after a World entry's notes. Chapters are listed under their acts, entries under their types.
+  - **Add to World** opens Add to World with the note's first line as the name when it looks like one ("Ilse Varga
+    — the harbourmaster"), and the rest as notes.
+  - Filed notes say where they went ("Added as moments to Chapter 1: The Ferry Home."), with **Show in Plan** (the
+    chapter's pop-out) or **Show in World**. Their ⋯ menu adds **Move back to To sort**, which leaves what was
+    filed where it went.
+  - Filing, moving back and deleting each have Undo, which shows the note again. Filing's Undo takes its text back
+    out of the chapter or entry. Focus moves on to the next note.
+- **Quick note**, in the header of every page in a book, opens the same box in a dialog, without leaving the page.
+  **Save to Inbox** closes it with a toast whose **Show** goes to the Inbox. A note not yet saved is kept while
+  it's closed, for the visit, and so is the Inbox's.
+- `inbox_notes` (§5) keeps the text, `typed` or `voice-live`, who heard it and where it was filed. The sample book
+  has two notes to sort. Backups carry the Inbox (§13).
+- **Help.** The glossary gained Filing a note, Dictation, Voice commands and On this device or online, and Inbox
+  grew. The Inbox tour has 7 steps, and Write's gained one on Dictate.
+- **Not yet:** voice memos; the in-browser models (Moonshine, Whisper), so Firefox can dictate and Edge can do it
+  on the device; cloud transcription, hosted or with your own key; the AI helpers (Clean up, Turn into…);
+  dictation in chapter and World notes, moments, summaries and comments; and `writing_stats.dictated_words`.
+- `e2e/inbox.spec.ts` fakes the browser's speech recognition. It covers filing as moments, notes and an entry's
+  notes, with Undo; Add to World; Move back and Delete, with Undo, to an empty Inbox; Quick note from Write; setting
+  dictation up and dictating a note; and dictating into the text with its commands, Ctrl+Shift+M and Read aloud.
+  `e2e/touch.spec.ts` holds the Inbox's and dictation's controls to 44 px. Unit tests cover the commands, the
+  dictation session, the engine checks, typing into the text and the Inbox's filing.
 
 ## 11. Architecture and sync
 
@@ -936,8 +1001,8 @@ flowchart LR
 | 7. Trash | Deleted books, chapters, scenes and entries | Restorable for 30 days |
 
 - **Open project format (`.bookbookbook.zip`, built in M7):**
-  - `book.json`: the book's rows (structure, codex, links, writing stats, named versions' details), with a format
-    name and version.
+  - `book.json`: the book's rows (structure, codex, links, writing stats, named versions' details, Inbox notes),
+    with a format name and version.
   - `manuscript.md`: the whole book, to read.
   - `scenes/<id>.ystate`: each written scene's prose exactly (Yjs state).
   - `scenes/<id>.md`: the same prose as Markdown with front matter. It restores the scene if the `.ystate` is missing.
@@ -1001,7 +1066,9 @@ M7 has built export, backups, restoring them, import, folder backups and the bac
   characters at most.
 - **Backups:**
   - The open format in §12, named `Title YYYY-MM-DD.bookbookbook.zip`.
-  - Everything in the book: plan, codex, prose, named versions and writing stats.
+  - Everything in the book: plan, codex, prose, named versions and writing stats. Since M11, the Inbox's notes too,
+    filed or not, still pointing where they were filed once restored. Older backups, without them, restore as
+    before, so the format stays at version 1.
   - Trashed chapters and scenes come along, still in the Trash.
   - Left out: automatic versions and settings kept per device, such as the view and the export choices.
   - A stored edit or version that can't be read is skipped and logged, as the editor skips it, so one bad row can't
@@ -1223,7 +1290,8 @@ soft layered shadows, nothing loud while writing.
   - The fix: the mention plugin only maps its underlines as text changes, and recomputes them after 150 ms of quiet,
     never mid-composition. An e2e test replays a composition and would catch a regression.
   - Device test bench: `/lab/ime`, with the checklist in [ime-smoke-test.md](ime-smoke-test.md).
-- Big mic button in the phone toolbar: dictation is often faster than typing on a phone.
+- Big mic button in the phone toolbar: dictation is often faster than typing on a phone. Built in M11 as Dictate,
+  beside the ⋯ menu in Write's phone toolbar, with Quick note in the header (§10, "Built in M11").
 
 ---
 
@@ -1240,7 +1308,8 @@ soft layered shadows, nothing loud while writing.
 - **Undo toasts work over dialogs** *(built in M5)*. Clicking one isn't a click outside the dialog, and focus in one
   isn't focus leaving it, so the dialog stays open. Alt+T reaches the toasts from the keyboard, and Escape there goes
   back to the dialog rather than closing it.
-- Streaming AI output is announced through a throttled polite live region. Dictation state is announced.
+- Streaming AI output is announced through a throttled polite live region. Dictation state is announced *(built in
+  M11)*: "Listening" as it starts and "Stopped listening" as it ends, or why it stopped, in a toast.
 - Color is never the only signal:
   - Status pills and thread tags include text.
   - High-contrast mode adds a dotted underline to the AI tint.
@@ -1268,27 +1337,29 @@ menu. Labels say what a thing is for in the first place (§6, "Plain labels"), a
 words as "also called".
 
 **Glossary**
-- 66 terms in five groups: *Story basics* (act, chapter, scene, moment, structure moment, story structure, premise,
+- 70 terms in five groups: *Story basics* (act, chapter, scene, moment, structure moment, story structure, premise,
   synopsis, flashback, point of view, tense, story point, theme, show don't tell, draft, manuscript), *Planning a
   chapter* (each field of a chapter's details), *Your world* (World, entries, entry types, aliases, mentions, AI
   context, and the kinds of entry that need explaining), *Pages and tools* (home, Plan, Board, Corkboard, Outline,
-  Matrix, Timeline, structure ribbon, Write and its writing aids, Inbox, versions, backups, export, import, Trash) and
-  *AI tools* (AI tools, model, API key, local model, token, context, AI-written, your own tools, style guide). M5
-  added the eight about structures and its views, M6 the nine about writing aids (focus mode, typewriter scrolling,
-  daily goal, streak, sprint, find and replace, pattern, read aloud and Add to World), and M4 the eleven about the AI
-  tools and a book's style.
+  Matrix, Timeline, structure ribbon, Write and its writing aids, Inbox, filing a note, dictation, versions, backups,
+  export, import, Trash) and *AI tools* (AI tools, model, API key, local model, token, context, AI-written, your own
+  tools, style guide). M5 added the eight about structures and its views, M6 the nine about writing aids (focus
+  mode, typewriter scrolling, daily goal, streak, sprint, find and replace, pattern, read aloud and Add to World), M4
+  the eleven about the AI tools and a book's style, and M11 the four about dictation and the Inbox (filing a note,
+  dictation, voice commands, and on this device or online).
 - Each is a few sentences of plain English, an example from the sample book where one helps, and "See also" links.
   **Scene** says what starts a new one: a jump in place, time or point of view. **Moment** explains beats: one thing
   that happens, the smallest piece of a story; a few make a scene, and a few scenes a chapter.
 - **Search** matches every word typed against each term's names, other names and text, names first, ignoring case
-  and accents. Old words find the new ones: "beat" finds Moment, "POV" Point of view, "codex" World, "thread" Story
-  point, "target" Word count target and "regex" Pattern. A search with no match says so.
+  and accents. Names with the words in the order typed come before the rest, so "speech to text" finds Dictation
+  before Read aloud. Old words find the new ones: "beat" finds Moment, "POV" Point of view, "codex" World, "thread"
+  Story point, "target" Word count target and "regex" Pattern. A search with no match says so.
 - **"?" buttons** beside each label of a chapter's details (in the Plan's pop-out and Write's Chapter plan), and a
   tour step's "What does “X” mean?", open the glossary at that term, over a pop-out or a tour. Escape closes only
   the glossary, and focus goes back to the button that opened it.
 
 **Tours**
-- One per page: Home (9 steps), Plan (13 on the Board), Write (14), World (7) and Inbox (1, until M11 builds it).
+- One per page: Home (9 steps), Plan (13 on the Board), Write (15), World (7) and Inbox (7).
   A step can belong to some views only, so each Plan view skips the steps about what it doesn't show: the ribbon,
   acts and chapter cards, the Display menu, the Matrix or the Timeline. The Matrix and Timeline have 10.
 - **The card** is a modal dialog with "Step N of M", Back, Next (Done on the last) and an X. ← and → move between
@@ -1340,8 +1411,8 @@ words as "also called".
 
 | Phase | Price | Contents |
 |---|---|---|
-| **Beta** | Free | Every local feature: home screen, Board, Outline, chapter pop-out, Matrix + story points, Timeline, Corkboard, all 9 templates (scaffold, overlay, Snowflake-style wizard), editor core + aids, World core, glossary and page tours, all AI tools via BYOK / local, DOCX/MD/paste import, DOCX/MD/zip export, folder backup, phone layout. No server costs |
-| **v1.0** | Free + Studio | + accounts (guest migration), sync (PowerSync + Yjs), cloud history, Stripe + hosted AI credits, speech-to-text, Tauri desktop app |
+| **Beta** | Free | Every local feature: home screen, Board, Outline, chapter pop-out, Matrix + story points, Timeline, Corkboard, all 9 templates (scaffold, overlay, Snowflake-style wizard), editor core + aids, World core, glossary and page tours, all AI tools via BYOK / local, DOCX/MD/paste import, DOCX/MD/zip export, folder backup, phone layout, dictation and the Inbox on the browser's own speech recognition. No server costs |
+| **v1.0** | Free + Studio | + accounts (guest migration), sync (PowerSync + Yjs), cloud history, Stripe + hosted AI credits, the rest of speech-to-text (in-browser models, cloud transcription, voice memos), Tauri desktop app |
 | **v1.x** (fast-follow) | — | Codex progressions, relationships, images · Scrivener import · EPUB / PDF / story bible / outline export · weekly email backup |
 | **Later** | — | Print-ready interior · beta-reader links · series (shared universe) · E2EE · co-writing · "Chat with your book" |
 
@@ -1375,11 +1446,12 @@ words as "also called".
 1. Name clearance for "bookbookbook" (trademark, domain, app stores).
 2. The phone keyboard test on real devices with Gboard and Samsung Keyboard
    ([ime-smoke-test.md](ime-smoke-test.md)), left over from M0.
-3. M2, Editor core, M3, Codex core, M4, AI core, M5, Planner II, M6, Writing aids, and M7, Import / export /
-   backups, are built and tested ([README](../README.md)): M4 with the writer's own key or a model on their computer,
-   as hosted AI waits for M10 (§9, "Built in M4"), and M6 without comments, prose checks, Harper, read-through and
-   @-mentions (§8, "Built in M6"). So are the home screen, the chapter pop-out, plain labels, World, the glossary and
-   the page tours (§4, §6, §7, §17a).
+3. M2, Editor core, M3, Codex core, M4, AI core, M5, Planner II, M6, Writing aids, M7, Import / export /
+   backups, and M11, Speech-to-text, are built and tested ([README](../README.md)): M4 with the writer's own key or a
+   model on their computer, as hosted AI waits for M10 (§9, "Built in M4"), M6 without comments, prose checks,
+   Harper, read-through and @-mentions (§8, "Built in M6"), and M11 on the browser's own speech recognition, without
+   voice memos, the in-browser models, cloud transcription and the AI helpers (§10, "Built in M11"). So are the home
+   screen, the chapter pop-out, plain labels, World, the glossary and the page tours (§4, §6, §7, §17a).
 
 ---
 
@@ -1451,3 +1523,4 @@ words as "also called".
 | 26 | M5 planner II | The Matrix's character cells open a menu (not in it, present, point of view instead of whom) and quiet story points are flagged after 3 chapters away; the Timeline toggles story and reading order, flashbacks first and time jumps badged; Corkboard cards are written on directly; 7 built-in structures under descriptive names plus the writer's own, shared as JSON files; a ribbon of structure moments on the Board and Corkboard, hideable per book; a new book can start from a structure (a chapter per moment, Moments left empty) or step by step; planning step by step is four steps whose result, draft included, one Undo takes back; Undo toasts work over dialogs | Details in §6, "Built in M5" |
 | 27 | M6 writing aids | Focus mode for the Write screen's visit only, dimming all but the caret's paragraph; typewriter scrolling per device; a daily goal per book in net words, with a streak that can be hidden; sprints kept in localStorage that survive a reload; Add to World from a bubble over a selected name or the ⋯ menus; read aloud with the device's voices, a sentence at a time; find and replace across the whole book as a side panel page, searching scene text (live or stored) a paragraph at a time, Replace all editing the Yjs text directly after saving versions, with one Undo; navigations that pair with urgent state or quick keys use `flushSync`; comments, prose checks, Harper, read-through and @-mentions deferred | Details in §8, "Built in M6" |
 | 28 | M4 AI tools | The writer's own key (OpenAI, Anthropic, OpenRouter) or a model on their computer (Ollama, LM Studio), one at a time, set per device, keys never synced or backed up; 11 tools in Write, Revise and Plan groups plus the writer's own (placeholders, three kinds of answer), in a side panel page from 1280 px and a sheet below, run from the toolbar, the ⋯ menu or Ctrl+J; prompts built from labeled parts the writer can untick and read whole, trimmed least-needed first by a four-characters-a-token estimate; cards per book (100 kept), streamed, stoppable and run again, Replace finding the text where it was; AI text marked and tinted until the writer types in it, its share shown per chapter and book, and Today counting only the writer's words; the book's point of view, tense, audience, style guide and samples in Book settings; AI cards and own tools left out of backups; hosted AI, other triggers and key encryption deferred | Details in §9, "Built in M4" |
+| 29 | M11 dictation and Inbox | Live dictation on the browser's own speech recognition, set up per device on first use: on this device (Chrome's language packs, private, offline) or online with the browser's maker, named; one session at a time, restarted through a browser's silences, its words shown in a Listening pill until they settle; English voice commands, "scratch that" and "literal", and "new moment" in notes; dictation into the text at the caret as the writer's own words, by the toolbar or Ctrl+Shift+M (Ctrl+Shift+S is the editor's strikethrough), stopping Read aloud and stopped by it; an Inbox of notes typed or dictated, To sort and Filed, filed into a chapter's notes, moments or summary, or an entry's notes, or made into an entry, each with Undo; Quick note in every book page's header, its unsaved note kept for the visit; Inbox notes in backups, still version 1; dictation and the Inbox moved into the Beta, as they cost nothing to run; voice memos, in-browser models, cloud transcription and the AI helpers deferred | Details in §10, "Built in M11" |

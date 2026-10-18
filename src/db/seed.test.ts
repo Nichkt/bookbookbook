@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, expect, test } from "vitest"
+import { INBOX_NOTES_SQL } from "@/features/inbox/inboxData"
 import { parseStoryTime } from "@/features/plan/storyTime"
 import { createTestDb } from "@/test/sqliteDb"
 import { CHAPTERS_SQL, ensureScene, MENTION_ENTRIES_SQL, SCENES_SQL, type ChapterListRow } from "./queries"
-import { SAMPLE_CHAPTERS, SAMPLE_CODEX } from "./sampleBook"
+import { SAMPLE_CHAPTERS, SAMPLE_CODEX, SAMPLE_INBOX } from "./sampleBook"
 import { seedIfEmpty } from "./seed"
 
 let db: ReturnType<typeof createTestDb>
@@ -64,6 +65,22 @@ test("plot threads, events and themes aren't tracked as prose mentions", async (
   expect(names).toContain("Mara Quill")
   expect(names).toContain("the Harbor Guild")
   for (const name of ["Grief", "The Storm", "What we inherit", "Ledger mystery"]) expect(names).not.toContain(name)
+})
+
+test("ideas waiting in the Inbox, newest first, one dictated", async () => {
+  await seedIfEmpty(db)
+  const notes = await db.getAll<{ text: string; source: string; stt_engine: string | null; filed_to: string | null }>(
+    `SELECT text, source, stt_engine, filed_to FROM (${INBOX_NOTES_SQL})`,
+    [await bookId()],
+  )
+  expect(notes).toEqual(
+    [...SAMPLE_INBOX].reverse().map((note) => ({
+      text: note.text,
+      source: note.dictated ? "voice-live" : "typed",
+      stt_engine: note.dictated ? "on-device" : null,
+      filed_to: null,
+    })),
+  )
 })
 
 test("ensureScene gives a chapter without scenes one implicit scene, once", async () => {

@@ -8,6 +8,7 @@ import { activeEditor, editorOf, useEditors, whenEditor, type MountedEditor } fr
 import { readingRange, showReading, type ReadingRange } from "@/editor/extensions/ReadAloud"
 import type { Plan } from "@/features/plan/planData"
 import { byData } from "@/lib/focus"
+import { stopDictation } from "@/speech/dictation"
 import { chapterOfScene, type WriteUnit } from "./writeContext"
 
 /*
@@ -275,6 +276,8 @@ export function startReading(): boolean {
     return false
   }
   end()
+  // The microphone would hear it.
+  stopDictation()
   reading = { editor: entry.editor, sceneId: entry.sceneId, bounds: start.bounds }
   useReadAloud.setState({ status: "playing" })
   moveTo(entry.editor, start.first)

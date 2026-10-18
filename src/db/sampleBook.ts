@@ -708,3 +708,25 @@ export const SAMPLE_CODEX: SampleEntry[] = [
     notes: "The book's moral argument: inheritance is chosen as much as received.",
   },
 ]
+
+export interface SampleNote {
+  text: string
+  /** Dictated on the device, else typed. */
+  dictated: boolean
+  /** How long before the book was made it was caught, so the newest shows first. */
+  minutesAgo: number
+}
+
+/** Ideas waiting in the Inbox, to show what it's for. */
+export const SAMPLE_INBOX: SampleNote[] = [
+  {
+    text: "Jonas hums the same three bars of a shanty whenever he lies. Plant it on the ferry, pay it off at the Light.",
+    dictated: false,
+    minutesAgo: 90,
+  },
+  {
+    text: "What if the last page of the ledger is in Thomas's hand, not their father's?",
+    dictated: true,
+    minutesAgo: 20,
+  },
+]

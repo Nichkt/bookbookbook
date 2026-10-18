@@ -587,8 +587,71 @@ export const GLOSSARY: GlossaryTerm[] = [
   {
     id: "inbox",
     term: "Inbox",
+    aka: ["Quick note", "Capture"],
     group: "app",
-    body: ["A place to catch ideas the moment they come, typed or spoken, and sort them into chapters later."],
+    body: [
+      "A place to catch ideas the moment they come, typed or spoken, and sort them into your book later. Each book has its own Inbox.",
+      "New notes wait in To sort until you file them into a chapter or a World entry. Then they move to Filed, which says where each one went. Quick note, at the top of every page in a book, adds a note without leaving what you're doing.",
+    ],
+    example:
+      "“What if the last page of the ledger is in Thomas's hand, not their father's?” waits in To sort until it's clear which chapter it belongs in.",
+    related: ["filing", "dictation"],
+  },
+  {
+    id: "filing",
+    term: "Filing a note",
+    aka: ["File", "Filed", "To sort"],
+    group: "app",
+    body: [
+      "Putting a note from the Inbox where it belongs: into a chapter's plan, as moments, as notes or as more of its summary, or into the notes of a World entry. Filed as moments, each line of the note becomes a moment. Add to World makes a note into a new entry instead.",
+      "A filed note moves from To sort to Filed, which says where it went and takes you there. Changed your mind? Move back to To sort returns the note to the list, and what was filed stays where it went.",
+    ],
+    example:
+      "“Jonas hums the same three bars of a shanty whenever he lies” could go into Jonas Quill's notes in your World, or be a moment in Chapter 1, The Ferry Home.",
+    related: ["inbox", "moment", "notes"],
+  },
+  {
+    id: "dictation",
+    term: "Dictation",
+    aka: ["Dictate", "Speech to text", "Voice typing"],
+    group: "app",
+    body: [
+      "Saying your words out loud and having them typed for you. Click Dictate, on the Write page's toolbar, in the Inbox or in Quick note, and speak. What you say shows at the bottom of the screen as it's heard, and is typed a moment later.",
+      "The first time, you choose the language you'll speak, and where your speech is turned into text: on this device, or online. To stop, click Stop or Dictate, or say “stop listening”.",
+      "On a phone or tablet, the microphone key on the keyboard works anywhere you can type, too.",
+    ],
+    related: ["voice-commands", "on-device", "inbox"],
+  },
+  {
+    id: "voice-commands",
+    term: "Voice commands",
+    group: "app",
+    body: [
+      "Words that do something when you dictate, instead of being typed. They're English words, so they work when you speak English. Turn them off in Dictation settings to have everything typed just as you say it.",
+    ],
+    items: [
+      "“Period”, “comma”, “question mark”, “exclamation mark”, “colon” and “semicolon” type the mark.",
+      "“Open quote” and “close quote” type “ and ”.",
+      "“New line” and “new paragraph” start one.",
+      "“New moment”, in a note, starts a new line. File the note as moments, and each line becomes one.",
+      "“Scratch that” takes back what you said last.",
+      "“Literal” before a command types its words instead: “literal comma” types “comma”.",
+      "“Stop listening” stops dictation.",
+    ],
+    example: "“The bell rang comma twice period new paragraph” types “The bell rang, twice.” and starts a new paragraph.",
+    related: ["dictation"],
+  },
+  {
+    id: "on-device",
+    term: "On this device or online",
+    aka: ["On-device", "Online", "Speech recognition"],
+    group: "app",
+    body: [
+      "Where your speech is turned into text when you dictate. On this device, the browser does it by itself: your voice never leaves your computer or phone, and it works without the internet. Some languages need a one-time download first.",
+      "Online, the sound of your voice goes to your browser's speech service, such as Google's or Apple's, while the microphone is on, and the text comes back. It needs the internet, but works in more browsers.",
+      "Either way, only the words are kept, never a recording. Change it in Dictation settings, in the ⋯ menu on the Write page or beside Dictate in the Inbox.",
+    ],
+    related: ["dictation"],
   },
   {
     id: "version",
@@ -751,18 +814,24 @@ export const termById: ReadonlyMap<string, GlossaryTerm> = new Map(GLOSSARY.map(
 
 const fold = (text: string) => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase()
 
-/** Terms matching every word of the query: those whose name or other names match first, then the rest. */
+/**
+ * Terms matching every word of the query: those whose name or other names have the words in that order first, then
+ * those whose names have them in any order, then the rest.
+ */
 export function searchGlossary(query: string, terms: readonly GlossaryTerm[] = GLOSSARY): GlossaryTerm[] {
   const words = fold(query).split(/\s+/).filter(Boolean)
   if (words.length === 0) return [...terms]
+  const phrase = words.join(" ")
+  const exact: GlossaryTerm[] = []
   const names: GlossaryTerm[] = []
   const others: GlossaryTerm[] = []
   for (const term of terms) {
     const title = fold([term.term, ...(term.aka ?? [])].join(" "))
     const all = fold([title, ...term.body, ...(term.items ?? []), term.example ?? ""].join(" "))
     if (!words.every((word) => all.includes(word))) continue
-    if (words.every((word) => title.includes(word))) names.push(term)
+    if (title.includes(phrase)) exact.push(term)
+    else if (words.every((word) => title.includes(word))) names.push(term)
     else others.push(term)
   }
-  return [...names, ...others]
+  return [...exact, ...names, ...others]
 }

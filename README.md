@@ -6,13 +6,30 @@ takes after NovelCrafter, the writing side after Sudowrite.
 - **Design:** [docs/DESIGN.md](docs/DESIGN.md) covers every product and technical decision and the milestone plan.
 - **Prototype:** [prototype/](prototype/README.md) is a clickable mock of the whole app. Open `prototype/index.html`.
 
-## Status: home, planner, World, editor, writing aids, AI tools, help, import, export and backups
+## Status: home, planner, World, editor, writing aids, AI tools, Inbox and dictation, help, import, export and backups
 
-Milestones 0 to 7 from DESIGN.md §19 are built, plus a home screen, a glossary and a tour of every page.
-Everything stays on the device, except what an AI tool reads when you run it, which goes only to the AI you chose.
+Milestones 0 to 7 and 11 from DESIGN.md §19 are built, plus a home screen, a glossary and a tour of every page.
+Everything stays on the device, except what an AI tool reads when you run it, which goes only to the AI you chose, and
+your voice when you dictate online, which goes to the browser's maker.
 There are no accounts or sync yet, so keep backups: Backups… in the book menu downloads one, or backs every book up to
 a folder as it changes (Chrome and Edge).
-The Inbox tab is a placeholder until M11.
+
+**M11, Inbox and dictation** (DESIGN.md §10, "Built in M11"):
+- **Inbox:** the Inbox tab catches ideas as they come, typed or dictated, to sort into the book later. **File…** adds
+  a note to a chapter's notes, moments or summary, or to a World entry's notes, and **Add to World** makes it an
+  entry. Filed notes say where they went, with a link there. Filing, Move back and Delete each have Undo.
+- **Quick note:** the header's Quick note button, on every page of a book, catches an idea without leaving the page.
+  Close it unsaved and the note is still there when you come back, until the page reloads.
+- **Dictation:** Dictate, in the Inbox, Quick note and Write's toolbar (focus mode and phones too), types what you
+  say. The first time, choose the language you'll speak and where speech becomes text: on this device, private and
+  offline (Chrome 139 or later, perhaps after a one-time download), or online with the browser's maker (Google in
+  Chrome, Microsoft in Edge, Apple in Safari). Firefox can't yet, but a phone keyboard's microphone works anywhere.
+- **Into the text:** in Write, it types at the cursor as if you'd typed it, and Undo takes it back. **Ctrl+Shift+M**
+  (⌘⇧M on a Mac) starts and stops it. Dictation and Read aloud stop each other.
+- **Voice commands** (English): "period", "comma", "new paragraph", "open quote" and the like, "scratch that" to
+  take back what you said last, and "stop listening". The glossary's Voice commands lists them all.
+- **Not yet:** voice memos, speech models that run in the page (for dictating on the device outside Chrome), cloud
+  transcription, AI clean-up of what you said, and dictating into a chapter's or entry's fields.
 
 **M4, AI tools** (DESIGN.md §9, "Built in M4"):
 - **Set up:** AI tools, in Write's toolbar (the ⋯ menu on phones), starts with Set up AI. Choose where the AI runs, a
@@ -245,8 +262,12 @@ in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). 
 - AI tools: settings and providers, streamed answers (Server-Sent Events, errors, stopping), what a run sends and how
   it's trimmed to fit, what it gathers from the book, the tools and your own, reading answers, cards and runs,
   inserting and replacing text, the AI mark, AI-written word counts and the book's style;
-- help: every glossary term's links and search (old names included), every tour step's copy on touch and narrow
-  screens and in each Plan view, and where a tour card goes beside, over or without what it points at.
+- dictation: voice commands and how dictated words are spaced and capitalized, a dictation session (starting again
+  after silences, stopping, failures), the engine and on-device checks, and typing into the text and "scratch that";
+- the Inbox: notes, filing into chapters and World entries and its exact undo, what a filed note says, and naming a
+  World entry from a note;
+- help: every glossary term's links and search (old names and word order included), every tour step's copy on touch
+  and narrow screens and in each Plan view, and where a tour card goes beside, over or without what it points at.
 
 **End-to-end tests** (`e2e/`) run in your installed Chrome against a dev server on port 5174, which Playwright starts
 (or reuses if it's already running). Every test gets a fresh browser profile, so each one starts from the sample book.
@@ -276,6 +297,10 @@ They cover:
   tint, the AI's share and the day's words), Rewrite with Replace and Undo, Stop, Run again and Clear all, a key
   turned away and then put right, What the AI sees, Brainstorm's moments and World entries, Summarize chapter, a tool
   of your own, the book's style in the prompt, and a phone;
+- the Inbox and dictation (`inbox.spec.ts`), the browser's speech recognition faked: filing a note as moments, into
+  a chapter's notes and an entry's, with Undo and links there; a note made into a World entry; Move back and Delete
+  with Undo, down to an empty Inbox; Quick note from Write; setting dictation up and dictating a note; dictating into
+  the text at the cursor, with its commands, Ctrl+Shift+M and Read aloud; and Write's phone bars;
 - export (`export.spec.ts`): a Word manuscript with the last words typed and the author, Markdown as one file and a
   file per chapter, a backup restored beside its original, a file that isn't a backup, nothing to export, and
   restoring into an empty library;
@@ -301,7 +326,8 @@ They cover:
   pop-out, a toast, the Outline, the Write screen with its menus, History, chapter plan and World panel, World, the
   writing aids (Goals and sprints, Find and replace, Add to World, the reading bar and focus mode), the AI tools
   (the panel and its cards, AI settings and your own tools), the Import dialog with its menus, the backup reminder,
-  the Backups dialog, the home screen, the help menu, the glossary and a tour card must be at least 44 px.
+  the Backups dialog, the Inbox (its menus, File this note, Quick note), dictation (Set up dictation and the
+  Listening pill), the home screen, the help menu, the glossary and a tour card must be at least 44 px.
 
 Use `npx playwright test --ui` to debug. A failed test keeps a trace in `test-results/`; open it with
 `npx playwright show-trace <path>`.
@@ -339,12 +365,15 @@ src/
   editor/         TipTap scene editor, its extensions, open scene docs, the active editor, codex name matching
   export/         manuscript, Word, Markdown and plain-text files, backups and restoring them
   features/       plan/ (Board, Outline, chapter pop-out), write/ (views, toolbar, navigator, History, side panel with
-                  the chapter plan and World, hover cards, and ai/ with the AI tools panel, its cards and settings),
-                  home/ (the home screen), help/ (glossary, tours, "?" buttons), books/ (book dialogs and style),
-                  export/ (Export and Restore dialogs), import/ (Import dialog and its preview), backup/ (the
-                  reminder and the Backups dialog), codex/ (the World screen, entry pages, Appears in), lab/ (IME lab)
+                  the chapter plan and World, hover cards, dictation into the text, and ai/ with the AI tools panel,
+                  its cards and settings), home/ (the home screen), help/ (glossary, tours, "?" buttons), books/ (book
+                  dialogs and style), export/ (Export and Restore dialogs), import/ (Import dialog and its preview),
+                  backup/ (the reminder and the Backups dialog), codex/ (the World screen, entry pages, Appears in),
+                  inbox/ (the Inbox, filing and Quick note), dictation/ (Dictate, its setup and the Listening pill),
+                  lab/ (IME lab)
   import/         reading Word, Markdown and plain text, splitting into acts, chapters and scenes, writing the book
   lib/            small helpers (ids, word counts, numbers, keys, focus, colors, plain text as rich text)
+  speech/         speech recognition: the engine, dictation sessions, voice commands and their settings
   test/           in-memory SQLite and book builders for unit tests
   yjs/            SceneDocProvider, the scene store interface, Yjs helpers
 e2e/              Playwright tests

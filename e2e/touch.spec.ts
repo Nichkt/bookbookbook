@@ -1,6 +1,7 @@
 import { expect, type Page } from "@playwright/test"
 import {
   fakeAi,
+  fakeDictation,
   fakeSpeech,
   FIRST_LOAD_TIMEOUT,
   focusEnd,
@@ -389,6 +390,52 @@ for (const [device, viewport] of [
       const dialog = page.getByRole("dialog", { name: "Backups" })
       await dialog.getByRole("region", { name: "This browser" }).getByText(/^The browser /).first().waitFor()
       await check("Backups", "[role=dialog]")
+    })
+
+    test("every Inbox and dictation control is at least a 44px target", async ({ page }) => {
+      const { check, closeWith } = checker(page)
+      await fakeDictation(page)
+
+      await openFirstChapter(page)
+      await page.getByRole("button", { name: "Quick note" }).click()
+      const quickNote = page.getByRole("dialog", { name: "Quick note" })
+      await quickNote.getByRole("textbox", { name: "Quick note" }).fill("Thomas kept a second ledger.")
+      await check("Quick note", "[role=dialog]")
+      await quickNote.getByRole("button", { name: "Save to Inbox" }).click()
+      const saved = page.locator("[data-sonner-toast]").filter({ hasText: "Saved to the Inbox." })
+      await check("Saved toast", "[data-sonner-toast]")
+      await saved.getByRole("button", { name: "Show" }).click()
+      await page.getByRole("heading", { level: 1, name: "Inbox" }).waitFor()
+      await check("Inbox")
+
+      const note = page.locator("[data-inbox-note]").first()
+      await note.getByRole("button", { name: /^More for / }).click()
+      await check("Note menu", "[role=menu]")
+      await closeWith("Escape", "[role=menu]")
+
+      await note.getByRole("button", { name: /^File / }).click()
+      const file = page.getByRole("dialog", { name: "File this note" })
+      await file.getByRole("combobox", { name: "Where" }).click()
+      await check("Where options", "[role=listbox]")
+      await page.getByRole("option", { name: "Chapter 1: The Ferry Home", exact: true }).click()
+      await file.getByRole("radio", { name: "Moments" }).waitFor()
+      await check("File this note", "[role=dialog]")
+      await file.getByRole("button", { name: "File note" }).click()
+      await check("Filed toast", "[data-sonner-toast]")
+      await page.locator('[data-inbox-list="filed"]').click()
+      await page.locator("[data-inbox-filed]").first().waitFor()
+      await check("Filed")
+
+      await page.locator('[data-dictate="inbox-capture"]').click()
+      const setup = page.getByRole("dialog", { name: "Set up dictation" })
+      await setup.locator('[data-dictation-status="available"]').waitFor()
+      await check("Set up dictation", "[role=dialog]")
+      await setup.getByRole("combobox", { name: "Language you'll speak" }).click()
+      await check("Languages", "[role=listbox]")
+      await closeWith("Escape", "[role=listbox]")
+      await setup.getByRole("button", { name: "Start dictating" }).click()
+      await page.getByRole("region", { name: "Dictation", exact: true }).getByRole("button", { name: "Stop" }).waitFor()
+      await check("Dictation", 'section[aria-label="Dictation"]')
     })
 
     test("every AI control is at least a 44px target", async ({ page }) => {

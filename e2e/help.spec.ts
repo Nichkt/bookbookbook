@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test"
+import type { Locator, Page } from "@playwright/test"
 import { expect, FIRST_LOAD_TIMEOUT, openFirstChapter, test } from "./fixtures"
 
 const glossary = (page: Page) => page.getByRole("dialog", { name: "Glossary" })
@@ -7,6 +7,24 @@ const tourCard = (page: Page) => page.locator("[data-tour-card]")
 const howToUse = (page: Page) => page.getByRole("button", { name: "How to use this" })
 /** By its marker: while a tour card shows, the page behind it is hidden from the accessibility tree. */
 const popout = (page: Page) => page.locator("[data-chapter-popout]")
+/** What a step about `name` points at: as the tour finds it, the first one showing. */
+const tourTarget = (page: Page, name: string) => page.locator(`[data-tour~="${name}"]:visible`).first()
+
+/** Waits for the tour's spotlight to settle around `target`. */
+async function expectSpotlightOn(page: Page, target: Locator) {
+  await expect
+    .poll(async () => {
+      const [spot, box] = await Promise.all([page.locator("[data-tour-spotlight]").boundingBox(), target.boundingBox()])
+      if (!spot || !box) return false
+      return (
+        spot.x <= box.x + 1 &&
+        spot.y <= box.y + 1 &&
+        spot.x + spot.width >= box.x + box.width - 1 &&
+        spot.y + spot.height >= box.y + box.height - 1
+      )
+    })
+    .toBe(true)
+}
 
 async function openHome(page: Page) {
   await page.goto("/")
@@ -64,9 +82,9 @@ test.describe("How to use this", () => {
   const TOURS = [
     { name: "home screen", title: "How to use the home screen", steps: 9, open: openHome },
     { name: "Plan", title: "How to use the Plan", steps: 13, open: (page: Page) => openScreen(page, "Plan") },
-    { name: "Write", title: "How to use Write", steps: 14, open: openFirstChapter },
+    { name: "Write", title: "How to use Write", steps: 15, open: openFirstChapter },
     { name: "World", title: "How to use World", steps: 7, open: (page: Page) => openScreen(page, "World") },
-    { name: "Inbox", title: "How to use the Inbox", steps: 1, open: (page: Page) => openScreen(page, "Inbox") },
+    { name: "Inbox", title: "How to use the Inbox", steps: 7, open: (page: Page) => openScreen(page, "Inbox") },
   ]
 
   for (const { name, title, steps, open } of TOURS) {
@@ -157,10 +175,47 @@ test.describe("How to use this", () => {
     await expect(howToUse(page)).toBeFocused()
   })
 
+  test("the Inbox tour points at each part of it, then at Quick note", async ({ page }) => {
+    await openScreen(page, "Inbox")
+    await howToUse(page).click()
+    const card = tourCard(page)
+    const targets = [null, "inbox-capture", "dictate", "inbox-lists", "inbox-note", "quick-note", null]
+    for (const [index, target] of targets.entries()) {
+      await expect(card).toContainText(`How to use the Inbox · Step ${index + 1} of ${targets.length}`)
+      if (target) await expectSpotlightOn(page, tourTarget(page, target))
+      else await expect(page.locator("[data-tour-spotlight]")).toHaveCount(0)
+      if (target === "dictate") await expect(tourTarget(page, target)).toHaveAttribute("data-dictate", "inbox-capture")
+      await card.getByRole("button", { name: index === targets.length - 1 ? "Done" : "Next" }).click()
+    }
+    await expect(card).toHaveCount(0)
+  })
+
+  test("the Write tour shows Dictate after the page, with its voice commands", async ({ page }) => {
+    await openFirstChapter(page)
+    await howToUse(page).click()
+    const card = tourCard(page)
+    for (let step = 1; step <= 5; step++) {
+      await expect(card).toContainText(`How to use Write · Step ${step} of 15`)
+      await card.getByRole("button", { name: "Next" }).click()
+    }
+    await expect(card).toContainText("Step 6 of 15")
+    await expect(page.getByRole("dialog", { name: "Dictate" })).toBeVisible()
+    await expectSpotlightOn(page, tourTarget(page, "dictate"))
+    await expect(tourTarget(page, "dictate")).toHaveAttribute("data-dictate", "prose")
+
+    const explain = card.getByRole("button", { name: "What does “Voice commands” mean?" })
+    await explain.click()
+    await expect(term(page, "Voice commands")).toBeFocused()
+    await expect(term(page, "Voice commands")).toContainText("“Scratch that” takes back what you said last.")
+    await page.keyboard.press("Escape")
+    await expect(explain).toBeFocused()
+    await expect(card).toContainText("Step 6 of 15")
+  })
+
   test("leaving the page ends its tour", async ({ page }) => {
     await openFirstChapter(page)
     await howToUse(page).click()
-    await expect(tourCard(page)).toContainText("Step 1 of 14")
+    await expect(tourCard(page)).toContainText("Step 1 of 15")
     await page.goBack()
     await expect(page.getByRole("heading", { level: 1, name: "Your books" })).toBeVisible()
     await expect(tourCard(page)).toHaveCount(0)

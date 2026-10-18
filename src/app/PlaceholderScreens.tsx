@@ -18,14 +18,6 @@ export function PlaceholderScreen({ title, milestone, children }: Props) {
   )
 }
 
-export function InboxScreen() {
-  return (
-    <PlaceholderScreen title="Inbox" milestone="Arrives in M11">
-      <p>Quick notes and voice capture, filed into chapters later.</p>
-    </PlaceholderScreen>
-  )
-}
-
 export function NotFoundScreen() {
   return (
     <PlaceholderScreen title="Page not found" milestone="404">

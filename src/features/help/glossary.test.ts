@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { COMMAND_HELP } from "@/speech/commands"
 import { GLOSSARY, GLOSSARY_GROUPS, searchGlossary, termById } from "./glossary"
 
 const ids = (terms: { id: string }[]) => terms.map((term) => term.id)
@@ -36,6 +37,13 @@ describe("GLOSSARY", () => {
     expect(moment?.aka).toContain("Beat")
     expect(moment?.body.join(" ")).toMatch(/\bbeats?\b/i)
   })
+
+  it("lists every voice command dictation knows", () => {
+    const listed = termById.get("voice-commands")?.items?.join(" ").toLowerCase() ?? ""
+    const phrases = COMMAND_HELP.flatMap((command) => command.say.split(", ")).filter((say) => say !== "then a command")
+    expect(phrases.length).toBeGreaterThan(10)
+    for (const phrase of phrases) expect(listed, phrase).toContain(`“${phrase}”`)
+  })
 })
 
 describe("searchGlossary", () => {
@@ -51,6 +59,15 @@ describe("searchGlossary", () => {
     expect(ids(searchGlossary("regex"))[0]).toBe("pattern")
     expect(ids(searchGlossary("text to speech"))[0]).toBe("read-aloud")
     expect(ids(searchGlossary("quick-create"))[0]).toBe("add-to-world")
+    expect(ids(searchGlossary("dictate"))[0]).toBe("dictation")
+    expect(ids(searchGlossary("online"))[0]).toBe("on-device")
+    expect(ids(searchGlossary("quick note"))[0]).toBe("inbox")
+  })
+
+  it("puts names with the words in that order before names with them in another", () => {
+    expect(ids(searchGlossary("speech to text"))[0]).toBe("dictation")
+    expect(ids(searchGlossary("speech to text"))).toContain("read-aloud")
+    expect(ids(searchGlossary("to sort"))[0]).toBe("filing")
   })
 
   it("needs every word, ignoring case and accents", () => {

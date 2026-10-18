@@ -34,6 +34,7 @@ import { HistoryDialog } from "./HistoryDialog"
 import { Manuscript } from "./Manuscript"
 import { MentionLayer } from "./MentionLayer"
 import { Navigator } from "./Navigator"
+import { dictateFromKeyboard, endProseDictation, isDictateShortcut } from "./proseDictation"
 import { stopReading, useReadAloud } from "./readAloud"
 import { ReadAloudBar } from "./ReadAloudBar"
 import {
@@ -159,9 +160,10 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
     if (known) saveLastChapter(bookId, chapterId)
   }, [bookId, chapterId, known])
 
-  // Focus mode lasts while the screen is open; typewriter scrolling is only for its editors. Esc in the text stops
-  // reading aloud, then leaves focus mode.
+  // Focus mode lasts while the screen is open; typewriter scrolling is only for its editors, and dictation for its
+  // text. Esc in the text stops reading aloud, then leaves focus mode.
   useEffect(() => resetFocusMode, [])
+  useEffect(() => endProseDictation, [])
   useEffect(() => onEditorEscape(() => stopReading(true) || leaveFocusMode()), [])
   useLayoutEffect(settleCaret, [focusMode])
   useEffect(() => {
@@ -234,6 +236,13 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
     },
     [showPanel],
   )
+  // From Add to World: opens the World panel at an entry, if the writer is still in this book's Write screen.
+  const showWorldEntry = useCallback(
+    (entryId: string) => {
+      if (window.location.pathname.startsWith(writePath(bookId, ""))) openEntryFromText(entryId)
+    },
+    [bookId, openEntryFromText],
+  )
   const panelOpener = useCallback(() => opener.current, [])
   const setPanelOpener = useCallback((editor: Editor | null) => {
     opener.current = editor
@@ -247,8 +256,8 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
   )
 
   // Ctrl+. switches focus mode, and Esc stops reading aloud, else leaves focus mode (Esc in the text comes by
-  // onEditorEscape). Ctrl+Shift+F: Find and replace. Ctrl+J: Continue. Ctrl+Alt+S: a snapshot of the scene in the
-  // History dialog, else of the one the writer is in.
+  // onEditorEscape). Ctrl+Shift+F: Find and replace. Ctrl+J: Continue. Ctrl+Shift+M: Dictate. Ctrl+Alt+S: a snapshot
+  // of the scene in the History dialog, else of the one the writer is in.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.repeat) return
@@ -283,6 +292,14 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
         setPanel("ai")
         if (fromText) setPanelOpener(fromText)
         requestRun("continue")
+        return
+      }
+      if (isDictateShortcut(event)) {
+        if (fromOverlay) return
+        event.preventDefault()
+        // Once dictation's set up, focus goes back where it was, so the words go to the caret.
+        const active = document.activeElement
+        void dictateFromKeyboard(db, active instanceof HTMLElement && active !== document.body ? active : null)
         return
       }
       if (!isSnapshotShortcut(event)) return
@@ -365,7 +382,7 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
           {!(focusMode && panelDocked) && <WritePanel />}
         </div>
         <HistoryDialog />
-        <AddToWorldDialog />
+        <AddToWorldDialog bookId={bookId} showEntry={showWorldEntry} />
         <AiSettingsDialog />
         <CustomToolsDialog />
         <ReadAloudBar />

@@ -43,6 +43,11 @@ interface AddToWorldState {
   after: AfterClose
   /** What to do once focus is back, like open the World page, which on a phone takes focus in turn. */
   then: (() => void) | null
+  /**
+   * Told the new entry's id once it's added, as the Inbox files the note it came from. It can return what to do once
+   * focus is back, like focus the next note.
+   */
+  onAdded: ((entryId: string) => (() => void) | void) | null
 }
 
 export const useAddToWorld = create<AddToWorldState>(() => ({
@@ -56,6 +61,7 @@ export const useAddToWorld = create<AddToWorldState>(() => ({
   returnFocus: null,
   after: "text",
   then: null,
+  onAdded: null,
 }))
 
 /** Opens the dialog with the name selected in `editor`, if there is one. */
@@ -73,6 +79,7 @@ export function openAddToWorld(editor: Editor | null, returnFocus: HTMLElement |
     returnFocus,
     after: "text",
     then: null,
+    onAdded: null,
   }))
 }
 
@@ -83,8 +90,12 @@ export interface NamedIdea {
   typeKey: string | null
 }
 
-/** Opens the dialog filled in with something that has a name, like an idea from the AI tools. */
-export function openAddToWorldWith(idea: NamedIdea, returnFocus: HTMLElement | null) {
+/** Opens the dialog filled in with something that has a name, like an idea from the AI tools or an Inbox note. */
+export function openAddToWorldWith(
+  idea: NamedIdea,
+  returnFocus: HTMLElement | null,
+  onAdded: AddToWorldState["onAdded"] = null,
+) {
   useAddToWorld.setState((state) => ({
     open: true,
     session: state.session + 1,
@@ -96,6 +107,7 @@ export function openAddToWorldWith(idea: NamedIdea, returnFocus: HTMLElement | n
     returnFocus,
     after: "text",
     then: null,
+    onAdded,
   }))
 }
 

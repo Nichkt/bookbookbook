@@ -1,3 +1,4 @@
+import { usePowerSync } from "@powersync/react"
 import { PluginKey } from "@tiptap/pm/state"
 import type { Editor } from "@tiptap/react"
 import { BubbleMenu, type BubbleMenuProps } from "@tiptap/react/menus"
@@ -37,11 +38,16 @@ import {
   useAddToWorld,
   WORLD_TYPE_PREF,
 } from "./addToWorld"
-import { useWrite, writePath } from "./writeContext"
+import { useWrite } from "./writeContext"
+
+interface AddToWorldDialogProps {
+  bookId: string
+  /** Shows an entry the dialog added, or found already in the World, where the screen shows entries. */
+  showEntry: (entryId: string) => void
+}
 
 /** Adds the entry, its type remembered for next time, and says so with a way to see it (DESIGN.md §7). */
-export function AddToWorldDialog() {
-  const { bookId } = useWrite()
+export function AddToWorldDialog({ bookId, showEntry }: AddToWorldDialogProps) {
   const open = useAddToWorld((state) => state.open)
   const session = useAddToWorld((state) => state.session)
   // Loaded before the dialog opens, so its type list and duplicate check are ready at once.
@@ -53,14 +59,14 @@ export function AddToWorldDialog() {
           if (returnFromAddToWorld()) event.preventDefault()
         }}
       >
-        <AddToWorldForm key={session} codex={codex} />
+        <AddToWorldForm key={session} codex={codex} bookId={bookId} showEntry={showEntry} />
       </DialogContent>
     </Dialog>
   )
 }
 
-function AddToWorldForm({ codex }: { codex: Codex }) {
-  const { db, bookId, openEntryFromText } = useWrite()
+function AddToWorldForm({ codex, bookId, showEntry }: AddToWorldDialogProps & { codex: Codex }) {
+  const db = usePowerSync()
   const startName = useAddToWorld((state) => state.name)
   const startNotes = useAddToWorld((state) => state.notes)
   const typeKey = useAddToWorld((state) => state.typeKey)
@@ -80,12 +86,6 @@ function AddToWorldForm({ codex }: { codex: Codex }) {
   const existing = entryNamed(codex.entries, trimmed)
   const suggestions = aliasSuggestions(trimmed).filter((alias) => !entryNamed(codex.entries, alias))
   const showError = tried && !trimmed
-
-  // Opens the World page at an entry, if the writer is still in this book's Write screen.
-  const showEntry = (entryId: string) => {
-    if (!window.location.pathname.startsWith(writePath(bookId, ""))) return
-    openEntryFromText(entryId)
-  }
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -113,7 +113,8 @@ function AddToWorldForm({ codex }: { codex: Codex }) {
     setBusy(false)
     if (!entryId) return
     void lastType.setValue(typeId)
-    closeAddToWorld("caret")
+    const then = useAddToWorld.getState().onAdded?.(entryId)
+    closeAddToWorld("caret", then ?? null)
     toast(`Added “${trimmed}” to the World.`, {
       action: {
         label: "Details",

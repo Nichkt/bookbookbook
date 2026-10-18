@@ -1,11 +1,12 @@
 import { createBrowserRouter } from "react-router"
 import { CodexScreen } from "@/features/codex/CodexScreen"
 import { HomeScreen } from "@/features/home/HomeScreen"
+import { InboxScreen } from "@/features/inbox/InboxScreen"
 import { ImeLab } from "@/features/lab/ImeLab"
 import { PlanIndex, PlanScreen } from "@/features/plan/PlanScreen"
 import { WriteScreen } from "@/features/write/WriteScreen"
 import { AppShell } from "./AppShell"
-import { InboxScreen, NotFoundScreen } from "./PlaceholderScreens"
+import { NotFoundScreen } from "./PlaceholderScreens"
 import { BookIndex, CodexRedirect, InboxRedirect } from "./redirects"
 import { RouteError } from "./RouteError"
 

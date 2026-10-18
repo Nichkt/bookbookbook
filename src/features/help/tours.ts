@@ -44,6 +44,9 @@ export const stepsFor = (tour: TourDefinition, context: TourContext) =>
 const inMenu = (body: string) => (context: TourContext) =>
   context.narrow ? `${body} On a small screen, it's in the ⋯ menu.` : body
 
+/** What to do to a button: tap it on a touch screen. */
+const press = (context: TourContext) => (context.coarse ? "Tap" : "Click")
+
 /** The Plan view the screen shows: the Board until it says otherwise. */
 const planView = (context: TourContext) => /\/plan\/([a-z]+)/.exec(context.pathname)?.[1] ?? "board"
 const isOutline = (context: TourContext) => planView(context) === "outline"
@@ -251,6 +254,13 @@ const WRITE: TourDefinition = {
       term: "mention",
     },
     {
+      target: "dictate",
+      title: "Dictate",
+      body: (context) =>
+        `${press(context)} Dictate and speak, and your words are typed where your cursor is. Say “period” or “new paragraph” as you go, “scratch that” to take back what you said last, and “stop listening” to stop.${context.coarse ? "" : ` ${shortcutLabel("Mod+Shift+M")} starts and stops it too.`}`,
+      term: "voice-commands",
+    },
+    {
       target: "write-history",
       title: "History",
       body: inMenu(
@@ -374,8 +384,43 @@ const INBOX: TourDefinition = {
   steps: [
     {
       title: "The Inbox",
-      body: "A place to catch ideas the moment they come, typed or spoken, and sort them into chapters later.",
+      body: "A place to catch ideas the moment they come, typed or spoken, and sort them into your book later. Each book has its own Inbox.",
       term: "inbox",
+    },
+    {
+      target: "inbox-capture",
+      title: "Catch an idea",
+      body: (context) =>
+        context.coarse
+          ? "Type a note here and tap Add note to keep it. It waits below, in To sort, until you file it."
+          : "Type a note here and press Enter to keep it, or Shift+Enter for a new line. It waits below, in To sort, until you file it.",
+    },
+    {
+      target: "dictate",
+      title: "Or say it",
+      body: (context) =>
+        `${press(context)} Dictate and speak, and your words are typed into the note. The first time, choose the language you'll speak, and whether your voice is turned into text on this device or online.`,
+      term: "dictation",
+    },
+    {
+      target: "inbox-lists",
+      title: "To sort and Filed",
+      body: "New notes wait in To sort. Once you file one, it moves to Filed, which says where it went and takes you there.",
+    },
+    {
+      target: "inbox-note",
+      title: "Sort a note",
+      body: "Type in a note to change it. File puts it in a chapter's plan, as moments, notes or more of its summary, or in a World entry's notes. Add to World makes it a new entry, like a character or a place.",
+      term: "filing",
+    },
+    {
+      target: "quick-note",
+      title: "Quick note",
+      body: "Catches an idea from any page of this book without leaving what you're doing, in the middle of a chapter say. The note waits here, in To sort.",
+    },
+    {
+      title: "Sort them later",
+      body: "Catch ideas whenever they come, and sort them when you sit down to plan.",
     },
   ],
 }

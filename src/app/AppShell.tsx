@@ -8,9 +8,12 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { BackupBanner } from "@/features/backup/BackupBanner"
 import { BookDialogs } from "@/features/books/BookDialogs"
 import { BookMenu } from "@/features/books/BookMenu"
+import { DictationSetupDialog } from "@/features/dictation/DictationSetupDialog"
+import { ListeningPill } from "@/features/dictation/ListeningPill"
 import { GlossaryDialog } from "@/features/help/GlossaryDialog"
 import { HelpButtons } from "@/features/help/HelpButtons"
 import { Tour } from "@/features/help/Tour"
+import { QuickNoteButton, QuickNoteDialog } from "@/features/inbox/QuickNote"
 import { useFocusMode } from "@/features/write/focusMode"
 import { startSprintTimer } from "@/features/write/sprint"
 import { cn } from "@/lib/utils"
@@ -113,6 +116,7 @@ export function AppShell() {
             />
           )}
           <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+            {inBook && book && <QuickNoteButton />}
             <HelpButtons />
             <ThemeSwitcher />
           </div>
@@ -139,6 +143,9 @@ export function AppShell() {
       </div>
       {/* Outside a book (the home screen), the dialogs work on all the books rather than the last one open. */}
       <BookDialogs book={inBook ? book : undefined} />
+      {inBook && book && <QuickNoteDialog key={book.id} bookId={book.id} />}
+      <DictationSetupDialog />
+      <ListeningPill />
       <GlossaryDialog />
       <Tour />
       <Toaster offset={TOAST_OFFSET} mobileOffset={TOAST_OFFSET} />

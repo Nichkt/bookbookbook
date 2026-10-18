@@ -355,25 +355,30 @@ export async function deleteBeat(db: Db, id: string): Promise<ChangeSet> {
 export async function appendBeats(db: Db, chapterId: string, texts: readonly string[]): Promise<ChangeSet> {
   return db.writeTransaction(async (tx) => {
     const changes = new ChangeSet()
-    if (texts.length === 0) return changes
-    const beats = await chapterBeats(tx, chapterId)
-    const { keys, rekeyed } = keysForInsert(beats, beats.length, texts.length)
-    await writeKeys(tx, "beats", rekeyed, changes)
-    for (const [index, text] of texts.entries()) {
-      const id = newId()
-      await insertRow(tx, "beats", {
-        id,
-        parent_kind: "chapter",
-        parent_id: chapterId,
-        position: keys[index],
-        text,
-        done: 0,
-        template_beat_key: null,
-      })
-      changes.created("beats", id)
-    }
+    await appendBeatsIn(tx, chapterId, texts, changes)
     return changes
   })
+}
+
+/** Adds moments after a chapter's last within a larger edit, noting what Undo needs in `changes`. */
+export async function appendBeatsIn(tx: Tx, chapterId: string, texts: readonly string[], changes: ChangeSet) {
+  if (texts.length === 0) return
+  const beats = await chapterBeats(tx, chapterId)
+  const { keys, rekeyed } = keysForInsert(beats, beats.length, texts.length)
+  await writeKeys(tx, "beats", rekeyed, changes)
+  for (const [index, text] of texts.entries()) {
+    const id = newId()
+    await insertRow(tx, "beats", {
+      id,
+      parent_kind: "chapter",
+      parent_id: chapterId,
+      position: keys[index],
+      text,
+      done: 0,
+      template_beat_key: null,
+    })
+    changes.created("beats", id)
+  }
 }
 
 /** Sets a chapter's summary or title, as an edit to undo: unlike typing, it replaces them whole. */

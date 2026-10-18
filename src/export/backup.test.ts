@@ -121,6 +121,28 @@ async function seed() {
     dictated_words: 0,
     sprints: 1,
   })
+
+  const filed = (kind: string, id: string, as: string) =>
+    JSON.stringify({ kind, id, as, at: new Date(2025, 1, 27).toISOString() })
+  const notes: [id: string, text: string, filedTo: string | null, extra?: Record<string, string>][] = [
+    ["note-idea", "A keeper's log", null, { source: "voice-live", stt_engine: "on-device" }],
+    ["note-moments", "Rain on the dock\nA gull", filed("chapter", "ch-Arrival", "moments")],
+    ["note-entry", "Afraid of deep water", filed("entry", "mara", "notes")],
+    ["note-gone", "Cut idea", filed("chapter", "ch-Gone", "summary")],
+  ]
+  for (const [index, [id, text, filedTo, extra]] of notes.entries()) {
+    await insertRow(db, "inbox_notes", {
+      id,
+      book_id: "book",
+      text,
+      source: "typed",
+      stt_engine: null,
+      filed_to: filedTo,
+      created_at: new Date(2025, 1, 20 + index).toISOString(),
+      ...extra,
+    })
+  }
+  await insertRow(db, "inbox_notes", { id: "note-other", book_id: "other", text: "Not this book's", source: "typed" })
 }
 
 const backup = async () => (await backupFile(db, "book", storedSceneReader(db), NOW)).data as Uint8Array
@@ -181,6 +203,20 @@ async function shape(target: Db, bookId: string) {
       "SELECT date, words_added, words_removed, sprints FROM writing_stats WHERE book_id = ? ORDER BY date",
       [bookId],
     ),
+    // Where each filed note went, by the chapter's title or the entry's name: null if it's nowhere in this book.
+    inbox: await target.getAll<{ text: string; filed_in: string | null }>(
+      `SELECT n.text, n.source, n.stt_engine, n.created_at, json_extract(n.filed_to, '$.kind') AS kind,
+              json_extract(n.filed_to, '$.as') AS filed_as, json_extract(n.filed_to, '$.at') AS filed_at,
+              coalesce(c.title, e.name) AS filed_in
+       FROM inbox_notes n
+       LEFT JOIN chapters c
+         ON json_extract(n.filed_to, '$.kind') = 'chapter' AND c.id = json_extract(n.filed_to, '$.id') AND c.book_id = ?
+       LEFT JOIN codex_entries e
+         ON json_extract(n.filed_to, '$.kind') = 'entry' AND e.id = json_extract(n.filed_to, '$.id')
+            AND e.universe_id = ?
+       WHERE n.book_id = ? ORDER BY n.created_at`,
+      [bookId, universeId, bookId],
+    ),
   }
 }
 
@@ -236,6 +272,7 @@ describe("backupFile", () => {
       "link-scene",
     ])
     expect(ids(data.writingStats)).toEqual(["dev1:book:2025-02-28"])
+    expect(ids(data.inboxNotes)).toEqual(["note-idea", "note-moments", "note-entry", "note-gone"])
     expect(data.versions).toEqual([
       {
         id: versionId,
@@ -314,6 +351,7 @@ describe("backupFingerprint", () => {
       () => db.execute("UPDATE chapters SET summary = 'Mara lands.' WHERE id = 'ch-Arrival'"),
       () => writeProse(db, "sc-Arrival-2", paras("New words.")),
       () => db.execute("UPDATE codex_entries SET notes = 'Tall.' WHERE id = 'mara'"),
+      () => db.execute("UPDATE inbox_notes SET filed_to = NULL WHERE id = 'note-moments'"),
       async () => {
         const doc = docFromState(blocksState(paras("Kept.")))
         await saveVersion(db, "sc-Arrival-1", doc, { kind: "manual", label: "Keep", now: NOW })
@@ -429,6 +467,16 @@ describe("restoreBackup", () => {
     expect(await db.getAll("SELECT id FROM writing_stats WHERE book_id = ?", [bookId])).toEqual([
       { id: `dev1:${bookId}:2025-02-28` },
     ])
+
+    // Filed notes point at the restored chapter and entry. One filed in a chapter that's gone still says it was filed.
+    expect(restored.inbox.map((note) => note.filed_in)).toEqual([null, "Arrival", "Mara", null])
+    const gone = await db.get<{ filed_to: string }>(
+      "SELECT filed_to FROM inbox_notes WHERE book_id = ? AND text = 'Cut idea'",
+      [bookId],
+    )
+    expect(JSON.parse(gone.filed_to)).toMatchObject({ kind: "chapter", as: "summary" })
+    expect(JSON.parse(gone.filed_to).id).not.toBe("ch-Gone")
+    expect(await db.getAll("SELECT id FROM inbox_notes WHERE text = ?", ["Not this book's"])).toHaveLength(1)
   })
 
   it("says when the backup it restores was made", async () => {
@@ -507,6 +555,40 @@ describe("restoreBackup", () => {
     expect(await db.getAll("SELECT id, words_added FROM writing_stats")).toEqual([
       { id: `d:${bookId}:2025-01-01`, words_added: 12 },
     ])
+  })
+
+  it("refiles Inbox notes where they went, as JSON edited by hand may have them", async () => {
+    const book = {
+      format: BACKUP_FORMAT,
+      version: 1,
+      book: { id: "b1", title: "Notes" },
+      chapters: [{ id: "c1", book_id: "b1", title: "One", position: "a0" }],
+      inboxNotes: [
+        { id: "n1", text: "As moments", filed_to: { kind: "chapter", id: "c1", as: "moments", at: "2025-01-02" } },
+        { id: "n2", text: "Into nothing known", filed_to: '{"kind":"entry","id":"lost","as":"new"}' },
+        { id: "n3", text: "Unreadable filing", filed_to: "{", source: "voice-live", stt_engine: "online" },
+        { id: "n4", text: "Odd kind", filed_to: '{"kind":"act","id":"c1"}' },
+        { text: "No id" },
+      ],
+    }
+    const { bookId } = await restoreBackup(db, zipSync({ "book.json": strToU8(JSON.stringify(book)) }), NOW)
+    const { id: chapterId } = await db.get<{ id: string }>("SELECT id FROM chapters WHERE book_id = ?", [bookId])
+    const notes = await db.getAll<{ text: string; source: string | null; stt_engine: string | null; filed_to: string }>(
+      "SELECT text, source, stt_engine, filed_to FROM inbox_notes WHERE book_id = ? ORDER BY text",
+      [bookId],
+    )
+    const filings = Object.fromEntries(notes.map((note) => [note.text, note.filed_to && JSON.parse(note.filed_to)]))
+    expect(filings).toEqual({
+      "As moments": { kind: "chapter", id: chapterId, as: "moments", at: "2025-01-02" },
+      "Into nothing known": { kind: "entry", id: expect.any(String), as: "new" },
+      "Odd kind": null,
+      "Unreadable filing": null,
+    })
+    expect(filings["Into nothing known"].id).not.toBe("lost")
+    expect(notes.find((note) => note.text === "Unreadable filing")).toMatchObject({
+      source: "voice-live",
+      stt_engine: "online",
+    })
   })
 
   it("refuses what isn't a backup, and changes nothing", async () => {

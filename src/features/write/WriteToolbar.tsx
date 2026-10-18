@@ -9,6 +9,7 @@ import {
   FocusIcon,
   HistoryIcon,
   ItalicIcon,
+  MicIcon,
   Minimize2Icon,
   NotebookTextIcon,
   PanelLeftIcon,
@@ -43,6 +44,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useAfterMenu } from "@/components/useAfterMenu"
 import { activeEditor, useActiveEditor, type MountedEditor } from "@/editor/activeEditor"
 import { centerCaret } from "@/editor/extensions/Typewriter"
+import { DictateButton } from "@/features/dictation/DictateButton"
 import { type Plan } from "@/features/plan/planData"
 import { actLabel, chapterTitle } from "@/features/plan/status"
 import { focusSoon } from "@/lib/focus"
@@ -50,6 +52,7 @@ import { ariaShortcut, shortcutLabel } from "@/lib/keys"
 import { formatCount } from "@/lib/numbers"
 import { useMediaQuery } from "@/lib/useMediaQuery"
 import { cn } from "@/lib/utils"
+import { openSpeechSetup } from "@/speech/settings"
 import { addToWorldFromMenu } from "./addToWorld"
 import { CONTINUE_KEYS } from "./ai/aiState"
 import { FIND_KEYS } from "./findActions"
@@ -58,6 +61,7 @@ import { openGoals } from "./goals"
 import { GoalsAnchor, GoalsPopover, SprintChip, TodayButton } from "./GoalsPopover"
 import { openHistory } from "./history"
 import { NAVIGATOR_ID } from "./Navigator"
+import { DICTATE_KEYS, PROSE_TARGET } from "./proseDictation"
 import { canReadAloud, READ_ALOUD_PLAY, startReading, stopReading, useReadAloud } from "./readAloud"
 import { useGoalCelebration, useToday } from "./today"
 import {
@@ -94,7 +98,7 @@ export function WriteToolbar() {
   return (
     <GoalsPopover>
       {focusMode ? (
-        <FocusBar />
+        <FocusBar editor={active?.editor} />
       ) : wide ? (
         <WideToolbar active={active} format={format} />
       ) : (
@@ -122,8 +126,8 @@ function useTyping() {
   return typing
 }
 
-/** Focus mode's toolbar: today's words and the way out, fading while the writer types. */
-function FocusBar() {
+/** Focus mode's toolbar: dictation, today's words and the way out, fading while the writer types. */
+function FocusBar({ editor }: { editor: Editor | undefined }) {
   const typing = useTyping()
   return (
     <Bar
@@ -132,6 +136,7 @@ function FocusBar() {
         typing && "opacity-0 focus-within:opacity-100 hover:opacity-100",
       )}
     >
+      <DictateProse editor={editor} labelClassName="sr-only sm:not-sr-only" />
       <TodayButton />
       <Button
         variant="ghost"
@@ -311,6 +316,8 @@ function WideToolbar({ active, format }: ToolbarProps) {
         </TooltipTrigger>
         <TooltipContent>Scene break · or type --- on a new line</TooltipContent>
       </Tooltip>
+      <Divider />
+      <DictateProse editor={editor} labelClassName="sr-only xl:not-sr-only" />
       <TodayButton className="ml-auto" />
       <Tooltip>
         <TooltipTrigger asChild>
@@ -430,6 +437,10 @@ function MoreTools() {
           Add to World…
         </DropdownMenuItem>
         <ReadAloudItem after={after} trigger={trigger} />
+        <DropdownMenuItem onSelect={() => after(() => openSpeechSetup(null, trigger.current))}>
+          <MicIcon />
+          Dictation settings…
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => after(() => openGoals(trigger.current))}>
           <TargetIcon />
@@ -476,6 +487,27 @@ function ReadAloudItem({ after, trigger }: ReadAloudItemProps) {
 }
 
 const Divider = () => <div aria-hidden="true" className="mx-1 h-5 w-px shrink-0 bg-border" />
+
+interface DictateProseProps {
+  editor: Editor | undefined
+  /** For the word "Dictate", e.g. "sr-only xl:not-sr-only" to show only the microphone below xl. */
+  labelClassName: string
+  size?: "sm" | "icon-sm"
+}
+
+/** Dictation into the text (DESIGN.md §10). Reading aloud stops as it starts, as the microphone would hear it. */
+const DictateProse = ({ editor, labelClassName, size = "sm" }: DictateProseProps) => (
+  <DictateButton
+    target={PROSE_TARGET}
+    keys={DICTATE_KEYS}
+    variant="ghost"
+    size={size}
+    labelClassName={labelClassName}
+    disabled={!editor}
+    onStart={() => stopReading()}
+    className="shrink-0 text-ink-2"
+  />
+)
 
 interface FormatToggleProps {
   label: string
@@ -560,6 +592,7 @@ function PhoneToolbar({ active, format }: ToolbarProps) {
         editor={editor}
         run={toggleItalic}
       />
+      <DictateProse editor={editor} size="icon-sm" labelClassName="sr-only" />
       <SprintChip />
       <PhoneMenu active={active} format={format} />
     </Bar>
@@ -656,6 +689,10 @@ function PhoneMenu({ active, format }: ToolbarProps) {
           Add to World…
         </DropdownMenuItem>
         <ReadAloudItem after={after} trigger={trigger} />
+        <DropdownMenuItem onSelect={() => after(() => openSpeechSetup(null, trigger.current))}>
+          <MicIcon />
+          Dictation settings…
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuLabel className="font-normal text-muted-foreground tabular-nums">
           Today: {formatCount(today.added)} words added, {formatCount(today.removed)} removed

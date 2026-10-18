@@ -5,7 +5,7 @@ import { countWords } from "@/lib/words"
 import { bytesToBase64 } from "@/yjs/base64"
 import { proseState } from "@/yjs/prose"
 import { insertBuiltinCodexTypes } from "./codexTypes"
-import { SAMPLE_ACTS, SAMPLE_BOOK, SAMPLE_CHAPTERS, SAMPLE_CODEX } from "./sampleBook"
+import { SAMPLE_ACTS, SAMPLE_BOOK, SAMPLE_CHAPTERS, SAMPLE_CODEX, SAMPLE_INBOX } from "./sampleBook"
 import { insertRow, type Db } from "./tx"
 
 /** Rich-text fields (codex notes) hold a ProseMirror JSON doc. */
@@ -142,6 +142,18 @@ export async function seedIfEmpty(db: Db): Promise<boolean> {
           created_at: now,
         })
       }
+    }
+
+    for (const note of SAMPLE_INBOX) {
+      await insertRow(tx, "inbox_notes", {
+        id: newId(),
+        book_id: bookId,
+        text: note.text,
+        source: note.dictated ? "voice-live" : "typed",
+        stt_engine: note.dictated ? "on-device" : null,
+        filed_to: null,
+        created_at: new Date(Date.parse(now) - note.minutesAgo * 60_000).toISOString(),
+      })
     }
     return true
   })

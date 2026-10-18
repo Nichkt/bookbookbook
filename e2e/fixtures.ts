@@ -18,6 +18,8 @@ declare global {
     __bbb: DevHooks
     /** The stand-in for the browser's voices that fakeSpeech puts in place. */
     __speech: { spoken: Spoken[]; finish(): void }
+    /** The stand-in for speech recognition that fakeDictation puts in place. */
+    __dictation: FakeDictation
   }
 }
 
@@ -26,6 +28,18 @@ export interface Spoken {
   text: string
   rate: number
   voice: string | null
+}
+
+/** How a test speaks to the app through fakeDictation. */
+export interface FakeDictation {
+  /** Whether the app has the microphone on. */
+  listening(): boolean
+  /** How the app last started listening. */
+  started: { lang: string; onDevice: boolean } | null
+  /** Hears `text` still being spoken: shown, not yet typed. */
+  hear(text: string): void
+  /** Hears `text` and settles it, so it's typed. */
+  say(text: string): void
 }
 
 interface EditorElement extends HTMLElement {
@@ -212,6 +226,68 @@ export async function fakeSpeech(page: Page) {
     Object.defineProperty(window, "speechSynthesis", { value: synth, configurable: true })
     Object.defineProperty(window, "SpeechSynthesisUtterance", { value: Utterance, configurable: true })
     Object.defineProperty(window, "__speech", { value: { spoken, finish } })
+  })
+}
+
+/**
+ * Puts a stand-in for speech recognition in place before the app loads, ready to recognize any language on the
+ * device. The test speaks through `window.__dictation` (see FakeDictation).
+ */
+export async function fakeDictation(page: Page) {
+  await page.addInitScript(() => {
+    interface Heard {
+      transcript: string
+      isFinal: boolean
+    }
+    const live: { recognition: Recognition | null } = { recognition: null }
+    class Recognition {
+      lang = ""
+      continuous = false
+      interimResults = false
+      processLocally = false
+      onstart: (() => void) | null = null
+      onresult: ((event: unknown) => void) | null = null
+      onerror: ((event: { error: string }) => void) | null = null
+      onend: (() => void) | null = null
+      heard: Heard[] = []
+      static available = () => Promise.resolve("available")
+      static install = () => Promise.resolve(true)
+      start() {
+        live.recognition = this
+        dictation.started = { lang: this.lang, onDevice: this.processLocally }
+        setTimeout(() => this.onstart?.())
+      }
+      stop() {
+        this.end()
+      }
+      abort() {
+        this.end()
+      }
+      end() {
+        if (live.recognition === this) live.recognition = null
+        setTimeout(() => this.onend?.())
+      }
+      /** Hears more, replacing what was still being heard. */
+      hear(transcript: string, isFinal: boolean) {
+        const last = this.heard.at(-1)
+        const index = last && !last.isFinal ? this.heard.length - 1 : this.heard.length
+        this.heard[index] = { transcript, isFinal }
+        const results = this.heard.map((heard) => Object.assign([{ transcript: heard.transcript }], heard))
+        this.onresult?.({ resultIndex: index, results })
+      }
+    }
+    const listener = () => {
+      if (!live.recognition) throw new Error("The app isn't listening.")
+      return live.recognition
+    }
+    const dictation = {
+      listening: () => live.recognition !== null,
+      started: null as { lang: string; onDevice: boolean } | null,
+      hear: (text: string) => listener().hear(text, false),
+      say: (text: string) => listener().hear(text, true),
+    }
+    Object.defineProperty(window, "SpeechRecognition", { value: Recognition, configurable: true })
+    Object.defineProperty(window, "__dictation", { value: dictation })
   })
 }
 

@@ -20,7 +20,8 @@ import type { SceneReader } from "./scenes"
  * Backups (DESIGN.md §13): a zip holding everything a book is made of, so it can be restored on any device, or
  * read without the app.
  *
- *   book.json             the rows: book, universe, acts, chapters, scenes, beats, codex, links, stats, versions
+ *   book.json             the rows: book, universe, acts, chapters, scenes, beats, codex, links, Inbox notes, stats,
+ *                         versions
  *   manuscript.md         the whole book, to read
  *   scenes/<id>.ystate    each written scene's prose, exactly (a Yjs state)
  *   scenes/<id>.md        the same as Markdown, which restores when the .ystate is missing
@@ -59,6 +60,8 @@ export interface BackupData {
   codexTypes: Row[]
   codexEntries: Row[]
   entityLinks: Row[]
+  /** Not in backups made before the Inbox. */
+  inboxNotes: Row[]
   writingStats: Row[]
   versions: VersionMeta[]
 }
@@ -120,6 +123,7 @@ export async function readBackup(db: Db, bookId: string, readScene: SceneReader,
     codexTypes: universeId ? await all("SELECT * FROM codex_types WHERE universe_id = ? ORDER BY id", universeId) : [],
     codexEntries: universeId ? await all("SELECT * FROM codex_entries WHERE universe_id = ? ORDER BY id", universeId) : [],
     entityLinks: await all("SELECT * FROM entity_links WHERE book_id = ? ORDER BY id", bookId),
+    inboxNotes: await all("SELECT * FROM inbox_notes WHERE book_id = ? ORDER BY created_at, id", bookId),
     writingStats: await all("SELECT * FROM writing_stats WHERE book_id = ? ORDER BY date, id", bookId),
     versions,
   }
@@ -270,6 +274,7 @@ export async function restoreBackup(db: Db, zip: Uint8Array, now = new Date()): 
     scenes: records(backup.scenes),
     beats: records(backup.beats),
     entityLinks: records(backup.entityLinks),
+    inboxNotes: records(backup.inboxNotes),
   }
   for (const rows of Object.values(tables)) rows.forEach(fresh)
   const nowIso = now.toISOString()
@@ -348,6 +353,9 @@ export async function restoreBackup(db: Db, zip: Uint8Array, now = new Date()): 
       if (!entryId || (row.chapter_id && !chapterId) || (row.scene_id && !sceneId)) continue
       await insert("entity_links", row, { book_id: bookId, entry_id: entryId, chapter_id: chapterId, scene_id: sceneId })
     }
+    for (const row of tables.inboxNotes) {
+      await insert("inbox_notes", row, { book_id: bookId, filed_to: refiled(row.filed_to, ref) })
+    }
 
     // Stats rows are `<device>:<book>:<day>`: keep the device, so days from two devices stay apart.
     const statIds = new Set<string>()
@@ -379,6 +387,24 @@ export async function restoreBackup(db: Db, zip: Uint8Array, now = new Date()): 
     const exportedAt = typeof backup.exportedAt === "string" ? new Date(backup.exportedAt) : null
     return { bookId, title, exportedAt: exportedAt && Number.isFinite(exportedAt.getTime()) ? exportedAt : null }
   })
+}
+
+/**
+ * A filed Inbox note's `filed_to` (DESIGN.md §10), pointing at its chapter or World entry as restored. One that
+ * didn't come along gets an id that's nowhere, so the note still says it was filed, in something since deleted.
+ */
+function refiled(value: unknown, ref: (table: SyncableName, value: unknown) => string | null): string | null {
+  const json = coerce(value, "TEXT")
+  if (typeof json !== "string") return null
+  let filedTo: unknown
+  try {
+    filedTo = JSON.parse(json)
+  } catch {
+    return null
+  }
+  if (!isRecord(filedTo)) return null
+  const table = filedTo.kind === "chapter" ? "chapters" : filedTo.kind === "entry" ? "codex_entries" : null
+  return table && JSON.stringify({ ...filedTo, id: ref(table, filedTo.id) ?? newId() })
 }
 
 interface Prose {
