@@ -1,5 +1,5 @@
 import { newId } from "@/lib/id"
-import { insertRow, type Db } from "./tx"
+import { insertRow, type Db, type Tx } from "./tx"
 
 /*
  * Daily writing stats (DESIGN.md §8 "Provenance and stats"). Rows are per device and day, `<device>:<book>:<day>`,
@@ -46,30 +46,46 @@ export async function recordWordCount(db: Db, sceneId: string, words: number, de
     if (delta === 0) return
     await tx.execute("UPDATE scenes SET word_count = ? WHERE id = ?", [words, sceneId])
     if (!scene.book_id) return
-
-    const id = `${device}:${scene.book_id}:${day}`
-    const added = Math.max(delta, 0)
-    const removed = Math.max(-delta, 0)
-    if (await tx.getOptional("SELECT id FROM writing_stats WHERE id = ?", [id])) {
-      await tx.execute(
-        `UPDATE writing_stats
-         SET words_added = coalesce(words_added, 0) + ?, words_removed = coalesce(words_removed, 0) + ?
-         WHERE id = ?`,
-        [added, removed, id],
-      )
-    } else {
-      await insertRow(tx, "writing_stats", {
-        id,
-        book_id: scene.book_id,
-        date: day,
-        words_added: added,
-        words_removed: removed,
-        ai_words_inserted: 0,
-        dictated_words: 0,
-        sprints: 0,
-      })
-    }
+    await addToDay(tx, device, scene.book_id, day, {
+      words_added: Math.max(delta, 0),
+      words_removed: Math.max(-delta, 0),
+    })
   })
+}
+
+/** Counts a finished writing sprint in the day's stats for its book. */
+export async function recordSprint(db: Db, bookId: string, device: string, day: string) {
+  await db.writeTransaction((tx) => addToDay(tx, device, bookId, day, { sprints: 1 }))
+}
+
+type DayCounter = "words_added" | "words_removed" | "sprints"
+
+/** Adds to this device's row for the book's day, making the row if it's the day's first. */
+async function addToDay(
+  tx: Tx,
+  device: string,
+  bookId: string,
+  day: string,
+  amounts: Partial<Record<DayCounter, number>>,
+) {
+  const id = `${device}:${bookId}:${day}`
+  const counters = Object.entries(amounts)
+  if (await tx.getOptional("SELECT id FROM writing_stats WHERE id = ?", [id])) {
+    const sets = counters.map(([column]) => `${column} = coalesce(${column}, 0) + ?`).join(", ")
+    await tx.execute(`UPDATE writing_stats SET ${sets} WHERE id = ?`, [...counters.map(([, amount]) => amount), id])
+  } else {
+    await insertRow(tx, "writing_stats", {
+      id,
+      book_id: bookId,
+      date: day,
+      words_added: 0,
+      words_removed: 0,
+      ai_words_inserted: 0,
+      dictated_words: 0,
+      sprints: 0,
+      ...amounts,
+    })
+  }
 }
 
 export interface DayStatsRow {
@@ -81,3 +97,24 @@ export interface DayStatsRow {
 export const DAY_STATS_SQL = `
   SELECT coalesce(sum(words_added), 0) AS added, coalesce(sum(words_removed), 0) AS removed
   FROM writing_stats WHERE book_id = ? AND date = ?`
+
+export interface DayNetRow {
+  date: string
+  /** Words added less words removed. */
+  net: number
+}
+
+/** A book's net words by day, newest first, over every device: what daily goals and streaks count. */
+export const DAILY_NET_SQL = `
+  SELECT date, coalesce(sum(words_added), 0) - coalesce(sum(words_removed), 0) AS net
+  FROM writing_stats WHERE book_id = ? AND date IS NOT NULL GROUP BY date ORDER BY date DESC`
+
+/** A book's net words on one day, over every device: params key, book, day. The row says which key it's for. */
+export const DAY_NET_SQL = `
+  SELECT ? AS key, coalesce(sum(words_added), 0) - coalesce(sum(words_removed), 0) AS net
+  FROM writing_stats WHERE book_id = ? AND date = ?`
+
+/** This device's net words in a book from a day on: params book, day, and `<device>:%`. Sprints count from it. */
+export const DEVICE_NET_SINCE_SQL = `
+  SELECT coalesce(sum(words_added), 0) - coalesce(sum(words_removed), 0) AS net
+  FROM writing_stats WHERE book_id = ? AND date >= ? AND id LIKE ?`

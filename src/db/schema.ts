@@ -20,6 +20,8 @@ const SYNCABLE = {
     tense: text,
     audience: text,
     target_words: integer,
+    // Words a day, net of cuts (DESIGN.md §8 "Writing aids"). Null: no goal.
+    daily_goal: integer,
     style_guide: text,
     sample_passages: text,
     template_key: text,

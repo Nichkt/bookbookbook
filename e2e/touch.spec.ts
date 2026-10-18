@@ -1,5 +1,13 @@
 import { expect, type Page } from "@playwright/test"
-import { FIRST_LOAD_TIMEOUT, openFirstChapter, seedBackupRecord, test } from "./fixtures"
+import {
+  fakeSpeech,
+  FIRST_LOAD_TIMEOUT,
+  focusEnd,
+  openFirstChapter,
+  seedBackupRecord,
+  selectText,
+  test,
+} from "./fixtures"
 
 const CONTROLS = [
   "button",
@@ -122,7 +130,7 @@ for (const [device, viewport] of [
 
       if (device === "phone") {
         await page.getByRole("button", { name: "More writing tools" }).click()
-        await page.getByRole("menuitem", { name: "World" }).click()
+        await page.getByRole("menuitem", { name: "World", exact: true }).click()
       } else {
         await page.getByRole("button", { name: "World", exact: true }).click()
       }
@@ -177,6 +185,77 @@ for (const [device, viewport] of [
       await page.getByRole("navigation", { name: "Plan views" }).getByRole("link", { name: "Outline" }).click()
       await page.getByRole("textbox", { name: "Title of chapter 1", exact: true }).waitFor()
       await check("Outline")
+    })
+
+    test("every writing aid's control is at least a 44px target", async ({ page }) => {
+      const { check, closeWith } = checker(page)
+      await fakeSpeech(page)
+
+      const editor = await openFirstChapter(page)
+      const moreTools = page.getByRole("button", { name: "More writing tools" })
+      const fromMenu = async (item: string) => {
+        await moreTools.click()
+        await page.getByRole("menuitem", { name: item, exact: true }).click()
+      }
+      if (device === "tablet") {
+        await moreTools.click()
+        await check("More writing tools", "[role=menu]")
+        await closeWith("Escape", "[role=menu]")
+      }
+
+      // With a daily goal, so the streak's checkbox shows.
+      await fromMenu("Goals and sprints…")
+      const goals = page.getByRole("dialog", { name: "Goals and sprints" })
+      await goals.getByRole("textbox", { name: "Daily goal" }).fill("300")
+      await goals.getByRole("checkbox", { name: "Show my streak" }).waitFor()
+      await check("Goals and sprints", "[data-slot=popover-content]")
+      await goals.getByRole("button", { name: "Start a 15-minute sprint" }).click()
+      const clock = page.getByRole("button", { name: /^Sprint:/ })
+      await clock.waitFor()
+      await check("Write, with a sprint running")
+      await clock.click()
+      await goals.getByRole("button", { name: "Stop sprint" }).waitFor()
+      await check("Running sprint", "[data-slot=popover-content]")
+      await goals.getByRole("button", { name: "Stop sprint" }).click()
+      await closeWith("Escape", "[data-slot=popover-content]")
+
+      if (device === "phone") await fromMenu("Find and replace")
+      else await page.getByRole("button", { name: "Find", exact: true }).click()
+      const find = page.getByRole("dialog", { name: "Find and replace" })
+      await find.getByRole("textbox", { name: "Find", exact: true }).fill("ledger")
+      await find.locator("[data-find-result]").first().waitFor()
+      await check("Find and replace", "[role=dialog]")
+      await closeWith("Escape", "[role=dialog]")
+
+      // A name of two words, so the shorter names it might go by are on offer.
+      await focusEnd(editor)
+      await page.keyboard.type(" Wren Harrow waved.")
+      await selectText(editor, "Wren Harrow")
+      await fromMenu("Add to World…")
+      const addToWorld = page.getByRole("dialog", { name: "Add to World" })
+      await addToWorld.getByRole("checkbox", { name: "Harrow" }).waitFor()
+      await check("Add to World", "[role=dialog]")
+      await addToWorld.getByRole("combobox", { name: "Type" }).click()
+      await check("Add to World type options", "[role=listbox]")
+      await closeWith("Escape", "[role=listbox]")
+      await closeWith("Escape", "[role=dialog]")
+
+      await fromMenu("Read aloud")
+      const reading = page.getByRole("region", { name: "Read aloud", exact: true })
+      await reading.getByRole("button", { name: "Pause" }).waitFor()
+      await check("Read aloud", "[data-read-aloud-bar]")
+      for (const name of ["Speed", "Voice"]) {
+        await reading.getByRole("combobox", { name }).click()
+        await check(`${name} options`, "[role=listbox]")
+        await closeWith("Escape", "[role=listbox]")
+      }
+      await reading.getByRole("button", { name: "Stop reading" }).click()
+      await expect(reading).toBeHidden()
+
+      if (device === "phone") await fromMenu("Focus mode")
+      else await page.getByRole("button", { name: "Focus mode" }).click()
+      await page.getByRole("button", { name: "Exit focus mode" }).waitFor()
+      await check("Focus mode")
     })
 
     test("every World control is at least a 44px target", async ({ page }) => {

@@ -446,6 +446,117 @@ export const GLOSSARY: GlossaryTerm[] = [
     body: [
       "The page where you write the book's text, one chapter at a time, with the chapter's plan and your World beside it. Everything saves as you type, even offline.",
     ],
+    related: ["find-and-replace", "focus-mode", "daily-goal", "read-aloud"],
+  },
+  {
+    id: "focus-mode",
+    term: "Focus mode",
+    aka: ["Distraction-free writing", "Zen mode"],
+    group: "app",
+    body: [
+      "A way to write with nothing else on the screen. The menus, the list of chapters and the side panel go, and every paragraph but the one you're writing fades, so your eyes stay on the words.",
+      "Start it from the Write page's toolbar, or press Ctrl+. (⌘. on a Mac). Esc, or the same keys, brings everything back.",
+    ],
+    related: ["typewriter-scrolling", "sprint"],
+  },
+  {
+    id: "typewriter-scrolling",
+    term: "Typewriter scrolling",
+    group: "app",
+    body: [
+      "Keeps the line you're writing halfway down the window, the way paper rolls up through a typewriter, instead of letting it creep down to the bottom of the screen. Your eyes can stay in one place as you write.",
+      "Turn it on or off from the ⋯ menu on the Write page's toolbar. It's remembered on this device.",
+    ],
+    related: ["focus-mode"],
+  },
+  {
+    id: "daily-goal",
+    term: "Daily goal",
+    aka: ["Writing goal", "Words a day"],
+    group: "app",
+    body: [
+      "How many words you'd like to add to a book each day. Set one in Goals and sprints, on the Write page's toolbar, and a bar fills as you write. Each book has its own.",
+      "A day's count is the words you added less the ones you cut, so a day of trimming can come out below zero. That's still a day's work.",
+    ],
+    related: ["streak", "sprint", "word-count-target"],
+  },
+  {
+    id: "streak",
+    term: "Streak",
+    group: "app",
+    body: [
+      "How many days running you've met a book's daily goal, shown with today's word count. Today joins the streak once you meet the goal; until then, the streak counts up to yesterday.",
+      "Every day is measured against the goal you have now, so raising it can shorten the streak. If you'd rather not see it, turn off Show my streak in Goals and sprints.",
+    ],
+    related: ["daily-goal"],
+  },
+  {
+    id: "sprint",
+    term: "Sprint",
+    aka: ["Writing sprint", "Word sprint", "Timer"],
+    group: "app",
+    body: [
+      "A short, set time to write in, with a clock counting down. When it ends, you see how many words you added. Racing the clock helps you keep going instead of polishing every sentence as you write it.",
+      "Start one from Goals and sprints on the Write page's toolbar: 15, 25 or 45 minutes, or a length of your own up to four hours. One runs at a time, and if you stop it early, its words still count toward the day.",
+    ],
+    related: ["daily-goal", "focus-mode"],
+  },
+  {
+    id: "find-and-replace",
+    term: "Find and replace",
+    aka: ["Find", "Search", "Replace"],
+    group: "app",
+    body: [
+      "Searching the whole book for a word, a phrase or a name, and changing it if you like. Open Find on the Write page's toolbar, or select some words and press Ctrl+Shift+F (⌘⇧F on a Mac) to search for them.",
+      "Enter goes to the next match, and Shift+Enter to the one before. Replace changes the match you're on, and Replace all changes every one in the book at once. Replace all keeps a version of each scene it changes first, and can be undone.",
+    ],
+    items: [
+      "Match case: “Bell” finds Bell, but not bell.",
+      "Whole words: “key” finds key, but not keeper.",
+      "Pattern: searches for kinds of text rather than exact words.",
+    ],
+    example: "Find “paraffin” and replace it with “kerosene” to change what the lamps burn, everywhere at once.",
+    related: ["pattern", "version"],
+  },
+  {
+    id: "pattern",
+    term: "Pattern",
+    aka: ["Regular expression", "Regex"],
+    group: "app",
+    body: [
+      "A way to search for kinds of text rather than exact words, written in a code called regular expressions. Turn on Pattern in Find to use one; most searches never need it. A few of its symbols:",
+    ],
+    items: [
+      ". stands for any one character.",
+      "? makes what's just before it optional: colou?r finds color and colour.",
+      "| means or: Mara|Jonas finds either name.",
+      "\\d stands for any digit, and \\d+ for a whole number.",
+      "( ) make a group, and $1 in Replace with puts back what the first group found.",
+    ],
+    example: "ledgers? finds both “ledger” and “ledgers”.",
+    related: ["find-and-replace"],
+  },
+  {
+    id: "read-aloud",
+    term: "Read aloud",
+    aka: ["Text to speech", "Speech"],
+    group: "app",
+    body: [
+      "Hearing your words read back in one of your device's voices, a sentence at a time, with each sentence marked as it's spoken. Ears catch clumsy rhythms, repeated words and missing ones that eyes skim over.",
+      "Start it from the ⋯ menu on the Write page's toolbar. It reads on from the sentence your cursor is in, or just the words you've selected. A bar at the bottom lets you pause, skip a sentence, and choose the voice and speed.",
+      "Esc, or Stop reading, ends it and leaves your cursor on the sentence it reached, so you can fix what you heard. Typing ends it too.",
+    ],
+  },
+  {
+    id: "add-to-world",
+    term: "Add to World",
+    aka: ["Quick-create", "New entry"],
+    group: "app",
+    body: [
+      "Making a World entry for a name without leaving your text. Select a name that isn't in your World yet and click Add to World over it, or choose Add to World… from the ⋯ menu. Then pick what kind of thing it is, such as a character or a place, and add any other names it goes by.",
+      "From then on, the name is underlined wherever it appears, like every other entry.",
+    ],
+    related: ["world", "entry", "aliases", "mention"],
   },
   {
     id: "inbox",

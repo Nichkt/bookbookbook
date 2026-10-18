@@ -9,6 +9,8 @@ function focusElement(element: HTMLElement, caretToEnd: boolean) {
   element.focus({ preventScroll: true })
   element.scrollIntoView({ block: "nearest", inline: "nearest" })
   if (caretToEnd && (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement)) {
+    // A field marked data-focus-select, like a search, has its text selected instead, for typing over.
+    if (element.hasAttribute("data-focus-select")) return element.select()
     try {
       element.setSelectionRange(element.value.length, element.value.length)
     } catch {

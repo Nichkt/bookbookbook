@@ -9,6 +9,8 @@ import { byData, focusPending, focusSoon } from "@/lib/focus"
 import { isComposing } from "@/lib/keys"
 import { CodexPanel } from "./CodexPanel"
 import { CODEX_PANEL_HEADING } from "./codexPanelData"
+import { FIND_INPUT, matchToReturnTo } from "./findActions"
+import { FindPanel } from "./FindPanel"
 import { useWrite, type PanelPage } from "./writeContext"
 
 /** The toolbar controls that open the panel, which focus goes back to when it closes. */
@@ -16,10 +18,13 @@ const OPENER = "[data-write-panel-return]"
 /** The toolbar's button for a page, or on phones the menu that holds them. */
 const openerOf = (page: PanelPage) => `[data-write-panel-return="${page}"], [data-write-panel-return="menu"]`
 
-const LABELS: Record<PanelPage, string> = { plan: "Chapter details", codex: "World" }
+const LABELS: Record<PanelPage, string> = { plan: "Chapter details", codex: "World", find: "Find and replace" }
 
-const headingOf = (page: PanelPage, chapterId: string) =>
-  page === "plan" ? byData("drawer-heading", chapterId) : CODEX_PANEL_HEADING
+/** Where focus goes as a page opens: its heading, or for Find and replace its search. */
+function headingOf(page: PanelPage, chapterId: string) {
+  if (page === "plan") return byData("drawer-heading", chapterId)
+  return page === "codex" ? CODEX_PANEL_HEADING : FIND_INPUT
+}
 
 /** Puts focus back where the panel was opened from: the scene a name was in, or the toolbar. */
 function returnFocus(page: PanelPage, opener: Editor | null, soon: boolean) {
@@ -29,18 +34,23 @@ function returnFocus(page: PanelPage, opener: Editor | null, soon: boolean) {
 }
 
 /**
- * The panel beside the text (DESIGN.md §8): the chapter's plan, as the Plan's chapter details show it, or its World page.
- * Docked on wide screens, where it stays open across visits; a sheet over the text elsewhere.
+ * The panel beside the text (DESIGN.md §8): the chapter's plan, as the Plan's chapter details show it, its World page,
+ * or Find and replace. Docked on wide screens, where it stays open across visits; a sheet over the text elsewhere.
  */
 export function WritePanel() {
-  const { db, bookId, book, plan, focusItem, chapterId, panelDocked, panel, setPanel } = useWrite()
+  const { db, bookId, book, plan, focusItem, chapterId, panelDocked, panel, setPanel, setPanelOpener } = useWrite()
   const structures = useBookStructures(book.template_key)
   const details = useMemo<ChapterDetailsValue>(
     () => ({ db, bookId, plan, structures, focusItem, place: "write" }),
     [db, bookId, plan, structures, focusItem],
   )
   const chapter = plan.chapterById.get(chapterId)
-  const close = () => setPanel(null)
+  const close = () => {
+    // Having gone to a match from Find and replace, focus goes to the match.
+    const match = panel === "find" ? matchToReturnTo() : null
+    if (match) setPanelOpener(match)
+    setPanel(null)
+  }
   return (
     <ChapterDetailsContext.Provider value={details}>
       {panelDocked ? (
@@ -80,9 +90,20 @@ function DockedPanel({ page, chapterId, onClose }: { page: PanelPage; chapterId:
       data-write-panel-scroller
       className="sticky top-[6.5rem] h-[calc(100svh-6.5rem)] w-[400px] shrink-0 overflow-y-auto border-l bg-surface pointer-coarse:top-28 pointer-coarse:h-[calc(100svh-7rem)]"
     >
-      {page === "plan" ? <ChapterDrawer chapterId={chapterId} onClose={close} /> : <CodexPanel onClose={close} />}
+      <PageBody page={page} chapterId={chapterId} onClose={close} />
     </aside>
   )
+}
+
+function PageBody({ page, chapterId, onClose }: { page: PanelPage; chapterId: string; onClose: () => void }) {
+  if (page === "plan") return <ChapterDrawer chapterId={chapterId} onClose={onClose} />
+  return page === "codex" ? <CodexPanel onClose={onClose} /> : <FindPanel onClose={onClose} />
+}
+
+const SHEET_DESCRIPTIONS: Record<PanelPage, string> = {
+  plan: "The chapter's plan. Changes save as you type.",
+  codex: "The people, places and things this chapter names, and a search through the rest of your world.",
+  find: "Search the whole book's text, and replace what you find.",
 }
 
 interface PanelSheetProps {
@@ -98,10 +119,8 @@ function PanelSheet({ page, chapterId, onClose }: PanelSheetProps) {
   const [shown, setShown] = useState({ page, chapterId })
   if (page && chapterId && (page !== shown.page || chapterId !== shown.chapterId)) setShown({ page, chapterId })
   const chapter = shown.chapterId ? plan.chapterById.get(shown.chapterId) : undefined
-  const codex = shown.page === "codex"
-  let title = "Chapter details"
-  if (codex) title = "World"
-  else if (chapter) title = `Chapter ${chapter.number}: ${chapterTitle(chapter.title)}`
+  let title = LABELS[shown.page ?? "plan"]
+  if (shown.page === "plan" && chapter) title = `Chapter ${chapter.number}: ${chapterTitle(chapter.title)}`
 
   return (
     <DialogPrimitive.Root open={page !== null} onOpenChange={(next) => !next && onClose()}>
@@ -122,16 +141,9 @@ function PanelSheet({ page, chapterId, onClose }: PanelSheetProps) {
         >
           <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">
-            {codex
-              ? "The people, places and things this chapter names, and a search through the rest of your world."
-              : "The chapter's plan. Changes save as you type."}
+            {SHEET_DESCRIPTIONS[shown.page ?? "plan"]}
           </DialogPrimitive.Description>
-          {shown.chapterId &&
-            (codex ? (
-              <CodexPanel onClose={onClose} />
-            ) : (
-              <ChapterDrawer chapterId={shown.chapterId} onClose={onClose} />
-            ))}
+          {shown.page && shown.chapterId && <PageBody page={shown.page} chapterId={shown.chapterId} onClose={onClose} />}
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>

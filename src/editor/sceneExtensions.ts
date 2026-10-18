@@ -1,11 +1,16 @@
 import { Collaboration } from "@tiptap/extension-collaboration"
 import { TextAlign } from "@tiptap/extension-text-align"
 import { Typography } from "@tiptap/extension-typography"
-import { Placeholder } from "@tiptap/extensions"
+import { Focus, Placeholder } from "@tiptap/extensions"
 import { StarterKit } from "@tiptap/starter-kit"
 import type * as Y from "yjs"
 import { PROSE_FIELD } from "@/yjs/prose"
+import { EscapeKey } from "./extensions/EscapeKey"
+import { FindHighlight } from "./extensions/FindHighlight"
 import { MentionHighlight } from "./extensions/MentionHighlight"
+import { ReadAloudHighlight } from "./extensions/ReadAloud"
+import { Typewriter } from "./extensions/Typewriter"
+import { UndoSelection } from "./extensions/UndoSelection"
 import type { MentionMatcher } from "./mentions"
 
 /** Parts of the editor stack the IME lab can switch off one at a time. */
@@ -50,7 +55,16 @@ export function sceneExtensions(
     // scene break.
     CenterAlign.configure({ types: ["heading", "paragraph"], alignments: ["center"] }),
     Collaboration.configure({ document: doc, field: PROSE_FIELD }),
+    UndoSelection,
     Placeholder.configure({ placeholder }),
+    // Focus marks the blocks around the caret, which focus mode leaves undimmed (index.css). Typewriter keeps the
+    // caret's line mid-window while typewriter scrolling is on. EscapeKey hands Esc to the page, to leave focus mode.
+    Focus.configure({ className: "has-focus", mode: "all" }),
+    Typewriter,
+    EscapeKey,
+    // Marks the sentence read aloud is speaking, and find and replace's matches.
+    ReadAloudHighlight,
+    FindHighlight,
     ...(features.typography
       ? [
           // Smart quotes, dashes and ellipses only: arrows, fractions and (c) symbols don't belong in prose.

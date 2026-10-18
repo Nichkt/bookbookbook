@@ -11,6 +11,8 @@ import { BookMenu } from "@/features/books/BookMenu"
 import { GlossaryDialog } from "@/features/help/GlossaryDialog"
 import { HelpButtons } from "@/features/help/HelpButtons"
 import { Tour } from "@/features/help/Tour"
+import { useFocusMode } from "@/features/write/focusMode"
+import { startSprintTimer } from "@/features/write/sprint"
 import { cn } from "@/lib/utils"
 import { Announcer } from "./Announcer"
 import { useCurrentBook } from "./books"
@@ -40,11 +42,17 @@ interface ScreenLinksProps {
   linkClassName: string
   /** The phone's tab bar, fixed to the bottom of the screen. */
   bottom?: boolean
+  hidden?: boolean
 }
 
-function ScreenLinks({ screens, className, linkClassName, bottom = false }: ScreenLinksProps) {
+function ScreenLinks({ screens, className, linkClassName, bottom = false, hidden = false }: ScreenLinksProps) {
   return (
-    <nav aria-label="Screens" data-sticky-bottom={bottom ? "" : undefined} className={className}>
+    <nav
+      aria-label="Screens"
+      data-sticky-bottom={bottom ? "" : undefined}
+      hidden={hidden}
+      className={className}
+    >
       {screens.map((screen) => (
         <NavLink
           key={screen.label}
@@ -72,13 +80,17 @@ export function AppShell() {
   // A book's own screens get the book menu and the screen tabs; the home screen is about all of them.
   const inBook = Boolean(bookId)
   const screens = inBook && book ? screensFor(book.id) : null
-  // Backups run whichever screen is open (DESIGN.md §12).
+  // Focus mode on the Write screen hides the app's chrome, kept mounted so it comes back as it was (DESIGN.md §8).
+  const focusMode = useFocusMode((state) => state.on)
+  // Backups run whichever screen is open (DESIGN.md §12), and so do sprints' timers (§8).
   useEffect(() => startBackups(db), [db])
+  useEffect(() => startSprintTimer(db), [db])
   return (
     <TooltipProvider>
-      <div className="flex min-h-svh flex-col">
+      <div className="flex min-h-svh flex-col" data-focus-mode={focusMode ? "" : undefined}>
         <header
           data-sticky-top=""
+          hidden={focusMode}
           className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-surface/95 px-4 backdrop-blur sm:gap-4"
         >
           <div className="flex min-w-0 items-center gap-1 sm:gap-2">
@@ -106,15 +118,20 @@ export function AppShell() {
           </div>
         </header>
         {/* Phones get the bottom tab bar instead (DESIGN.md §16), so leave room for it. */}
-        <main className={cn("flex flex-1 flex-col", screens && "pb-16 md:pb-0")}>
+        <main className={cn("flex flex-1 flex-col", screens && !focusMode && "pb-16 md:pb-0")}>
           {/* Only on the book's own screens, where it's clearly about that book. */}
-          {inBook && book && <BackupBanner key={book.id} book={book} />}
+          {inBook && book && (
+            <div hidden={focusMode}>
+              <BackupBanner key={book.id} book={book} />
+            </div>
+          )}
           <Outlet />
         </main>
         {screens && (
           <ScreenLinks
             screens={screens}
             bottom
+            hidden={focusMode}
             className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 gap-1 border-t bg-surface p-1.5 md:hidden"
             linkClassName="flex min-h-11 items-center justify-center"
           />

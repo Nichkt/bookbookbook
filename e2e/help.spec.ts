@@ -64,7 +64,7 @@ test.describe("How to use this", () => {
   const TOURS = [
     { name: "home screen", title: "How to use the home screen", steps: 9, open: openHome },
     { name: "Plan", title: "How to use the Plan", steps: 13, open: (page: Page) => openScreen(page, "Plan") },
-    { name: "Write", title: "How to use Write", steps: 10, open: openFirstChapter },
+    { name: "Write", title: "How to use Write", steps: 13, open: openFirstChapter },
     { name: "World", title: "How to use World", steps: 7, open: (page: Page) => openScreen(page, "World") },
     { name: "Inbox", title: "How to use the Inbox", steps: 1, open: (page: Page) => openScreen(page, "Inbox") },
   ]
@@ -160,7 +160,7 @@ test.describe("How to use this", () => {
   test("leaving the page ends its tour", async ({ page }) => {
     await openFirstChapter(page)
     await howToUse(page).click()
-    await expect(tourCard(page)).toContainText("Step 1 of 10")
+    await expect(tourCard(page)).toContainText("Step 1 of 13")
     await page.goBack()
     await expect(page.getByRole("heading", { level: 1, name: "Your books" })).toBeVisible()
     await expect(tourCard(page)).toHaveCount(0)

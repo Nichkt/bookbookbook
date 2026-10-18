@@ -6,12 +6,30 @@ takes after NovelCrafter, the writing side after Sudowrite.
 - **Design:** [docs/DESIGN.md](docs/DESIGN.md) covers every product and technical decision and the milestone plan.
 - **Prototype:** [prototype/](prototype/README.md) is a clickable mock of the whole app. Open `prototype/index.html`.
 
-## Status: home, planner, World, editor, help, import, export and backups
+## Status: home, planner, World, editor, writing aids, help, import, export and backups
 
-Milestones 0 to 3, 5 and 7 from DESIGN.md §19 are built, plus a home screen, a glossary and a tour of every page.
+Milestones 0 to 3 and 5 to 7 from DESIGN.md §19 are built, plus a home screen, a glossary and a tour of every page.
 Everything stays on the device; there are no accounts or sync yet, so keep backups: Backups… in the book menu downloads
 one, or backs every book up to a folder as it changes (Chrome and Edge).
 The Inbox tab is a placeholder until M11.
+
+**M6, Writing aids** (DESIGN.md §8, "Built in M6"):
+- **Focus mode:** Ctrl+. (⌘. on a Mac), or the toolbar's Focus mode button, clears away everything but your text
+  and fades the paragraphs you aren't writing. Esc brings it all back.
+- **Typewriter scrolling:** keeps the line you're writing halfway down the window. Turn it on in the ⋯ menu.
+- **Goals and sprints:** click Today in the toolbar to set a daily goal for the book, see your streak of days that
+  met it (or hide it), and start a sprint: 15, 25, 45 minutes or your own length, with a countdown and the words you
+  wrote at the end. A sprint carries on through a reload.
+- **Find and replace:** Find in the toolbar, or Ctrl+Shift+F with words selected, searches the whole book as you
+  type, listing matches by chapter. Enter and Shift+Enter go from match to match. Match case, Whole words and Pattern
+  (regular expressions) narrow it. Replace changes one match, and Replace all changes the whole book, saving a
+  version of each scene first, with Undo.
+- **Add to World:** select a name in your text that isn't in World yet and click Add to World over it, or use the ⋯
+  menu. Pick its type and other names, and the text underlines it from then on.
+- **Read aloud:** the ⋯ menu reads your text back in your device's voices, a sentence at a time, from the cursor or
+  just the selection. Pause, skip, and change the voice and speed as it reads; Esc stops it with your cursor on the
+  sentence it reached.
+- **Not yet:** comments, a read-through mode, prose checks, grammar checks and @-mentions.
 
 **M5, Planner II** (DESIGN.md §6, "Built in M5"):
 - **Matrix:** who and what is in each chapter. Click a character's cell to mark them present or the point of view,
@@ -177,6 +195,9 @@ in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). 
   paragraphs), splitting into acts, chapters and scenes, the title and author, the preview's edits and Undo, and the
   book it writes;
 - the home screen's order, links and "Opened …" labels, and the visits it remembers;
+- writing aids: find and replace (searching a paragraph at a time, whole words, patterns and their replacements,
+  the panel's list and counts, where Next goes), its marks in the text, read aloud's sentences and its mark, goals,
+  streaks and sprints, the day's words, and which selections Add to World takes for a name;
 - the Matrix (marks, mentions and quiet story points), the Timeline (story and reading order, flashbacks, time
   jumps), story structures (placing moments, stacking the ribbon's pins, a new book's chapters, files), saving your
   own structures and planning step by step, with their exact undo;
@@ -203,6 +224,10 @@ They cover:
 - the Write screen (`write.spec.ts`): the three views and their addresses, a jump holding still while the
   Manuscript settles, which scene the toolbar acts on, formatting, naming, adding and trashing scenes, History, Today
   and the chapter plan;
+- writing aids (`writing-aids.spec.ts`): Add to World from the bubble and the ⋯ menus (names World has, phones),
+  read aloud (from the cursor or a selection, speed and voice, where it stops, phones), focus mode, typewriter
+  scrolling, goals and sprints (a sprint through a reload, phones), and find and replace (the whole book, Replace,
+  Replace all with its versions and Undo, patterns, Ctrl+Shift+F, narrow screens, and keys pressed quickly);
 - export (`export.spec.ts`): a Word manuscript with the last words typed and the author, Markdown as one file and a
   file per chapter, a backup restored beside its original, a file that isn't a backup, nothing to export, and
   restoring into an empty library;
@@ -226,8 +251,9 @@ They cover:
   Done, the Plan tour opening a chapter's pop-out and closing it, a term explained mid-tour, and leaving the page;
 - touch targets (`touch.spec.ts`): on a phone and a tablet, every control on the Board, its menus, the chapter
   pop-out, a toast, the Outline, the Write screen with its menus, History, chapter plan and World panel, World, the
-  Import dialog with its menus, the backup reminder, the Backups dialog, the home screen, the help menu, the glossary
-  and a tour card must be at least 44 px.
+  writing aids (Goals and sprints, Find and replace, Add to World, the reading bar and focus mode), the Import dialog
+  with its menus, the backup reminder, the Backups dialog, the home screen, the help menu, the glossary and a tour
+  card must be at least 44 px.
 
 Use `npx playwright test --ui` to debug. A failed test keeps a trace in `test-results/`; open it with
 `npx playwright show-trace <path>`.

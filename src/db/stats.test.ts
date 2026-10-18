@@ -1,7 +1,16 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest"
 import { buildBook, sceneRow } from "@/test/book"
 import { createTestDb } from "@/test/sqliteDb"
-import { DAY_STATS_SQL, localDay, recordWordCount, type DayStatsRow } from "./stats"
+import {
+  DAILY_NET_SQL,
+  DAY_NET_SQL,
+  DAY_STATS_SQL,
+  DEVICE_NET_SINCE_SQL,
+  localDay,
+  recordSprint,
+  recordWordCount,
+  type DayStatsRow,
+} from "./stats"
 
 let db: ReturnType<typeof createTestDb>
 
@@ -45,4 +54,43 @@ describe("recordWordCount", () => {
 test("localDay is the local calendar date", () => {
   expect(localDay(new Date(2025, 0, 9, 23, 59))).toBe("2025-01-09")
   expect(localDay(new Date(2025, 11, 31, 0, 0))).toBe("2025-12-31")
+})
+
+describe("recordSprint", () => {
+  test("counts a sprint in the device's day, with or without words that day", async () => {
+    await recordSprint(db, "book", "phone", "2025-03-01")
+    await recordWordCount(db, "sc-One-1", 130, "phone", "2025-03-01")
+    await recordSprint(db, "book", "phone", "2025-03-01")
+    await recordSprint(db, "book", "laptop", "2025-03-01")
+    expect(await db.getAll("SELECT id, sprints, words_added FROM writing_stats ORDER BY id")).toEqual([
+      { id: "laptop:book:2025-03-01", sprints: 1, words_added: 0 },
+      { id: "phone:book:2025-03-01", sprints: 2, words_added: 30 },
+    ])
+  })
+})
+
+describe("goal and sprint queries", () => {
+  beforeEach(async () => {
+    await recordWordCount(db, "sc-One-1", 160, "phone", "2025-03-01")
+    await recordWordCount(db, "sc-One-1", 150, "laptop", "2025-03-01")
+    await recordWordCount(db, "sc-One-1", 175, "phone", "2025-03-03")
+  })
+
+  test("DAILY_NET_SQL adds up each day's devices, newest first", async () => {
+    expect(await db.getAll(DAILY_NET_SQL, ["book"])).toEqual([
+      { date: "2025-03-03", net: 25 },
+      { date: "2025-03-01", net: 50 },
+    ])
+  })
+
+  test("DAY_NET_SQL is one day's net words, labelled with the key it was asked for", async () => {
+    expect(await db.get(DAY_NET_SQL, ["k", "book", "2025-03-01"])).toEqual({ key: "k", net: 50 })
+    expect(await db.get(DAY_NET_SQL, ["k2", "book", "2025-03-02"])).toEqual({ key: "k2", net: 0 })
+  })
+
+  test("DEVICE_NET_SINCE_SQL is one device's net words from a day on", async () => {
+    expect(await db.get(DEVICE_NET_SINCE_SQL, ["book", "2025-03-01", "phone:%"])).toEqual({ net: 85 })
+    expect(await db.get(DEVICE_NET_SINCE_SQL, ["book", "2025-03-02", "phone:%"])).toEqual({ net: 25 })
+    expect(await db.get(DEVICE_NET_SINCE_SQL, ["book", "2025-03-02", "laptop:%"])).toEqual({ net: 0 })
+  })
 })

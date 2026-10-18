@@ -1,5 +1,5 @@
 import { EditorContent, useEditor, type Editor } from "@tiptap/react"
-import { useEffect } from "react"
+import { useEffect, type ReactNode } from "react"
 import { cn } from "@/lib/utils"
 import type { SceneDocProvider } from "@/yjs/SceneDocProvider"
 import { editorFocused, registerEditor, unregisterEditor } from "./activeEditor"
@@ -16,6 +16,8 @@ interface SceneEditorProps {
   className?: string
   /** Hands the editor out once it exists, e.g. to the IME lab's event log. */
   onEditor?: (editor: Editor) => void
+  /** What goes with the editor, like a menu over its selection. */
+  children?: (editor: Editor) => ReactNode
 }
 
 /** One scene's prose, bound to its Y.Doc. Mount it only once the provider has loaded (`useSceneDoc`). */
@@ -27,6 +29,7 @@ export function SceneEditor({
   placeholder = "Start writing…",
   className,
   onEditor,
+  children,
 }: SceneEditorProps) {
   const editor = useEditor(
     {
@@ -60,7 +63,12 @@ export function SceneEditor({
     onEditor?.(editor)
   }, [editor, onEditor])
 
-  return <EditorContent editor={editor} className={cn("prose-page mx-auto", className)} />
+  return (
+    <>
+      <EditorContent editor={editor} className={cn("prose-page mx-auto", className)} />
+      {children?.(editor)}
+    </>
+  )
 }
 
 const editorAttributes = (label: string) => ({

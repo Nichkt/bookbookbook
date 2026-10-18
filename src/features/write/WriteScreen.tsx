@@ -10,20 +10,28 @@ import { Button, buttonVariants } from "@/components/ui/button"
 import { usePref } from "@/db/prefs"
 import type { BookListRow } from "@/db/queries"
 import { activeEditor } from "@/editor/activeEditor"
-import { useMentionMatcher } from "@/editor/useMentionMatcher"
+import { onEditorEscape } from "@/editor/extensions/EscapeKey"
+import { setTypewriterScrolling } from "@/editor/extensions/Typewriter"
+import { useMentionMatcherState } from "@/editor/useMentionMatcher"
 import { createChapter } from "@/features/plan/mutations"
 import type { FocusItem } from "@/features/plan/planContext"
 import { usePlan, type Plan } from "@/features/plan/planData"
 import { byData, focusSoon } from "@/lib/focus"
+import { isComposing } from "@/lib/keys"
 import { useMediaQuery } from "@/lib/useMediaQuery"
 import { cn } from "@/lib/utils"
+import { AddToWorldDialog } from "./AddToWorldDialog"
 import { ChapterUnit, SceneUnit } from "./ChapterPage"
+import { isFindShortcut, openFind } from "./findActions"
+import { isFocusShortcut, leaveFocusMode, resetFocusMode, setFocusMode, settleCaret, useFocusMode } from "./focusMode"
 import { isSnapshotShortcut, useHistoryDialog } from "./history"
 import { takeSnapshot } from "./historyActions"
 import { HistoryDialog } from "./HistoryDialog"
 import { Manuscript } from "./Manuscript"
 import { MentionLayer } from "./MentionLayer"
 import { Navigator } from "./Navigator"
+import { stopReading, useReadAloud } from "./readAloud"
+import { ReadAloudBar } from "./ReadAloudBar"
 import {
   chapterOfScene,
   isWriteUnit,
@@ -32,6 +40,7 @@ import {
   PANEL_PREF,
   panelFromPref,
   sceneNameIn,
+  TYPEWRITER_PREF,
   unitPrefKey,
   useWrite,
   WriteContext,
@@ -44,6 +53,9 @@ import { WritePanel } from "./WritePanel"
 import { WriteToolbar } from "./WriteToolbar"
 
 const lastChapterKey = (bookId: string) => `bbb.lastChapter.${bookId}`
+
+/** Dialogs and menus over the page, whose keys are their own. */
+const OVERLAYS = '[role="dialog"], [role="alertdialog"], [role="menu"]'
 
 function readLastChapter(bookId: string) {
   try {
@@ -92,38 +104,54 @@ function WriteBook({ bookId }: { bookId: string }) {
   return <WriteWorkspace book={book} plan={plan} chapterId={chapterId} sceneId={sceneId ?? null} prefs={prefs} />
 }
 
-/** A pref that changes on screen at once, ahead of its write to the database. */
+interface PendingPref {
+  key: string
+  value: string
+  /** Its writes still on their way to the database. */
+  writing: number
+}
+
+/**
+ * A pref that changes on screen at once, ahead of its write to the database. The choice shows until every write has
+ * landed and the database has caught up with it, or an earlier write landing late would undo it for a moment.
+ */
 function usePrefState(key: string) {
   const { value, isLoading, setValue } = usePref(key)
-  const [pending, setPending] = useState<string | null>(null)
-  if (pending !== null && value === pending) setPending(null)
+  const [pending, setPending] = useState<PendingPref | null>(null)
+  if (pending && (pending.key !== key || (pending.writing === 0 && value === pending.value))) setPending(null)
   const set = useCallback(
     (next: string) => {
-      setPending(next)
-      void setValue(next)
+      setPending((previous) => ({ key, value: next, writing: (previous?.key === key ? previous.writing : 0) + 1 }))
+      void setValue(next).finally(() =>
+        setPending((previous) => (previous?.key === key ? { ...previous, writing: previous.writing - 1 } : previous)),
+      )
     },
-    [setValue],
+    [key, setValue],
   )
-  return { value: pending ?? value, isLoading, set }
+  return { value: pending?.key === key ? pending.value : value, isLoading, set }
 }
 
 type WritePrefs = ReturnType<typeof useWritePrefs>
 
-/** The view per book; whether the navigator is open and the docked panel's page, per device. */
+/** The view per book; whether the navigator is open, the docked panel's page and typewriter scrolling, per device. */
 function useWritePrefs(bookId: string) {
   const unit = usePrefState(unitPrefKey(bookId))
   const nav = usePrefState(NAV_PREF)
   const panel = usePrefState(PANEL_PREF)
+  const typewriter = usePrefState(TYPEWRITER_PREF)
   const { set: setNav } = nav
   const { set: setPanel } = panel
+  const { set: setTypewriter } = typewriter
   return {
-    isLoading: unit.isLoading || nav.isLoading || panel.isLoading,
+    isLoading: unit.isLoading || nav.isLoading || panel.isLoading || typewriter.isLoading,
     unit: isWriteUnit(unit.value) ? unit.value : ("chapter" as WriteUnit),
     saveUnit: unit.set,
     navOpen: nav.value !== "closed",
     saveNavOpen: useCallback((open: boolean) => setNav(open ? "open" : "closed"), [setNav]),
     dockedPanel: panelFromPref(panel.value),
     saveDockedPanel: useCallback((page: PanelPage | null) => setPanel(page ?? "closed"), [setPanel]),
+    typewriter: typewriter.value === "on",
+    saveTypewriter: useCallback((on: boolean) => setTypewriter(on ? "on" : "off"), [setTypewriter]),
   }
 }
 
@@ -139,18 +167,29 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
   const db = usePowerSync()
   const navigate = useNavigate()
   const bookId = book.id
-  const matcher = useMentionMatcher(bookId)
+  const { matcher, isLoading: matcherLoading } = useMentionMatcherState(bookId)
   const panelDocked = useMediaQuery(PANEL_DOCKED_QUERY)
   const [sheetPanel, setSheetPanel] = useState<PanelPage | null>(null)
   const [codexEntryId, setCodexEntryId] = useState<string | null>(null)
   const opener = useRef<Editor | null>(null)
-  const { unit, saveUnit, navOpen, saveNavOpen, dockedPanel, saveDockedPanel } = prefs
+  const { unit, saveUnit, navOpen, saveNavOpen, dockedPanel, saveDockedPanel, typewriter, saveTypewriter } = prefs
   const known = plan.chapterById.has(chapterId)
+  const focusMode = useFocusMode((state) => state.on)
 
   useEffect(() => {
     rememberBook(bookId, "write")
     if (known) saveLastChapter(bookId, chapterId)
   }, [bookId, chapterId, known])
+
+  // Focus mode lasts while the screen is open; typewriter scrolling is only for its editors. Esc in the text stops
+  // reading aloud, then leaves focus mode.
+  useEffect(() => resetFocusMode, [])
+  useEffect(() => onEditorEscape(() => stopReading(true) || leaveFocusMode()), [])
+  useLayoutEffect(settleCaret, [focusMode])
+  useEffect(() => {
+    setTypewriterScrolling(typewriter)
+    return () => setTypewriterScrolling(false)
+  }, [typewriter])
 
   // What the callbacks below read when they run, so they can stay the same functions.
   const latest = useRef({ plan, chapterId, sceneId, unit })
@@ -183,15 +222,22 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
       const active = activeEditor()?.sceneId
       const chapter = current.plan.chapterById.get(current.chapterId)
       const scene = active && chapter?.scenes.some(({ id }) => id === active) ? active : current.sceneId
-      navigate(writePath(bookId, current.chapterId, scene), { replace: true })
+      // With the view, not as a transition after it: else the new view arrives twice, the second time (as late as
+      // the page is slow to draw) taking the writer back from wherever they've gone since.
+      navigate(writePath(bookId, current.chapterId, scene), { replace: true, flushSync: true })
     },
     [bookId, navigate, saveUnit],
   )
 
   const toggleNav = useCallback(() => saveNavOpen(!navOpen), [navOpen, saveNavOpen])
   const panel = panelDocked ? dockedPanel : sheetPanel
+  // The panel can't show in focus mode, so opening it leaves focus mode.
   const showPanel = useCallback(
-    (page: PanelPage | null) => (panelDocked ? saveDockedPanel(page) : setSheetPanel(page)),
+    (page: PanelPage | null) => {
+      if (page) setFocusMode(false)
+      if (panelDocked) saveDockedPanel(page)
+      else setSheetPanel(page)
+    },
     [panelDocked, saveDockedPanel],
   )
   const setPanel = useCallback(
@@ -211,11 +257,45 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
     [showPanel],
   )
   const panelOpener = useCallback(() => opener.current, [])
+  const setPanelOpener = useCallback((editor: Editor | null) => {
+    opener.current = editor
+  }, [])
+  const closePanelTo = useCallback(
+    (editor: Editor) => {
+      opener.current = editor
+      showPanel(null)
+    },
+    [showPanel],
+  )
 
-  // Ctrl+Alt+S: a snapshot of the scene in the History dialog, else of the one the writer is in.
+  // Ctrl+. switches focus mode, and Esc stops reading aloud, else leaves focus mode (Esc in the text comes by
+  // onEditorEscape). Ctrl+Shift+F: Find and replace. Ctrl+Alt+S: a snapshot of the scene in the History dialog, else
+  // of the one the writer is in.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.repeat || !isSnapshotShortcut(event)) return
+      if (event.defaultPrevented || event.repeat) return
+      // Not from a dialog or menu over the page, which these would pull the page out from under.
+      const fromOverlay = event.target instanceof Element && !!event.target.closest(OVERLAYS)
+      if (event.key === "Escape" && useReadAloud.getState().status !== "idle" && !isComposing(event)) {
+        if (fromOverlay) return
+        event.preventDefault()
+        stopReading(true)
+        return
+      }
+      if (isFocusShortcut(event) || (event.key === "Escape" && useFocusMode.getState().on && !isComposing(event))) {
+        if (fromOverlay) return
+        event.preventDefault()
+        if (event.key === "Escape") leaveFocusMode()
+        else setFocusMode()
+        return
+      }
+      if (isFindShortcut(event)) {
+        if (fromOverlay) return
+        event.preventDefault()
+        openFind({ setPanel, setPanelOpener })
+        return
+      }
+      if (!isSnapshotShortcut(event)) return
       const dialog = useHistoryDialog.getState()
       const sceneId = dialog.sceneId ?? activeEditor()?.sceneId
       if (!sceneId) return
@@ -225,7 +305,7 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
     }
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [db])
+  }, [db, setPanel, setPanelOpener])
 
   const context = useMemo<WriteContextValue>(
     () => ({
@@ -234,6 +314,7 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
       book,
       plan,
       matcher,
+      matcherLoading,
       unit,
       setUnit,
       chapterId,
@@ -248,6 +329,10 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
       setCodexEntryId,
       openEntryFromText,
       panelOpener,
+      setPanelOpener,
+      closePanelTo,
+      typewriter,
+      setTypewriter: saveTypewriter,
     }),
     [
       db,
@@ -255,6 +340,7 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
       book,
       plan,
       matcher,
+      matcherLoading,
       unit,
       setUnit,
       chapterId,
@@ -268,6 +354,10 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
       codexEntryId,
       openEntryFromText,
       panelOpener,
+      setPanelOpener,
+      closePanelTo,
+      typewriter,
+      saveTypewriter,
     ],
   )
 
@@ -276,13 +366,17 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
       <div className="flex flex-1 flex-col">
         <WriteToolbar />
         <div className="flex flex-1 items-start">
-          {navOpen && <Navigator />}
+          {navOpen && !focusMode && <Navigator />}
           <MentionLayer className="min-w-0 flex-1 self-stretch">
             <WriteContent />
+            {/* Room below the last line, so typewriter scrolling can bring it up to the middle too. */}
+            {typewriter && unit !== "manuscript" && <div aria-hidden="true" className="h-[40svh]" />}
           </MentionLayer>
-          <WritePanel />
+          {!(focusMode && panelDocked) && <WritePanel />}
         </div>
         <HistoryDialog />
+        <AddToWorldDialog />
+        <ReadAloudBar />
       </div>
     </WriteContext.Provider>
   )

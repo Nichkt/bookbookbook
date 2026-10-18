@@ -83,12 +83,22 @@ export interface BookPatch {
   author?: string
   genre?: string
   target_words?: number | null
+  daily_goal?: number | null
   template_key?: string | null
   premise?: string
   synopsis?: string
 }
 
-const BOOK_FIELDS = ["title", "author", "genre", "target_words", "template_key", "premise", "synopsis"] as const
+const BOOK_FIELDS = [
+  "title",
+  "author",
+  "genre",
+  "target_words",
+  "daily_goal",
+  "template_key",
+  "premise",
+  "synopsis",
+] as const
 
 export async function updateBook(db: Db, id: string, patch: BookPatch) {
   const values: Record<string, string | number | null> = {}

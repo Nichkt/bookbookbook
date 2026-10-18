@@ -27,6 +27,8 @@
   --accent-soft: #e4eaf5;
   --ai-tint: rgb(46 74 125 / 0.09);
   --danger: #b23a2b;
+  --find-match: rgb(240 196 64 / 0.38);
+  --find-current: rgb(234 138 36 / 0.55);
 }
 
 [data-theme="sepia"] {
@@ -43,6 +45,8 @@
   --accent-soft: #e6e3da;
   --ai-tint: rgb(46 74 125 / 0.1);
   --danger: #a8402c;
+  --find-match: rgb(236 190 56 / 0.42);
+  --find-current: rgb(230 130 30 / 0.55);
 }
 
 [data-theme="dark"] {
@@ -59,6 +63,8 @@
   --accent-soft: rgb(142 168 220 / 0.14);
   --ai-tint: rgb(142 168 220 / 0.14);
   --danger: #e07a6a;
+  --find-match: rgb(226 186 72 / 0.24);
+  --find-current: rgb(238 146 56 / 0.46);
 }
 
 /* shadcn/ui variables, derived from the tokens above so every theme stays in sync. */
@@ -247,7 +253,7 @@
     caret-color: var(--accent-ink);
     white-space: pre-wrap;
   }
-  /* Same focus cue as the prototype: a quiet bar in the margin, hidden in focus mode later. */
+  /* Same focus cue as the prototype: a quiet bar in the margin. Focus mode does without it. */
   .prose-page .ProseMirror:focus-visible::after {
     content: "";
     position: absolute;
@@ -272,6 +278,56 @@
     text-decoration-style: dotted;
     text-decoration-color: color-mix(in oklab, var(--accent-ink) 60%, transparent);
     text-underline-offset: 0.2em;
+  }
+  /*
+   * Focus mode (DESIGN.md §8): once a scene has the caret, every block but the caret's dims, in every scene on the
+   * page. The page's own chrome (headings, scene titles, buttons), marked data-focus-dim, dims throughout, and comes
+   * back while pointed at or focused.
+   */
+  [data-focus-mode] .ProseMirror :is(p, h2, h3, hr),
+  [data-focus-mode] [data-focus-dim] {
+    transition: opacity 0.25s ease;
+  }
+  [data-focus-mode]:has(.ProseMirror-focused) .ProseMirror :is(p, h2, h3, hr):not(.has-focus, .is-reading),
+  [data-focus-mode] [data-focus-dim]:not(:hover, :focus-within) {
+    opacity: 0.3;
+  }
+  [data-focus-mode] .prose-page .ProseMirror:focus-visible::after {
+    display: none;
+  }
+  /* The sentence read aloud is speaking (DESIGN.md §8). */
+  .read-aloud {
+    background: color-mix(in oklab, var(--accent-ink) 16%, transparent);
+    border-radius: 2px;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+  @media (forced-colors: active) {
+    .read-aloud {
+      background: Mark;
+      color: MarkText;
+    }
+  }
+  /* Find and replace's matches (DESIGN.md §8), the one it's on ringed as well as darker. */
+  .find-match {
+    background: var(--find-match);
+    border-radius: 2px;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+  .find-match-current {
+    background: var(--find-current);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--ink) 55%, transparent);
+  }
+  @media (forced-colors: active) {
+    .find-match {
+      background: Mark;
+      color: MarkText;
+    }
+    .find-match-current {
+      background: Highlight;
+      color: HighlightText;
+    }
   }
   .ai-generated {
     background: var(--ai-tint);

@@ -302,7 +302,7 @@ export const isTracked = (codex: Pick<Codex, "typeById">, entry: CodexEntry) =>
   entry.typeId === null || codex.typeById.get(entry.typeId)?.tracked !== false
 
 /** The names the text finds an entry by: its name and aliases, as the mention matcher takes them. */
-export function entryTerms(entry: CodexEntry): string[] {
+export function entryTerms(entry: Pick<CodexEntry, "name" | "named" | "aliases">): string[] {
   const terms = (entry.named ? [entry.name, ...entry.aliases] : entry.aliases).map((term) => term.trim())
   return [...new Set(terms.filter((term) => term.length >= MIN_TERM_LENGTH))]
 }

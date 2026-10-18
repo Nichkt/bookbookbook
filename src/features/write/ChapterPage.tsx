@@ -32,7 +32,7 @@ export function ChapterHeader({
   const summary = chapter.summary?.trim()
 
   return (
-    <header data-tour="write-heading" className="mb-10 font-sans">
+    <header data-tour="write-heading" data-focus-dim="" className="mb-10 font-sans">
       <div className="flex items-center gap-2">
         <p className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs font-semibold tracking-widest text-muted-foreground uppercase">
           <span>Chapter {chapter.number}</span>
@@ -135,7 +135,7 @@ function AddScene({ chapter }: { chapter: PlanChapter }) {
     if (id) focusSoon(byData("write-scene-title", id))
   }
   return (
-    <div className="mt-10 flex justify-center font-sans">
+    <div data-focus-dim="" className="mt-10 flex justify-center font-sans">
       <Button variant="ghost" size="sm" onClick={() => void add()} className="text-muted-foreground">
         <PlusIcon />
         Add scene
@@ -203,7 +203,7 @@ function NewSceneAfter({ chapter, index }: { chapter: PlanChapter; index: number
     focusSoon(byData("write-scene-title", id))
   }
   return (
-    <div className="mt-10 flex justify-center font-sans">
+    <div data-focus-dim="" className="mt-10 flex justify-center font-sans">
       <Button variant="ghost" size="sm" onClick={() => void add()} className="text-muted-foreground">
         <PlusIcon />
         New scene after this
@@ -220,7 +220,7 @@ interface PagerTarget {
 function Pager({ label, previous, next }: { label: string; previous?: PagerTarget; next?: PagerTarget }) {
   if (!previous && !next) return null
   return (
-    <nav aria-label={label} className="mt-16 grid gap-3 font-sans sm:grid-cols-2">
+    <nav aria-label={label} data-focus-dim="" className="mt-16 grid gap-3 font-sans sm:grid-cols-2">
       {previous && <PagerLink target={previous} direction="previous" />}
       {next && <PagerLink target={next} direction="next" />}
     </nav>

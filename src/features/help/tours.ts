@@ -270,12 +270,42 @@ const WRITE: TourDefinition = {
       term: "world",
     },
     {
+      target: "write-find",
+      title: "Find and replace",
+      body: (context) =>
+        inMenu(
+          context.coarse
+            ? "Search the whole book for a word or a name, going from match to match, and replace them one at a time or all at once."
+            : `Search the whole book for a word or a name, going from match to match with Enter, and replace them one at a time or all at once. ${shortcutLabel("Mod+Shift+F")} searches for the words you've selected.`,
+        )(context),
+      term: "find-and-replace",
+    },
+    {
       target: "write-today",
-      title: "Today's words",
+      title: "Today, goals and sprints",
       body: (context) =>
         context.narrow
-          ? "The ⋯ menu also shows how many words you've added to this book today, and how many you've cut."
-          : "How many words you've added to this book today, less any you've cut.",
+          ? "The ⋯ menu also shows how many words you've added to this book today, and has Goals and sprints, for a daily goal or a timed burst of writing."
+          : "How many words you've added to this book today, less any you've cut. Open it to set a daily goal, or to time a burst of writing in a sprint.",
+      term: "daily-goal",
+    },
+    {
+      target: "write-focus",
+      title: "Focus mode",
+      body: (context) =>
+        inMenu(
+          context.coarse
+            ? "Clears away everything but your text, and fades the paragraphs you aren't writing."
+            : `Clears away everything but your text, and fades the paragraphs you aren't writing. ${shortcutLabel("Mod+.")} starts it, and Esc ends it.`,
+        )(context),
+      term: "focus-mode",
+    },
+    {
+      target: "write-more",
+      title: "More writing tools",
+      body: (context) =>
+        `${context.narrow ? "In the ⋯ menu, Add" : "Add"} to World makes an entry for a name selected in your text, Read aloud reads your words back to you, and Typewriter scrolling keeps the line you're writing mid-window.`,
+      term: "add-to-world",
     },
     {
       title: "Happy writing",

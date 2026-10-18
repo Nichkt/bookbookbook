@@ -48,6 +48,9 @@ describe("searchGlossary", () => {
     expect(ids(searchGlossary("POV"))[0]).toBe("point-of-view")
     expect(ids(searchGlossary("codex"))[0]).toBe("world")
     expect(ids(searchGlossary("thread"))[0]).toBe("story-point")
+    expect(ids(searchGlossary("regex"))[0]).toBe("pattern")
+    expect(ids(searchGlossary("text to speech"))[0]).toBe("read-aloud")
+    expect(ids(searchGlossary("quick-create"))[0]).toBe("add-to-world")
   })
 
   it("needs every word, ignoring case and accents", () => {

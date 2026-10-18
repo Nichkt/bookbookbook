@@ -1,22 +1,28 @@
-import { useQuery } from "@powersync/react"
 import { useEditorState, type Editor } from "@tiptap/react"
 import {
   BoldIcon,
   BookOpenTextIcon,
+  BookPlusIcon,
   BookUserIcon,
   EllipsisIcon,
   FileTextIcon,
+  FocusIcon,
   HistoryIcon,
   ItalicIcon,
+  Minimize2Icon,
   NotebookTextIcon,
   PanelLeftIcon,
   ScrollTextIcon,
+  SearchIcon,
   SeparatorHorizontalIcon,
+  TargetIcon,
   TextAlignCenterIcon,
   TextQuoteIcon,
+  Volume2Icon,
+  VolumeXIcon,
   type LucideIcon,
 } from "lucide-react"
-import { Fragment, useEffect, useRef, useState } from "react"
+import { Fragment, useEffect, useRef, useState, type ReactNode, type RefObject } from "react"
 import { useNavigate } from "react-router"
 import { Button } from "@/components/ui/button"
 import {
@@ -34,16 +40,24 @@ import { Toggle } from "@/components/ui/toggle"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAfterMenu } from "@/components/useAfterMenu"
-import { DAY_STATS_SQL, localDay, type DayStatsRow } from "@/db/stats"
 import { activeEditor, useActiveEditor, type MountedEditor } from "@/editor/activeEditor"
+import { centerCaret } from "@/editor/extensions/Typewriter"
 import { type Plan } from "@/features/plan/planData"
 import { actLabel, chapterTitle } from "@/features/plan/status"
+import { focusSoon } from "@/lib/focus"
 import { ariaShortcut, shortcutLabel } from "@/lib/keys"
 import { formatCount } from "@/lib/numbers"
 import { useMediaQuery } from "@/lib/useMediaQuery"
 import { cn } from "@/lib/utils"
+import { addToWorldFromMenu } from "./addToWorld"
+import { FIND_KEYS } from "./findActions"
+import { FOCUS_KEYS, setFocusMode, useFocusMode } from "./focusMode"
+import { openGoals } from "./goals"
+import { GoalsAnchor, GoalsPopover, SprintChip, TodayButton } from "./GoalsPopover"
 import { openHistory } from "./history"
 import { NAVIGATOR_ID } from "./Navigator"
+import { canReadAloud, READ_ALOUD_PLAY, startReading, stopReading, useReadAloud } from "./readAloud"
+import { useGoalCelebration, useToday } from "./today"
 import {
   isWriteUnit,
   sceneNameIn,
@@ -69,11 +83,77 @@ const BAR_CLASS =
 
 /** The Write screen's toolbar (DESIGN.md §8). Formatting acts on the scene the writer is in, or was last in. */
 export function WriteToolbar() {
+  const { book, bookId } = useWrite()
   const wide = useMediaQuery(WIDE_QUERY)
   const active = useActiveEditor()
   const format = useFormatState(active?.editor ?? null)
-  return wide ? <WideToolbar active={active} format={format} /> : <PhoneToolbar active={active} format={format} />
+  const focusMode = useFocusMode((state) => state.on)
+  useGoalCelebration(bookId, book.daily_goal)
+  return (
+    <GoalsPopover>
+      {focusMode ? (
+        <FocusBar />
+      ) : wide ? (
+        <WideToolbar active={active} format={format} />
+      ) : (
+        <PhoneToolbar active={active} format={format} />
+      )}
+    </GoalsPopover>
+  )
 }
+
+/** Whether the writer is typing, rather than moving the pointer: focus mode's bar fades away meanwhile. */
+function useTyping() {
+  const [typing, setTyping] = useState(false)
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.target instanceof Element && event.target.closest(".ProseMirror")) setTyping(true)
+    }
+    const onPointerMove = () => setTyping(false)
+    window.addEventListener("keydown", onKeyDown, true)
+    window.addEventListener("pointermove", onPointerMove, { passive: true })
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true)
+      window.removeEventListener("pointermove", onPointerMove)
+    }
+  }, [])
+  return typing
+}
+
+/** Focus mode's toolbar: today's words and the way out, fading while the writer types. */
+function FocusBar() {
+  const typing = useTyping()
+  return (
+    <Bar
+      className={cn(
+        "sticky top-0 z-20 flex h-12 items-center justify-end gap-1.5 bg-background/95 px-4 transition-opacity duration-500 pointer-coarse:h-14",
+        typing && "opacity-0 focus-within:opacity-100 hover:opacity-100",
+      )}
+    >
+      <TodayButton />
+      <Button
+        variant="ghost"
+        size="sm"
+        aria-keyshortcuts="Escape"
+        title="Esc"
+        onClick={() => setFocusMode(false)}
+        className="text-ink-2"
+      >
+        <Minimize2Icon />
+        Exit focus mode
+      </Button>
+    </Bar>
+  )
+}
+
+/** A toolbar's bar, sticking to the top as the page scrolls. Goals and sprints hangs from it. */
+const Bar = ({ className, children }: { className: string; children: ReactNode }) => (
+  <GoalsAnchor>
+    <div data-write-toolbar="" data-sticky-top="" className={className}>
+      {children}
+    </div>
+  </GoalsAnchor>
+)
 
 interface ToolbarProps {
   active: MountedEditor | null
@@ -111,6 +191,16 @@ const command = (run: (editor: Editor) => void) => {
   if (editor && !editor.isDestroyed) run(editor)
 }
 
+/** Turning typewriter scrolling on puts the writer back in the text, with the caret's line brought to the middle. */
+const switchTypewriter = (on: boolean, setTypewriter: (on: boolean) => void) => {
+  setTypewriter(on)
+  const editor = activeEditor()?.editor
+  if (!on || !editor || editor.isDestroyed) return
+  editor.commands.focus(null, { scrollIntoView: false })
+  // Once the room below the last line is there.
+  requestAnimationFrame(() => centerCaret(editor.view))
+}
+
 /** Opens the History dialog of the scene the writer is in. */
 const showHistory = (plan: Plan, returnFocus: HTMLElement | null) => {
   const target = activeEditor()
@@ -127,7 +217,7 @@ function WideToolbar({ active, format }: ToolbarProps) {
   const { plan, unit, setUnit, navOpen, toggleNav } = useWrite()
   const editor = active?.editor
   return (
-    <div data-write-toolbar="" data-sticky-top="" className={BAR_CLASS}>
+    <Bar className={BAR_CLASS}>
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
@@ -219,7 +309,24 @@ function WideToolbar({ active, format }: ToolbarProps) {
         </TooltipTrigger>
         <TooltipContent>Scene break · or type --- on a new line</TooltipContent>
       </Tooltip>
-      <TodayCount className="ml-auto pl-2" />
+      <TodayButton className="ml-auto" />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Focus mode"
+            aria-keyshortcuts={ariaShortcut(FOCUS_KEYS)}
+            data-tour="write-focus"
+            onClick={() => setFocusMode(true)}
+            className="text-ink-2"
+          >
+            <FocusIcon />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Focus mode · {shortcutLabel(FOCUS_KEYS)}</TooltipContent>
+      </Tooltip>
+      <MoreTools />
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
@@ -238,7 +345,8 @@ function WideToolbar({ active, format }: ToolbarProps) {
       </Tooltip>
       <PanelButton page="plan" label="Chapter plan" icon={NotebookTextIcon} tour="write-plan-panel" />
       <PanelButton page="codex" label="World" icon={BookUserIcon} tour="write-world-panel" />
-    </div>
+      <PanelButton page="find" label="Find" icon={SearchIcon} tour="write-find" keys={FIND_KEYS} />
+    </Bar>
   )
 }
 
@@ -248,25 +356,112 @@ interface PanelButtonProps {
   icon: LucideIcon
   /** Where the Write tour points. */
   tour: string
+  /** Its shortcut, as shortcutLabel takes it, for its tooltip. */
+  keys?: string
 }
 
 /** Opens the panel at its page, or closes it when the page is showing: the toolbar's buttons are the panel's tabs. */
-function PanelButton({ page, label, icon: Icon, tour }: PanelButtonProps) {
+function PanelButton({ page, label, icon: Icon, tour, keys }: PanelButtonProps) {
   const { panel, setPanel } = useWrite()
   const showing = panel === page
-  return (
+  const button = (
     <Button
       variant={showing ? "secondary" : "ghost"}
       size="sm"
       aria-expanded={showing}
+      aria-keyshortcuts={keys && ariaShortcut(keys)}
       data-write-panel-return={page}
       data-tour={tour}
       onClick={() => setPanel(showing ? null : page)}
       className="shrink-0 text-ink-2"
     >
       <Icon />
-      <span className="sr-only lg:not-sr-only">{label}</span>
+      <span className="sr-only xl:not-sr-only">{label}</span>
     </Button>
+  )
+  if (!keys) return button
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{button}</TooltipTrigger>
+      <TooltipContent>
+        {label} · {shortcutLabel(keys)}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+/** The wide toolbar's less used writing aids. */
+function MoreTools() {
+  const { typewriter, setTypewriter } = useWrite()
+  const trigger = useRef<HTMLButtonElement>(null)
+  const { after, onCloseAutoFocus } = useAfterMenu()
+  return (
+    <DropdownMenu>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DropdownMenuTrigger asChild>
+            <Button
+              ref={trigger}
+              variant="ghost"
+              size="icon-sm"
+              aria-label="More writing tools"
+              data-tour="write-more"
+              className="shrink-0 text-ink-2"
+            >
+              <EllipsisIcon />
+            </Button>
+          </DropdownMenuTrigger>
+        </TooltipTrigger>
+        <TooltipContent>More writing tools</TooltipContent>
+      </Tooltip>
+      <DropdownMenuContent align="end" className="w-60" onCloseAutoFocus={onCloseAutoFocus}>
+        <DropdownMenuItem onSelect={() => after(() => addToWorldFromMenu(trigger.current))}>
+          <BookPlusIcon />
+          Add to World…
+        </DropdownMenuItem>
+        <ReadAloudItem after={after} trigger={trigger} />
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => after(() => openGoals(trigger.current))}>
+          <TargetIcon />
+          Goals and sprints…
+        </DropdownMenuItem>
+        <DropdownMenuCheckboxItem
+          checked={typewriter}
+          onSelect={() => after(() => switchTypewriter(!typewriter, setTypewriter))}
+        >
+          Typewriter scrolling
+        </DropdownMenuCheckboxItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+interface ReadAloudItemProps {
+  after: (action: () => void) => void
+  trigger: RefObject<HTMLButtonElement | null>
+}
+
+/** Starts reading aloud (DESIGN.md §8), then the reading bar has focus; or, while it reads, stops it. */
+function ReadAloudItem({ after, trigger }: ReadAloudItemProps) {
+  const reading = useReadAloud((state) => state.status !== "idle")
+  if (!canReadAloud()) return null
+  if (reading) {
+    return (
+      <DropdownMenuItem onSelect={() => after(() => stopReading(true))}>
+        <VolumeXIcon />
+        Stop reading aloud
+      </DropdownMenuItem>
+    )
+  }
+  const start = () => {
+    if (startReading()) focusSoon(READ_ALOUD_PLAY)
+    else trigger.current?.focus()
+  }
+  return (
+    <DropdownMenuItem onSelect={() => after(start)}>
+      <Volume2Icon />
+      Read aloud
+    </DropdownMenuItem>
   )
 }
 
@@ -312,7 +507,7 @@ function PhoneToolbar({ active, format }: ToolbarProps) {
   const navigate = useNavigate()
   const editor = active?.editor
   return (
-    <div data-write-toolbar="" data-sticky-top="" className={BAR_CLASS}>
+    <Bar className={BAR_CLASS}>
       <label htmlFor="chapter-picker" className="sr-only">
         Chapter
       </label>
@@ -355,13 +550,14 @@ function PhoneToolbar({ active, format }: ToolbarProps) {
         editor={editor}
         run={toggleItalic}
       />
+      <SprintChip />
       <PhoneMenu active={active} format={format} />
-    </div>
+    </Bar>
   )
 }
 
 function PhoneMenu({ active, format }: ToolbarProps) {
-  const { bookId, plan, unit, setUnit, setPanel } = useWrite()
+  const { bookId, plan, unit, setUnit, setPanel, typewriter, setTypewriter } = useWrite()
   const trigger = useRef<HTMLButtonElement>(null)
   const { after, onCloseAutoFocus } = useAfterMenu()
   const today = useToday(bookId)
@@ -375,7 +571,7 @@ function PhoneMenu({ active, format }: ToolbarProps) {
           size="icon-sm"
           aria-label="More writing tools"
           data-write-panel-return="menu"
-          data-tour="write-views write-history write-plan-panel write-world-panel write-today"
+          data-tour="write-views write-focus write-more write-history write-plan-panel write-world-panel write-find write-today"
           className="shrink-0 text-ink-2"
         >
           <EllipsisIcon />
@@ -410,6 +606,21 @@ function PhoneMenu({ active, format }: ToolbarProps) {
           Scene break
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => after(() => setFocusMode(true))}>
+          <FocusIcon />
+          Focus mode
+        </DropdownMenuItem>
+        <DropdownMenuCheckboxItem
+          checked={typewriter}
+          onSelect={() => after(() => switchTypewriter(!typewriter, setTypewriter))}
+        >
+          Typewriter scrolling
+        </DropdownMenuCheckboxItem>
+        <DropdownMenuItem onSelect={() => after(() => openGoals(trigger.current))}>
+          <TargetIcon />
+          Goals and sprints…
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem disabled={!active} onSelect={() => after(() => showHistory(plan, trigger.current))}>
           <HistoryIcon />
           History…
@@ -422,6 +633,15 @@ function PhoneMenu({ active, format }: ToolbarProps) {
           <BookUserIcon />
           World
         </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => after(() => setPanel("find"))}>
+          <SearchIcon />
+          Find and replace
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => after(() => addToWorldFromMenu(trigger.current))}>
+          <BookPlusIcon />
+          Add to World…
+        </DropdownMenuItem>
+        <ReadAloudItem after={after} trigger={trigger} />
         <DropdownMenuSeparator />
         <DropdownMenuLabel className="font-normal text-muted-foreground tabular-nums">
           Today: {formatCount(today.added)} words added, {formatCount(today.removed)} removed
@@ -429,38 +649,4 @@ function PhoneMenu({ active, format }: ToolbarProps) {
       </DropdownMenuContent>
     </DropdownMenu>
   )
-}
-
-/** Words written today in this book, net: what was added less what was cut. */
-function TodayCount({ className }: { className?: string }) {
-  const { bookId } = useWrite()
-  const { added, removed } = useToday(bookId)
-  const net = added - removed
-  const detail = `Today: ${formatCount(added)} words added, ${formatCount(removed)} removed`
-  return (
-    <p
-      title={detail}
-      data-tour="write-today"
-      className={cn("shrink-0 text-xs whitespace-nowrap text-muted-foreground tabular-nums", className)}
-    >
-      <span aria-hidden="true">
-        Today {net < 0 ? "−" : "+"}
-        {formatCount(Math.abs(net))}
-      </span>
-      <span className="sr-only">{detail}</span>
-    </p>
-  )
-}
-
-/** The book's stats for the writer's calendar day, which turns over at midnight while the page is open. */
-function useToday(bookId: string): DayStatsRow {
-  const [day, setDay] = useState(localDay)
-  useEffect(() => {
-    const now = new Date()
-    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
-    const timer = setTimeout(() => setDay(localDay()), midnight.getTime() - now.getTime() + 1000)
-    return () => clearTimeout(timer)
-  }, [day])
-  const { data } = useQuery<DayStatsRow>(DAY_STATS_SQL, [bookId, day])
-  return data[0] ?? { added: 0, removed: 0 }
 }

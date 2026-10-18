@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { editorOf } from "@/editor/activeEditor"
+import { whenEditor } from "@/editor/activeEditor"
 import { SceneEditor } from "@/editor/SceneEditor"
 import { useSceneDoc, useSceneWords } from "@/editor/useSceneDoc"
 import { moveSceneBy, trashSceneWithUndo } from "@/features/plan/commands"
@@ -20,6 +20,7 @@ import { UNTITLED_SCENE } from "@/features/plan/status"
 import { isComposing } from "@/lib/keys"
 import { formatCount } from "@/lib/numbers"
 import { cn } from "@/lib/utils"
+import { AddToWorldBubble } from "./AddToWorldDialog"
 import { openHistory } from "./history"
 import { useNearViewport } from "./pageHooks"
 import { estimatedHeight } from "./sequence"
@@ -51,7 +52,11 @@ export function SceneBlock({ chapter, scene, index, divider, headingLevel, lazy 
   return (
     <section ref={section} data-scene-id={scene.id} className="scroll-mt-32">
       {divider && (
-        <div aria-hidden="true" className="my-10 text-center text-2xl leading-none text-muted-foreground select-none">
+        <div
+          aria-hidden="true"
+          data-focus-dim=""
+          className="my-10 text-center text-2xl leading-none text-muted-foreground select-none"
+        >
           ⁂
         </div>
       )}
@@ -60,10 +65,13 @@ export function SceneBlock({ chapter, scene, index, divider, headingLevel, lazy 
       )}
       <div ref={body} data-tour="write-editor">
         {provider ? (
-          <SceneEditor provider={provider} matcher={matcher} label={sceneLabel(scene, index)} />
+          <SceneEditor provider={provider} matcher={matcher} label={sceneLabel(scene, index)}>
+            {(editor) => <AddToWorldBubble editor={editor} />}
+          </SceneEditor>
         ) : (
           <div
             aria-hidden="true"
+            data-scene-loading={near ? "" : undefined}
             style={{ height: heights.get(scene.id) ?? estimatedHeight(scene.word_count) }}
             className={cn("rounded-md", near && "animate-pulse bg-surface-2/60")}
           />
@@ -92,7 +100,7 @@ function SceneHeader({ chapter, scene, index, words, headingLevel }: SceneHeader
   const where = `scene ${number} in chapter ${chapter.number}`
 
   return (
-    <header className="mb-3 flex items-center gap-1.5 font-sans">
+    <header data-focus-dim="" className="mb-3 flex items-center gap-1.5 font-sans">
       {/* For moving through scenes by heading; the title field below is what shows. */}
       <Heading className="sr-only">
         Scene {number}
@@ -107,7 +115,11 @@ function SceneHeader({ chapter, scene, index, words, headingLevel }: SceneHeader
         onKeyDown={(event) => {
           if (event.key !== "Enter" || isComposing(event.nativeEvent)) return
           event.preventDefault()
-          editorOf(scene.id)?.editor.commands.focus("start")
+          // Just after arriving, the scene's text may still be loading.
+          const field = event.currentTarget
+          whenEditor(scene.id, ({ editor }) => {
+            if (document.activeElement === field) editor.commands.focus("start")
+          })
         }}
         className="-ml-2 h-8 min-w-0 flex-1 border-transparent bg-transparent px-2 font-semibold text-ink-2 shadow-none hover:border-input dark:bg-transparent"
       />

@@ -10,6 +10,8 @@ export interface BookListRow {
   author: string | null
   genre: string | null
   target_words: number | null
+  /** Words a day, net of cuts. */
+  daily_goal: number | null
   universe_id: string | null
   /** The story structure it follows (see features/plan/structures.ts). */
   template_key: string | null
@@ -18,7 +20,7 @@ export interface BookListRow {
 }
 
 export const BOOKS_SQL = `
-  SELECT id, title, author, genre, target_words, universe_id, template_key, premise, synopsis
+  SELECT id, title, author, genre, target_words, daily_goal, universe_id, template_key, premise, synopsis
   FROM books WHERE deleted_at IS NULL ORDER BY created_at, id`
 
 export interface LibraryRow {

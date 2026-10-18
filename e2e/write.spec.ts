@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test"
-import { expect, flushAll, focusEnd, openFirstChapter, settleAll, test } from "./fixtures"
+import { expect, flushAll, focusEnd, openFirstChapter, queryDb, selectText, settleAll, test } from "./fixtures"
 
 const view = (page: Page, name: "Scene" | "Chapter" | "Manuscript") =>
   page.getByRole("radiogroup", { name: "Write view" }).getByRole("radio", { name })
@@ -153,15 +153,49 @@ test("History keeps versions: a named snapshot comes back with Restore, and Undo
   await expect(editor).toContainText("The gulls followed. Then the rain.")
 })
 
+/** Enough of a scene's editor, as the page holds it, to undo and to read the caret. */
+interface SceneEditorHandle {
+  state: { selection: { from: number; to: number }; plugins: { key: string; getState(state: unknown): unknown }[] }
+  commands: { undo(): boolean }
+}
+/** The editor's link to the scene's shared text, through which another tab's edits arrive. */
+interface SyncBinding {
+  doc: { transact(change: () => void, origin: string): void }
+  type: { get(index: number): { get(index: number): { insert(index: number, text: string): void } } }
+}
+
+test("an edit from another tab, just after an undo, leaves the caret where it was", async ({ page }) => {
+  const editor = await openFirstChapter(page)
+  await selectText(editor, "tired")
+  await page.keyboard.type("weary")
+  await focusEnd(editor)
+  const caret = await editor.evaluate(async (element) => {
+    const scene = (element as unknown as { editor: SceneEditorHandle }).editor
+    const sync = scene.state.plugins.find((plugin) => plugin.key.startsWith("y-sync"))
+    if (!sync) throw new Error("The editor has no y-sync plugin")
+    const { binding } = sync.getState(scene.state) as { binding: SyncBinding }
+    scene.commands.undo()
+    const before = scene.state.selection.from
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    binding.doc.transact(() => binding.type.get(0).get(0).insert(0, "X"), "another tab")
+    const { from, to } = scene.state.selection
+    return { before, from, to }
+  })
+  // Moved on by the X, rather than back to where the undone typing began.
+  expect(caret).toEqual({ before: caret.before, from: caret.before + 1, to: caret.before + 1 })
+  await expect(editor).toContainText("XThe ferry nosed")
+  await expect(editor).toContainText("the tired certainty")
+})
+
 test("Today counts the words written in the book", async ({ page }) => {
   const editor = await openFirstChapter(page)
-  const today = page.locator("p[title^='Today:']")
+  const today = page.getByRole("button", { name: /^Today:/ })
   await expect(today).toContainText("Today +0")
   await focusEnd(editor)
   await page.keyboard.type(" Five more words go here.")
   await settleAll(page)
   await expect(today).toContainText("Today +5")
-  await expect(today).toHaveAttribute("title", "Today: 5 words added, 0 removed")
+  await expect(today).toHaveAccessibleName("Today: 5 words added, 0 removed")
 })
 
 test("the chapter plan sits beside the text, and pops the chapter out in the Plan", async ({ page }) => {
@@ -171,7 +205,10 @@ test("the chapter plan sits beside the text, and pops the chapter out in the Pla
   await expect(panel.getByRole("heading", { name: "Chapter 1", exact: true })).toBeFocused()
   await expect(panel.getByRole("textbox", { name: "Chapter title" })).toHaveValue("The Ferry Home")
 
-  // It stays open across visits on a wide screen.
+  // It stays open across visits on a wide screen, once that's saved.
+  await expect
+    .poll(() => queryDb<{ value: string }>(page, "SELECT value FROM ui_prefs WHERE id = 'write.panel'"))
+    .toEqual([{ value: "plan" }])
   await page.reload()
   await expect(panel.getByRole("textbox", { name: "Chapter title" })).toHaveValue("The Ferry Home")
 

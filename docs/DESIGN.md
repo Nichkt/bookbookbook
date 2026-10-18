@@ -450,10 +450,10 @@ underlines, and a Codex page in Write's side panel. Details it settled:
   opens. Back lands on the entry's row: the one it was opened from, or after "Details" the one in view. Closing
   returns to the button that opened the panel, or to the text if "Details" did.
 - **Touch:** every control is at least 44 px on touch screens.
-- **Not yet:** @-mentions, quick-create from a selection, per-alias case options, pinning entries to the panel, and a
-  shortcut for the entry at the caret. @-mentions would put a node in the stored prose, which export, word counts,
-  History's compare and backups all read, and they need testing with Android keyboards, so they move to M6 with
-  quick-create.
+- **Not yet:** @-mentions, per-alias case options, pinning entries to the panel, and a shortcut for the entry at the
+  caret. @-mentions would put a node in the stored prose, which export, word counts, History's compare and backups
+  all read, and they need testing with Android keyboards. Quick-create from a selection came in M6 as Add to World
+  (§8, "Built in M6").
 
 ---
 
@@ -487,6 +487,8 @@ A toolbar toggle: **Scene** · **Chapter** · **Manuscript**.
 | Checks | Prose-check and grammar decorations from Web Workers (never block typing) |
 
 ### Writing aids
+*M6 built goals and streaks, focus mode, typewriter scrolling, sprints, find & replace and read aloud, with some
+changes; comments, read-through, prose checks, grammar and a session goal are still to come. See "Built in M6" below.*
 - **Goals:** daily words, chapter targets, book target, session goal. Optional streaks (can be turned off).
 - **Focus mode** (Ctrl+.): hides chrome and dims all but the current paragraph. **Typewriter scrolling** keeps the
   caret line centered.
@@ -515,19 +517,19 @@ A toolbar toggle: **Scene** · **Chapter** · **Manuscript**.
 ### Keyboard
 Ctrl+J Continue · Ctrl/Cmd+K palette · Ctrl+Shift+F find & replace · Ctrl+. focus mode · Ctrl+Alt+S snapshot ·
 Ctrl+Shift+M dictate · `/` slash menu at the start of an empty line · Esc closes overlays.
-All shortcuts can be remapped later.
+All shortcuts can be remapped later. Built so far: Ctrl+Shift+F, Ctrl+., Ctrl+Alt+S, the formatting keys and Esc.
 
 ### Built in M2
 M2 built the Write screen: the three views, the navigator, formatting, word counts, History and the chapter plan
-beside the text. Focus mode, find & replace and the other writing aids follow in M6. Details it settled:
+beside the text. Focus mode, find & replace and the other writing aids came in M6 (below). Details it settled:
 - **Views.** A segmented control switches Scene, Chapter and Manuscript, remembered per book. The URL names the
   chapter, and the scene in the Scene view, so a reload or a link lands in the same place. A switch opens the new view
   at the scene being written or read. The Scene view pages through the book's scenes in reading order, across
   chapters.
 - **Manuscript:** the whole book on one page, under its acts. A scene gets its editor within 1000 px of the window and
   loses it beyond 3000 px, never while it has focus. Without its editor it's a blank space of the height it last had,
-  or one guessed from its word count, so the browser's find can't see it; find & replace (M6) will search the
-  database instead. The URL follows the chapter being read.
+  or one guessed from its word count, so the browser's find can't see it; find & replace (M6) searches the scenes'
+  text itself instead. The URL follows the chapter being read.
 - **Arrivals hold still.** After a jump, the scenes around the target get their editors and seldom take the height
   guessed for them. The page keeps the target in place until the layout has been still for 1 s (5 s at most) or the
   writer scrolls, taps, clicks or types, and the URL waits for it. Chrome's scroll anchoring can't be relied on for
@@ -552,8 +554,85 @@ beside the text. Focus mode, find & replace and the other writing aids follow in
 - **Chapter plan.** The chapter's details from the Plan dock beside the text from 1280 px, their state remembered
   per device, and are a sheet below that. Trashing the chapter from them closes them.
 - **Phone:** the toolbar has a chapter picker, bold and italic, and a ⋯ menu with the views and the other tools.
-- **Not yet:** folding scenes, focus mode, typewriter scrolling, find & replace and the other aids (M6). Known issue:
-  resizing the window can leave the URL on the previous chapter until the next scroll.
+- **Not yet:** folding scenes. Known issue: resizing the window can leave the URL on the previous chapter until the
+  next scroll.
+
+### Built in M6
+M6 built the writing aids: focus mode, typewriter scrolling, daily goals and streaks, sprints, Add to World, read
+aloud, and find and replace across the book. Details it settled:
+- **Toolbar.** The wide toolbar gained Today's goals, a Focus mode button, a ⋯ **More writing tools** menu (Add to
+  World…, Read aloud, Goals and sprints…, Typewriter scrolling) and Find, beside History, Chapter plan and World.
+  On phones they're all in the ⋯ menu, which ends with today's words added and removed. New controls are 44 px on
+  touch screens.
+- **Focus mode** (Ctrl+., ⌘. on a Mac). The header, the navigator, the side panel, the phone's tabs and most of the
+  toolbar go; a slim bar keeps Today (or a running sprint's clock) and the way out, fading while the writer types.
+  Every paragraph but the caret's dims, and the scene titles and buttons with them until hovered or focused. Esc in
+  the text, the same keys or the bar's button end it. The caret keeps its place on screen as the chrome comes and
+  goes. It lasts while the Write screen is open and isn't remembered.
+- **Typewriter scrolling**, a checkbox in the ⋯ menus remembered per device, keeps the caret's line halfway down the
+  text's part of the window: below the toolbar, and above a phone's keyboard. It waits for a phone keyboard's
+  composition to end, leaves a click or a selection being made where it is, and jumps rather than glides with reduced
+  motion.
+- **Goals and sprints** hang below the toolbar from Today (on phones, from the ⋯ menu). A **daily goal** is per book
+  and counts net words, as Today does, so a day spent cutting can fall short, and that's fair. A ring around Today
+  fills toward it, and a toast says when it's met. The **streak** is the days running with the goal met: today joins
+  once it's met, until then it runs to yesterday, and past days are held to the goal as it is now. **Show my
+  streak** (per device) hides it.
+- **Sprints** last 15, 25 or 45 minutes, or the writer's own length up to 240. Starting one puts the caret back in
+  the text, and Today becomes its countdown (on phones a clock joins the toolbar). It counts this device's net words
+  in the book from its start. One runs at a time, kept in localStorage, so a reload or another tab carries on with
+  it, and one that ran out while the app was closed is counted when it next opens. At the end a toast gives its
+  words, and `writing_stats.sprints` counts it; one stopped early isn't counted, though its words still count for
+  the day. Screen readers hear "12 minutes left" rather than a ticking clock.
+- **Add to World** (§7's quick-create). Selecting a name the World doesn't have shows an **Add to World** bubble over
+  it, which Tab reaches from the text. A name is up to six words, capitalized, and not a word that opens sentences;
+  quotes, punctuation and a possessive are trimmed ("Mara's," → "Mara"). The ⋯ menus open the dialog for any name,
+  and it warns of one the World has. The dialog takes the name, the type (the one used last, per device, else
+  Characters), the shorter names the text might use ("Jonas" and "Quill" for "Jonas Quill") and notes. The text
+  underlines the new entry at once, and the toast's Details opens it. On touch screens the system's selection menu
+  keeps its place, so the ⋯ menu is the way in.
+- **Read aloud** (the ⋯ menus) uses the device's voices (`speechSynthesis`), a sentence at a time
+  (`Intl.Segmenter`, with a fallback), marking each sentence and keeping it in view above the reading bar. It starts
+  at the caret's sentence and goes on through the scenes the view shows (the chapter, or in the Manuscript the
+  book), or reads only the selection. The bar has play and pause, the previous and next sentence, stop, speed (0.75×
+  to 2×) and voice (the browser's language's), the last two kept per device. Esc or Stop leaves the caret on the
+  sentence it reached, ready to fix what was heard; typing stops it too. Without speech in the browser, it isn't
+  offered. Focus mode leaves the sentence being read undimmed.
+- **Find and replace** (Find in the toolbar, Ctrl+Shift+F) is a page of the side panel, so it's remembered with the
+  others, and a sheet over the text on narrow screens, which a result closes to select its match. It searches every
+  scene as it's typed, open ones from their live text and the rest as stored, and keeps up with edits a quarter of a
+  second after them. Options: **Match case**, **Whole words** and **Pattern** (a regular expression, saying so when
+  it has a mistake). Straight and curly quotes, `--` and —, and `...` and … find each other. A match can't cross a
+  paragraph or a line break, as it couldn't be replaced as one stretch of text.
+  - **The list** groups matches by chapter (and by scene, where the writer made scenes), each with the words around
+    it, and says how many there are and which one is current. It lists 1,000 and counts up to 10,000. The editors on
+    the page mark every match, the current one apart.
+  - **Going to a match.** Enter and Shift+Enter, or the ˄ and ˅ buttons, go round the book from the current match,
+    or else from the caret. A match whose scene isn't on the page is brought there first: the Manuscript holds its
+    scene in view, and the Chapter and Scene views go to its chapter or scene. Ctrl+Shift+F searches for the words
+    selected (one line, up to 200 characters), and Esc goes back to the text at the match.
+  - **Replace** goes to the match first, then replaces it as one edit Ctrl+Z undoes. **Replace all** saves a version
+    of each scene it changes ("Before replacing “ledger”"), edits the scenes' Yjs text directly, keeping the first
+    matched character's formatting, so closed scenes change too, and its toast's Undo puts every scene back for up
+    to a minute. A pattern's replacement fills in `$1`, `$<name>`, `$&` and `$$`.
+- **Undo and outside changes.** y-tiptap restores a selection with the next change after an undo, so a change from
+  outside the editor (Replace all, a version restored, another tab) would move the caret back to before the undone
+  edit; UndoSelection drops that selection once the undo is over.
+- **Navigation that keeps up.** React Router 8 runs navigations as transitions, which can commit after the writer's
+  next key press and pull the page away from it. Switching views and Find's jumps navigate with `flushSync`, so the
+  URL, and the page's arrival at it, land before the next key. The Manuscript's following URL stays a transition.
+- **Esc in the text** goes through one handler (EscapeKey), since ProseMirror keeps Esc from the page: it stops
+  reading aloud first, then leaves focus mode.
+- **Not yet:** comments, read-through mode, prose checks, grammar and spelling (Harper), @-mentions, a session goal
+  and a history of sprints. Comments and @-mentions put new nodes or marks in the stored prose, which export, word
+  counts, History's compare and backups all read; Harper needs a WASM worker.
+- `e2e/writing-aids.spec.ts` covers Add to World (the bubble, the menus, names the World has, phones), read aloud
+  (from the caret or a selection, speed and voice, the view's end, phones), focus mode and typewriter scrolling,
+  goals and sprints (through a reload, phones) and find and replace (the whole book, Replace, Replace all with its
+  versions and Undo, patterns, the shortcut, the panel button, narrow screens, and keys pressed quickly).
+  `e2e/touch.spec.ts` holds every writing aid's controls to 44 px on a phone and a tablet. Unit tests cover the find
+  engine, its list and highlights, read aloud's sentences and mark, goals and streaks, today's words and Add to
+  World's names.
 
 ## 9. AI system
 
@@ -1087,23 +1166,25 @@ menu. Labels say what a thing is for in the first place (§6, "Plain labels"), a
 words as "also called".
 
 **Glossary**
-- 46 terms in four groups: *Story basics* (act, chapter, scene, moment, structure moment, story structure, premise,
+- 55 terms in four groups: *Story basics* (act, chapter, scene, moment, structure moment, story structure, premise,
   synopsis, flashback, point of view, story point, theme, draft, manuscript), *Planning a chapter* (each field of a
   chapter's details), *Your world* (World, entries, entry types, aliases, mentions, and the kinds of entry that need
   explaining) and *Pages and tools* (home, Plan, Board, Corkboard, Outline, Matrix, Timeline, structure ribbon,
-  Write, Inbox, versions, backups, export, import, Trash). M5 added the eight about structures and its views.
+  Write and its writing aids, Inbox, versions, backups, export, import, Trash). M5 added the eight about structures
+  and its views, and M6 the nine about writing aids: focus mode, typewriter scrolling, daily goal, streak, sprint,
+  find and replace, pattern, read aloud and Add to World.
 - Each is a few sentences of plain English, an example from the sample book where one helps, and "See also" links.
   **Scene** says what starts a new one: a jump in place, time or point of view. **Moment** explains beats: one thing
   that happens, the smallest piece of a story; a few make a scene, and a few scenes a chapter.
 - **Search** matches every word typed against each term's names, other names and text, names first, ignoring case
   and accents. Old words find the new ones: "beat" finds Moment, "POV" Point of view, "codex" World, "thread" Story
-  point and "target" Word count target. A search with no match says so.
+  point, "target" Word count target and "regex" Pattern. A search with no match says so.
 - **"?" buttons** beside each label of a chapter's details (in the Plan's pop-out and Write's Chapter plan), and a
   tour step's "What does “X” mean?", open the glossary at that term, over a pop-out or a tour. Escape closes only
   the glossary, and focus goes back to the button that opened it.
 
 **Tours**
-- One per page: Home (9 steps), Plan (13 on the Board), Write (10), World (7) and Inbox (1, until M11 builds it).
+- One per page: Home (9 steps), Plan (13 on the Board), Write (13), World (7) and Inbox (1, until M11 builds it).
   A step can belong to some views only, so each Plan view skips the steps about what it doesn't show: the ribbon,
   acts and chapter cards, the Display menu, the Matrix or the Timeline. The Matrix and Timeline have 10.
 - **The card** is a modal dialog with "Step N of M", Back, Next (Done on the last) and an X. ← and → move between
@@ -1190,9 +1271,10 @@ words as "also called".
 1. Name clearance for "bookbookbook" (trademark, domain, app stores).
 2. The phone keyboard test on real devices with Gboard and Samsung Keyboard
    ([ime-smoke-test.md](ime-smoke-test.md)), left over from M0.
-3. M2, Editor core, M3, Codex core, M5, Planner II, and M7, Import / export / backups, are built and tested
-   ([README](../README.md)). So are the home screen, the chapter pop-out, plain labels, World, the glossary and the
-   page tours (§4, §6, §7, §17a).
+3. M2, Editor core, M3, Codex core, M5, Planner II, M6, Writing aids, and M7, Import / export / backups, are built
+   and tested ([README](../README.md)), M6 without comments, prose checks, Harper, read-through and @-mentions (§8,
+   "Built in M6"). So are the home screen, the chapter pop-out, plain labels, World, the glossary and the page tours
+   (§4, §6, §7, §17a).
 
 ---
 
@@ -1262,3 +1344,4 @@ words as "also called".
 | 24 | Plain words | Labels say what a field is for: Word count target, Point of view, What characters are present, Moments (beats), Story points (plot threads), Structure moment; the Codex is World; the data model and code keep the old names, so nothing migrates | §6 "Plain labels", §7 |
 | 25 | Glossary and tours | Two header buttons on every page, How to use this and Glossary (a Help menu on phones); 38 terms with examples from the sample book, found by their old names too; "?" beside each chapter field; a spotlight tour per page that stages the pop-out, fits touch and narrow screens, and ends on leaving the page | Details in §17a |
 | 26 | M5 planner II | The Matrix's character cells open a menu (not in it, present, point of view instead of whom) and quiet story points are flagged after 3 chapters away; the Timeline toggles story and reading order, flashbacks first and time jumps badged; Corkboard cards are written on directly; 7 built-in structures under descriptive names plus the writer's own, shared as JSON files; a ribbon of structure moments on the Board and Corkboard, hideable per book; a new book can start from a structure (a chapter per moment, Moments left empty) or step by step; planning step by step is four steps whose result, draft included, one Undo takes back; Undo toasts work over dialogs | Details in §6, "Built in M5" |
+| 27 | M6 writing aids | Focus mode for the Write screen's visit only, dimming all but the caret's paragraph; typewriter scrolling per device; a daily goal per book in net words, with a streak that can be hidden; sprints kept in localStorage that survive a reload; Add to World from a bubble over a selected name or the ⋯ menus; read aloud with the device's voices, a sentence at a time; find and replace across the whole book as a side panel page, searching scene text (live or stored) a paragraph at a time, Replace all editing the Yjs text directly after saving versions, with one Undo; navigations that pair with urgent state or quick keys use `flushSync`; comments, prose checks, Harper, read-through and @-mentions deferred | Details in §8, "Built in M6" |

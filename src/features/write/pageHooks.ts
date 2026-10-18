@@ -17,9 +17,13 @@ export function useEnsureScene(chapter: PlanChapter, enabled = true) {
 
 /** The writer's own moves, at the first of which an arrival lets go of the page. */
 const TAKEOVER = ["wheel", "touchstart", "pointerdown", "keydown"] as const
-/** An arrival lets go once the page has kept still for SETTLED_MS, and after HOLD_MAX_MS whatever happens. */
+/**
+ * An arrival lets go once the page has kept still for SETTLED_MS with no scene near the window still loading its text
+ * (which will change its height), and after HOLD_MAX_MS whatever happens.
+ */
 const SETTLED_MS = 1000
 const HOLD_MAX_MS = 5000
+const LOADING_SCENE = "[data-scene-loading]"
 
 let holds = 0
 /** Whether an arrival is holding the page still (see holdInView): following the scroll waits until it lets go. */
@@ -29,17 +33,22 @@ export const holdingView = () => holds > 0
  * Scrolls an element's top into view and keeps it there while the page settles: after a jump, the scenes around it
  * get their editors, and their text seldom takes the height guessed for it. Chrome's scroll anchoring can't be relied
  * on to make up for that (it may anchor to a placeholder that's about to go), and Safari has none. Lets go at the
- * writer's first wheel, touch, click or key. Returns a function that lets go, for effect cleanups.
+ * writer's first wheel, touch, click or key. Returns a function that lets go, for effect cleanups. Rather than an
+ * element's selector, `target` can be what scrolls whatever it is into view.
  */
-export function holdInView(selector: string): () => void {
-  const scroll = () => document.querySelector(selector)?.scrollIntoView({ block: "start" })
+export function holdInView(target: string | (() => void)): () => void {
+  const scroll =
+    typeof target === "string" ? () => document.querySelector(target)?.scrollIntoView({ block: "start" }) : target
   let quiet = 0
   let limit = 0
   let held = true
+  const settle = () => {
+    window.clearTimeout(quiet)
+    quiet = window.setTimeout(() => (document.querySelector(LOADING_SCENE) ? settle() : release()), SETTLED_MS)
+  }
   const observer = new ResizeObserver(() => {
     scroll()
-    window.clearTimeout(quiet)
-    quiet = window.setTimeout(release, SETTLED_MS)
+    settle()
   })
   const release = () => {
     if (!held) return

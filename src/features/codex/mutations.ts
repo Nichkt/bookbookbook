@@ -27,19 +27,26 @@ async function universeOf(tx: Tx, bookId: string) {
   return universeId
 }
 
-async function insertEntry(
-  tx: Tx,
-  values: { universeId: string; typeId: string | null; name: string; color: string; fields?: Record<string, string> },
-) {
+interface NewEntry {
+  typeId: string | null
+  name: string
+  color: string
+  fields?: Record<string, string>
+  aliases?: readonly string[]
+  /** Plain text, a paragraph per line. */
+  notes?: string
+}
+
+async function insertEntry(tx: Tx, values: NewEntry & { universeId: string }) {
   const id = newId()
   await insertRow(tx, "codex_entries", {
     id,
     universe_id: values.universeId,
     type_id: values.typeId,
     name: values.name.trim(),
-    aliases: "[]",
+    aliases: JSON.stringify(uniqueStrings(values.aliases ?? [])),
     fields: JSON.stringify(values.fields ?? {}),
-    notes: EMPTY_NOTES,
+    notes: values.notes?.trim() ? plainToRichText(values.notes.trim()) : EMPTY_NOTES,
     tags: "[]",
     ai_context: "mentioned",
     color: values.color,
@@ -84,11 +91,8 @@ export async function insertCodexEntry(
   return id
 }
 
-/** A new entry of a type the Codex lists, built-in or the writer's own. Returns its id. */
-export async function createEntry(
-  db: Db,
-  input: { bookId: string; typeId: string | null; name: string; color: string },
-): Promise<string> {
+/** A new entry of a type the Codex lists, built-in or the writer's own, with aliases and notes if given. Returns its id. */
+export async function createEntry(db: Db, input: NewEntry & { bookId: string }): Promise<string> {
   return db.writeTransaction(async (tx) =>
     insertEntry(tx, { universeId: await universeOf(tx, input.bookId), ...input }),
   )

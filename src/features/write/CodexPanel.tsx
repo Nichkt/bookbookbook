@@ -79,9 +79,10 @@ export function CodexPanel({ onClose }: { onClose: () => void }) {
   /** The entry Back is leaving, to land on once the list is back. */
   const leaving = useRef<{ id: string; place: RowPlace | null } | null>(null)
 
-  // An entry gone to the Trash shows the list.
+  // An entry gone to the Trash shows the list. One still loading shows nothing for a moment, rather than the list,
+  // whose heading would take the focus meant for the entry's.
   const entry = codexEntryId ? codex.entryById.get(codexEntryId) : undefined
-  const view = entry?.id ?? "list"
+  const view = entry?.id ?? (codexEntryId && codex.isLoading ? null : "list")
 
   // An entry opens at its top; the list comes back where it was left.
   useLayoutEffect(() => {
@@ -121,7 +122,7 @@ export function CodexPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <div ref={root} className="flex flex-col">
-      {entry ? (
+      {entry && (
         <EntryView
           bookId={bookId}
           codex={codex}
@@ -131,7 +132,8 @@ export function CodexPanel({ onClose }: { onClose: () => void }) {
           onBack={() => back(entry)}
           onClose={onClose}
         />
-      ) : (
+      )}
+      {view === "list" && (
         <ListView
           bookId={bookId}
           codex={codex}

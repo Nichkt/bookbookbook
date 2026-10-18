@@ -71,7 +71,7 @@ export function Manuscript() {
 
   return (
     <article className="prose-page mx-auto px-5 pt-10 pb-[50vh] md:px-8">
-      <header className="mb-6 font-sans">
+      <header data-focus-dim="" className="mb-6 font-sans">
         <p className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">Manuscript</p>
         <h1 className="mt-2 font-heading text-4xl leading-tight font-semibold text-ink">
           {book.title?.trim() || "Untitled book"}
@@ -85,7 +85,10 @@ export function Manuscript() {
         group.chapters.length === 0 ? null : (
           <Fragment key={group.key}>
             {plan.hasActs && (
-              <p className="mt-20 text-center font-sans text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+              <p
+                data-focus-dim=""
+                className="mt-20 text-center font-sans text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase"
+              >
                 {actLabel(group, plan.hasActs)}
               </p>
             )}

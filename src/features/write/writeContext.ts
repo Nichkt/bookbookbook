@@ -15,15 +15,16 @@ export const UNIT_LABELS: Record<WriteUnit, string> = { scene: "Scene", chapter:
 
 /** Per book, like the Plan's view. */
 export const unitPrefKey = (bookId: string) => `write.unit:${bookId}`
-/** Per device: whether the navigator is open, and the docked panel's page. */
+/** Per device: whether the navigator is open, the docked panel's page, and typewriter scrolling ("on" or "off"). */
 export const NAV_PREF = "write.nav"
 export const PANEL_PREF = "write.panel"
+export const TYPEWRITER_PREF = "write.typewriter"
 
 /** From here up the panel sits beside the text instead of over it. */
 export const PANEL_DOCKED_QUERY = "(min-width: 80rem)"
 
 /** The panel's pages (DESIGN.md §8), each opened by its own button in the toolbar. */
-export const PANEL_PAGES = ["plan", "codex"] as const
+export const PANEL_PAGES = ["plan", "codex", "find"] as const
 export type PanelPage = (typeof PANEL_PAGES)[number]
 
 /** The docked panel's page as the pref stores it. Before the Codex page, "open" meant the plan. */
@@ -73,6 +74,8 @@ export interface WriteContextValue {
   book: BookListRow
   plan: Plan
   matcher: MentionMatcher
+  /** Whether the names the matcher finds are still loading, so it can't yet tell a new name from a known one. */
+  matcherLoading: boolean
   unit: WriteUnit
   setUnit: (unit: WriteUnit) => void
   /** The chapter in the URL: the one shown, or in the manuscript the one in view. */
@@ -94,6 +97,13 @@ export interface WriteContextValue {
   openEntryFromText: (entryId: string) => void
   /** The editor a name was in when it opened the panel; null when the toolbar opened it. */
   panelOpener: () => Editor | null
+  /** Where focus goes as the panel closes: an editor, or with null where the panel was opened from. */
+  setPanelOpener: (editor: Editor | null) => void
+  /** Closes the panel, focus going to the editor, as when a match picked in Find and replace takes focus there. */
+  closePanelTo: (editor: Editor) => void
+  /** Typewriter scrolling (DESIGN.md §8 "Writing aids"), per device. */
+  typewriter: boolean
+  setTypewriter: (on: boolean) => void
 }
 
 export const WriteContext = createContext<WriteContextValue | null>(null)
