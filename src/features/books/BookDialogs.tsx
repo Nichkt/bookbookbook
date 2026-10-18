@@ -123,7 +123,7 @@ function NewBookForm() {
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="new-book-target">Target length in words</Label>
+        <Label htmlFor="new-book-target">Word count target</Label>
         <Input
           id="new-book-target"
           type="number"
@@ -208,7 +208,7 @@ function BookSettingsForm({ book }: { book: BookListRow }) {
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="book-target">Target length in words</Label>
+        <Label htmlFor="book-target">Word count target</Label>
         <Input
           id="book-target"
           type="number"

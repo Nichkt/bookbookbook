@@ -3,7 +3,7 @@ import {
   ArrowUpIcon,
   EllipsisIcon,
   IndentIncreaseIcon,
-  PanelRightOpenIcon,
+  Maximize2Icon,
   PenLineIcon,
   PlusIcon,
   SplitIcon,
@@ -294,7 +294,7 @@ function OutlineAct({ group, act }: { group: PlanGroup; act: Readonly<PlanActRow
       <h2 id={headingId} className="sr-only">
         {label}
       </h2>
-      <OutlineRow rowKey={key} label={label} className="flex items-start gap-2 py-1 pr-1">
+      <OutlineRow rowKey={key} label={label} data-tour="plan-act" className="flex items-start gap-2 py-1 pr-1">
         {/* On narrow screens the stats wrap below the title rather than squeezing it. */}
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
           <TitleStop
@@ -535,6 +535,7 @@ function OutlineChapter({ chapter }: { chapter: PlanChapter }) {
 
   return (
     <li
+      data-tour="plan-chapter"
       className={cn(
         "rounded-xl transition-[opacity,filter,background-color]",
         openId === chapter.id && "bg-primary/5 ring-1 ring-primary/25",
@@ -581,12 +582,13 @@ function OutlineChapter({ chapter }: { chapter: PlanChapter }) {
               variant="ghost"
               size="icon-sm"
               tabIndex={-1}
+              data-open-chapter={chapter.id}
               aria-label={`Open details for chapter ${chapter.number}`}
               title={`Details (${MOD.key}+Enter)`}
               onClick={() => showChapter(chapter.id)}
               className="text-muted-foreground"
             >
-              <PanelRightOpenIcon />
+              <Maximize2Icon />
             </Button>
             <ChapterMenu chapter={chapter} rowKey={key} actions={actions} />
           </RowActions>
@@ -673,11 +675,11 @@ function SummaryStop({ chapter }: { chapter: PlanChapter }) {
   )
 }
 
-/** Beats as a read-only checklist: tick them here, edit them in the drawer. */
+/** Moments as a read-only checklist: tick them here, edit them in the chapter's details. */
 function BeatList({ chapter }: { chapter: PlanChapter }) {
   const { db } = usePlanContext()
   return (
-    <ul aria-label={`Beats in chapter ${chapter.number}`} className="grid gap-1 px-1.5">
+    <ul aria-label={`Moments in chapter ${chapter.number}`} className="grid gap-1 px-1.5">
       {chapter.beats.map((beat) => {
         const textId = `outline-beat-${beat.id}`
         return (
@@ -687,7 +689,7 @@ function BeatList({ chapter }: { chapter: PlanChapter }) {
               checked={!!beat.done}
               aria-labelledby={textId}
               onCheckedChange={(checked) =>
-                void attempt("tick beat", updateBeat(db, beat.id, { done: checked === true }))
+                void attempt("tick moment", updateBeat(db, beat.id, { done: checked === true }))
               }
               className="mt-0.5 pointer-coarse:mt-0"
             />
@@ -695,7 +697,7 @@ function BeatList({ chapter }: { chapter: PlanChapter }) {
               id={textId}
               className={cn("min-w-0 flex-1 leading-snug text-ink-2", beat.done && "text-muted-foreground line-through")}
             >
-              {beat.text?.trim() || "Untitled beat"}
+              {beat.text?.trim() || "Untitled moment"}
             </span>
           </li>
         )
@@ -853,7 +855,7 @@ function ChapterMenu({ chapter, rowKey, actions }: ChapterMenuProps) {
           showChapter(chapter.id)
         }}
       >
-        <PanelRightOpenIcon />
+        <Maximize2Icon />
         Open details
         <DropdownMenuShortcut>{MOD.key}+Enter</DropdownMenuShortcut>
       </DropdownMenuItem>
@@ -928,7 +930,7 @@ function SceneMenu({ chapter, scene, index, rowKey, actions }: SceneMenuProps) {
           showChapter(chapter.id)
         }}
       >
-        <PanelRightOpenIcon />
+        <Maximize2Icon />
         Chapter details
         <DropdownMenuShortcut>{MOD.key}+Enter</DropdownMenuShortcut>
       </DropdownMenuItem>

@@ -51,7 +51,7 @@ interface ChapterChipsProps {
   className?: string
 }
 
-/** A chapter's threads, labels, location, story time and template beat, as far as `fields` shows them. */
+/** A chapter's story points, labels, location, story time and structure moment, as far as `fields` shows them. */
 export function MetaChips({ chapter, entries, fields, className }: ChapterChipsProps) {
   const threads = fields.has("threads") ? chapter.threads.flatMap((id) => entries.get(id) ?? []) : []
   const labels = fields.has("labels") ? chapter.labelList : []
@@ -84,8 +84,8 @@ export function MetaChips({ chapter, entries, fields, className }: ChapterChipsP
         </Chip>
       )}
       {beat && (
-        <Chip title="Template beat">
-          <FlagIcon aria-label="Template beat" />
+        <Chip title="Structure moment">
+          <FlagIcon aria-label="Structure moment" />
           <span className="truncate">{templateBeatName(beat)}</span>
         </Chip>
       )}

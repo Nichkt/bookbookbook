@@ -56,7 +56,7 @@ const entriesText = (count: number) => `${formatCount(count)} ${count === 1 ? "e
 
 /**
  * The codex beside the text (DESIGN.md §7, §8): the entries the chapter names, then all of them by type, and one at a
- * time to read. Editing them stays on the Codex screen.
+ * time to read. Editing them stays on the World screen.
  */
 export function CodexPanel({ onClose }: { onClose: () => void }) {
   const { bookId, plan, chapterId, matcher, codexEntryId, setCodexEntryId } = useWrite()
@@ -186,9 +186,9 @@ function ListView({ bookId, codex, inChapter, countFailed, query, setQuery, onOp
   } else if (codex.entries.length === 0) {
     body = (
       <div className="grid justify-items-start gap-2 text-sm text-muted-foreground">
-        <p>The codex is empty. The characters, places and things you add there show up here as you write.</p>
+        <p>Your world is empty. The characters, places and things you add in World show up here as you write.</p>
         <Link to={codexPath(bookId)} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          Go to the Codex
+          Go to World
         </Link>
       </div>
     )
@@ -233,7 +233,7 @@ function ListView({ bookId, codex, inChapter, countFailed, query, setQuery, onOp
           )}
           {inChapter?.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              No codex names in this chapter yet. Entries its text mentions, or its plan links, show up here.
+              No names from your world in this chapter yet. Entries its text mentions, or its plan links, show up here.
             </p>
           )}
           {countFailed && (
@@ -273,10 +273,10 @@ function ListView({ bookId, codex, inChapter, countFailed, query, setQuery, onOp
           data-codex-panel-heading="list"
           className={cn("mr-auto text-xs font-semibold tracking-widest text-muted-foreground uppercase", FOCUS_RING)}
         >
-          Codex
+          World
         </h2>
         <Link to={codexPath(bookId)} className={LINK_BUTTON}>
-          Open in Codex
+          Open in World
         </Link>
         <CloseButton onClose={onClose} />
       </header>
@@ -290,7 +290,7 @@ function ListView({ bookId, codex, inChapter, countFailed, query, setQuery, onOp
             <Input
               type="search"
               data-codex-panel-search
-              aria-label="Search the codex"
+              aria-label="Search your world"
               placeholder="Search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -375,7 +375,7 @@ function EntryView({ bookId, codex, entry, item, counted, onBack, onClose }: Ent
           Back
         </Button>
         <Link to={codexPath(bookId, entry.id)} className={LINK_BUTTON}>
-          Open in Codex
+          Open in World
         </Link>
         <CloseButton onClose={onClose} />
       </header>

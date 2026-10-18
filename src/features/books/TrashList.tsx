@@ -83,7 +83,7 @@ export function TrashList({ bookId }: { bookId: string | undefined }) {
       })),
     },
     {
-      heading: "Codex entries",
+      heading: "World entries",
       items: entries.data.map((row) => ({
         kind: "entry",
         id: row.id,

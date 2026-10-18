@@ -14,9 +14,9 @@ import type { SceneReader } from "@/export/scenes"
 export type PlanRole = "pov" | "location" | "thread" | "present"
 
 export const PLAN_ROLES: readonly { role: PlanRole; label: string }[] = [
-  { role: "pov", label: "POV" },
+  { role: "pov", label: "Point of view" },
   { role: "location", label: "Location" },
-  { role: "thread", label: "Thread" },
+  { role: "thread", label: "Story point" },
   { role: "present", label: "Present" },
 ]
 

@@ -1,6 +1,6 @@
 import { usePowerSync } from "@powersync/react"
 import { Dialog as DialogPrimitive } from "radix-ui"
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Navigate, useLocation, useParams } from "react-router"
 import { rememberBook, useCurrentBook } from "@/app/books"
 import { announce, attempt } from "@/app/feedback"
@@ -8,10 +8,8 @@ import { PlaceholderScreen } from "@/app/PlaceholderScreens"
 import { setPref, usePref } from "@/db/prefs"
 import type { BookListRow } from "@/db/queries"
 import { byData, focusPending, focusSoon } from "@/lib/focus"
-import { isComposing } from "@/lib/keys"
-import { useMediaQuery } from "@/lib/useMediaQuery"
 import { Board } from "./Board"
-import { ChapterDrawer } from "./ChapterDrawer"
+import { ChapterDrawer, type ChapterStep } from "./ChapterDrawer"
 import { isPlanView, useDisplay, viewPrefKey, type PlanView } from "./display"
 import { useChapterDrawer } from "./drawerNav"
 import { activeFilterCount, matchesFilters, usePlanFilters } from "./filters"
@@ -21,9 +19,6 @@ import type { PlanChapter } from "./planData"
 import { usePlan } from "./planData"
 import { PlanToolbar } from "./PlanToolbar"
 import { chapterTitle } from "./status"
-
-/** From here up the drawer sits beside the view instead of over it (DESIGN.md §6). */
-const DOCKED_QUERY = "(min-width: 64rem)"
 
 /** `/b/:bookId/plan`: the view used last for this book, else the Board. */
 export function PlanIndex() {
@@ -64,10 +59,9 @@ function PlanLoaded({ book, bookId, view }: { book: BookListRow; bookId: string;
   const { display, setPreset, toggleField } = useDisplay(bookId, view)
   const { filters, setFilter, clearFilters } = usePlanFilters()
   const { chapterId, openChapter, closeChapter } = useChapterDrawer()
-  const docked = useMediaQuery(DOCKED_QUERY)
 
   useEffect(() => {
-    rememberBook(bookId)
+    rememberBook(bookId, "plan")
     void attempt("remember view", setPref(db, viewPrefKey(bookId), view))
   }, [db, bookId, view])
 
@@ -96,6 +90,14 @@ function PlanLoaded({ book, bookId, view }: { book: BookListRow; bookId: string;
     (id: string, focus: DrawerFocus = "heading") => {
       openChapter(id)
       if (focus !== "none") focusSoon(byData(focus === "title" ? "drawer-title" : "drawer-heading", id))
+    },
+    [openChapter],
+  )
+
+  const stepChapter = useCallback<ChapterStep>(
+    (id, direction) => {
+      openChapter(id)
+      focusSoon(byData("chapter-nav", direction))
     },
     [openChapter],
   )
@@ -154,9 +156,8 @@ function PlanLoaded({ book, bookId, view }: { book: BookListRow; bookId: string;
             </h1>
             {view === "board" ? <Board /> : <Outline />}
           </div>
-          {docked && chapterId && <DockedDrawer chapterId={chapterId} onClose={closeChapter} />}
         </div>
-        {!docked && <DrawerSheet chapterId={chapterId} onClose={closeChapter} />}
+        <ChapterPopout chapterId={chapterId} onClose={closeChapter} onStep={stepChapter} />
       </div>
     </PlanContext.Provider>
   )
@@ -178,42 +179,23 @@ function useReturnFocus() {
   )
 }
 
-/** The drawer beside the view on wide screens. Not modal: the board stays usable. */
-function DockedDrawer({ chapterId, onClose }: { chapterId: string; onClose: () => void }) {
-  const ref = useRef<HTMLElement>(null)
-  const returnFocus = useReturnFocus()
-  // After a reload or Back to a `?chapter=` URL nothing has focus, so start in the drawer, as a click on a card would.
-  useEffect(() => {
-    const active = document.activeElement
-    if (!focusPending() && (!active || active === document.body)) focusSoon(byData("drawer-heading", chapterId))
-  }, [chapterId])
-  const close = () => {
-    returnFocus(chapterId, ref.current)
-    onClose()
-  }
-  const onKeyDown = (event: KeyboardEvent) => {
-    if (event.key !== "Escape" || event.nativeEvent.defaultPrevented || isComposing(event.nativeEvent)) return
-    event.preventDefault()
-    close()
-  }
-  return (
-    <aside
-      ref={ref}
-      aria-label="Chapter details"
-      onKeyDown={onKeyDown}
-      className="sticky top-[6.5rem] h-[calc(100svh-6.5rem)] w-[400px] shrink-0 overflow-y-auto border-l bg-surface pointer-coarse:top-28 pointer-coarse:h-[calc(100svh-7rem)]"
-    >
-      <ChapterDrawer chapterId={chapterId} onClose={close} />
-    </aside>
-  )
-}
-
-/** The drawer as a sheet over the view on narrower screens. */
-function DrawerSheet({ chapterId, onClose }: { chapterId: string | null; onClose: () => void }) {
+/**
+ * A chapter's details popped out over the Plan (DESIGN.md §6): centered on wider screens, the whole screen on a phone.
+ * Previous and next step through the chapters without closing it.
+ */
+function ChapterPopout({
+  chapterId,
+  onClose,
+  onStep,
+}: {
+  chapterId: string | null
+  onClose: () => void
+  onStep: ChapterStep
+}) {
   const { plan } = usePlanContext()
   const contentRef = useRef<HTMLDivElement>(null)
   const returnFocus = useReturnFocus()
-  // Keeps showing the chapter while the sheet slides away.
+  // Keeps showing the chapter while the pop-out fades away.
   const [shownId, setShownId] = useState(chapterId)
   if (chapterId && chapterId !== shownId) setShownId(chapterId)
   const chapter = shownId ? plan.chapterById.get(shownId) : undefined
@@ -221,14 +203,19 @@ function DrawerSheet({ chapterId, onClose }: { chapterId: string | null; onClose
   return (
     <DialogPrimitive.Root open={!!chapterId} onOpenChange={(open) => !open && onClose()}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-black/30 duration-200 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/30 duration-150 supports-backdrop-filter:backdrop-blur-xs data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
         <DialogPrimitive.Content
           ref={contentRef}
           tabIndex={-1}
-          className="fixed inset-y-0 right-0 z-50 flex w-full flex-col overflow-y-auto bg-surface shadow-xl outline-none duration-200 data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:animate-in data-[state=open]:slide-in-from-right md:w-[440px] md:border-l"
+          data-chapter-popout=""
+          className="fixed inset-0 z-50 flex scroll-pt-16 flex-col overflow-y-auto overscroll-contain bg-surface shadow-2xl outline-none duration-150 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:h-[min(54rem,calc(100dvh-4rem))] sm:w-[calc(100%-3rem)] sm:max-w-4xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:ring-1 sm:ring-foreground/10"
           onOpenAutoFocus={(event) => {
             event.preventDefault()
-            if (!focusPending()) contentRef.current?.focus()
+            if (focusPending()) return
+            // Opened from the URL, as after a reload: start at the top, as a click on a card does.
+            const content = contentRef.current
+            const heading = content?.querySelector<HTMLElement>("[data-drawer-heading]") ?? content
+            heading?.focus()
           }}
           onCloseAutoFocus={(event) => {
             event.preventDefault()
@@ -241,7 +228,7 @@ function DrawerSheet({ chapterId, onClose }: { chapterId: string | null; onClose
           <DialogPrimitive.Description className="sr-only">
             The chapter's plan. Changes save as you type.
           </DialogPrimitive.Description>
-          {shownId && <ChapterDrawer chapterId={shownId} onClose={onClose} />}
+          {shownId && <ChapterDrawer chapterId={shownId} onClose={onClose} onStep={onStep} />}
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>

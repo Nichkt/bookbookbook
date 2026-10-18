@@ -43,10 +43,16 @@ export { expect }
 /** The first load seeds the sample book, which can take a while when every worker does it at once. */
 export const FIRST_LOAD_TIMEOUT = 20_000
 
-/** Opens the app at "/" and follows it to the first chapter. Returns the first scene's text box. */
-export async function openFirstChapter(page: Page): Promise<Locator> {
+/** Opens the app at "/", the home screen, and the sample book from it. */
+export async function openSampleBook(page: Page) {
   await page.goto("/")
-  await page.waitForURL(/\/b\/[^/]+\/write\/[^/]+$/, { timeout: FIRST_LOAD_TIMEOUT })
+  await page.getByRole("link", { name: "The Salt Ledger" }).click({ timeout: FIRST_LOAD_TIMEOUT })
+}
+
+/** Opens the sample book from the home screen, at its first chapter. Returns the first scene's text box. */
+export async function openFirstChapter(page: Page): Promise<Locator> {
+  await openSampleBook(page)
+  await expect(page).toHaveURL(/\/b\/[^/]+\/write\/[^/]+$/)
   const editor = page.getByRole("textbox", { name: "Ferry wake" })
   await expect(editor).toBeVisible()
   return editor

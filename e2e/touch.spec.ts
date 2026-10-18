@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test"
-import { openFirstChapter, seedBackupRecord, test } from "./fixtures"
+import { FIRST_LOAD_TIMEOUT, openFirstChapter, seedBackupRecord, test } from "./fixtures"
 
 const CONTROLS = [
   "button",
@@ -122,17 +122,17 @@ for (const [device, viewport] of [
 
       if (device === "phone") {
         await page.getByRole("button", { name: "More writing tools" }).click()
-        await page.getByRole("menuitem", { name: "Codex" }).click()
+        await page.getByRole("menuitem", { name: "World" }).click()
       } else {
-        await page.getByRole("button", { name: "Codex", exact: true }).click()
+        await page.getByRole("button", { name: "World", exact: true }).click()
       }
-      const codexSheet = page.getByRole("dialog", { name: "Codex" })
-      const mara = codexSheet.getByRole("region", { name: "In this chapter" }).getByRole("button").first()
+      const worldSheet = page.getByRole("dialog", { name: "World" })
+      const mara = worldSheet.getByRole("region", { name: "In this chapter" }).getByRole("button").first()
       await mara.waitFor()
-      await check("Codex panel", "[role=dialog]")
+      await check("World panel", "[role=dialog]")
       await mara.click()
-      await codexSheet.getByRole("heading", { level: 2, name: "Mara Quill" }).waitFor()
-      await check("Codex panel entry", "[role=dialog]")
+      await worldSheet.getByRole("heading", { level: 2, name: "Mara Quill" }).waitFor()
+      await check("World panel entry", "[role=dialog]")
       await closeWith("Escape", "[role=dialog]")
 
       await page.getByRole("navigation", { name: "Screens" }).getByRole("link", { name: "Plan" }).click()
@@ -161,8 +161,8 @@ for (const [device, viewport] of [
       await sheet.waitFor()
       await check("Chapter details", "[role=dialog]")
 
-      await sheet.getByRole("button", { name: /^POV\b/ }).click()
-      await check("POV picker", "[data-slot=popover-content]")
+      await sheet.getByRole("button", { name: /^Point of view\b/ }).click()
+      await check("Point of view picker", "[data-slot=popover-content]")
       await closeWith("Escape", "[data-slot=popover-content]")
 
       await sheet.getByRole("button", { name: /^Story time\b/ }).click()
@@ -179,16 +179,16 @@ for (const [device, viewport] of [
       await check("Outline")
     })
 
-    test("every Codex control is at least a 44px target", async ({ page }) => {
+    test("every World control is at least a 44px target", async ({ page }) => {
       const { check, closeWith } = checker(page)
 
       await openFirstChapter(page)
-      await page.getByRole("navigation", { name: "Screens" }).getByRole("link", { name: "Codex" }).click()
+      await page.getByRole("navigation", { name: "Screens" }).getByRole("link", { name: "World" }).click()
       const agnes = page.locator("[data-codex-row]").filter({ hasText: "Agnes Morrow" })
       await agnes.waitFor()
-      await check("Codex")
+      await check("World")
 
-      await page.getByRole("combobox", { name: "Codex type" }).click()
+      await page.getByRole("combobox", { name: "Entry type" }).click()
       await check("Type options", "[role=listbox]")
       await closeWith("Escape", "[role=listbox]")
 
@@ -207,7 +207,7 @@ for (const [device, viewport] of [
       await agnes.click()
       const entry = page.locator("[data-codex-entry]")
       await entry.getByRole("heading", { name: "Character: Agnes Morrow" }).waitFor()
-      await check("Codex entry")
+      await check("World entry")
 
       await entry.getByRole("combobox", { name: "Type", exact: true }).click()
       await check("Entry type options", "[role=listbox]")
@@ -221,6 +221,36 @@ for (const [device, viewport] of [
       await check("Entry menu", "[role=menu]")
       await page.getByRole("menuitem", { name: "Move to Trash" }).click()
       await check("Undo toast", "[data-sonner-toast]")
+    })
+
+    test("every home and help control is at least a 44px target", async ({ page }) => {
+      const { check, closeWith } = checker(page)
+
+      await page.goto("/")
+      await page.getByRole("link", { name: "The Salt Ledger" }).waitFor({ timeout: FIRST_LOAD_TIMEOUT })
+      await check("Home")
+
+      const openHelp = async (item: "How to use this" | "Glossary") => {
+        if (device === "phone") {
+          await page.getByRole("button", { name: "Help" }).click()
+          await check("Help menu", "[role=menu]")
+          await page.getByRole("menuitem", { name: item }).click()
+        } else {
+          await page.getByRole("button", { name: item }).click()
+        }
+      }
+
+      await openHelp("Glossary")
+      await page.getByRole("dialog", { name: "Glossary" }).getByRole("searchbox").waitFor()
+      await check("Glossary", "[role=dialog]")
+      await closeWith("Escape", "[role=dialog]")
+
+      // The second step offers to explain a word, so it has every kind of button a tour card has.
+      await openHelp("How to use this")
+      await page.getByRole("dialog", { name: "Welcome to bookbookbook" }).getByRole("button", { name: "Next" }).click()
+      await page.getByRole("dialog", { name: "Your books" }).waitFor()
+      await check("Tour card", "[data-tour-card]")
+      await closeWith("Escape", "[data-tour-card]")
     })
 
     test("every import control is at least a 44px target", async ({ page }) => {

@@ -4,8 +4,8 @@
 > **Name:** bookbookbook, written in lowercase. Run a trademark/domain check before launch (see [Risks](#20-risks-and-mitigations)).
 
 **bookbookbook** is a local-first novel-writing app: a **book planner** (organize what happens in every chapter) joined to
-a **chapter-by-chapter writing studio** with focused AI tools. Organization takes cues from NovelCrafter (plan views,
-codex). Writing takes cues from Sudowrite (selection tools, AI result cards).
+a **chapter-by-chapter writing studio** with focused AI tools. Organization takes cues from NovelCrafter (plan views and
+a codex, here called World). Writing takes cues from Sudowrite (selection tools, AI result cards).
 
 ## Contents
 1. [Summary](#1-summary)
@@ -14,7 +14,7 @@ codex). Writing takes cues from Sudowrite (selection tools, AI result cards).
 4. [Information architecture](#4-information-architecture)
 5. [Domain model](#5-domain-model)
 6. [Planner](#6-planner)
-7. [Codex](#7-codex)
+7. [World (the codex)](#7-world-the-codex)
 8. [Writing studio](#8-writing-studio)
 9. [AI system](#9-ai-system)
 10. [Speech-to-text](#10-speech-to-text)
@@ -25,6 +25,7 @@ codex). Writing takes cues from Sudowrite (selection tools, AI result cards).
 15. [Visual design](#15-visual-design)
 16. [Responsive and mobile](#16-responsive-and-mobile)
 17. [Accessibility, i18n, performance](#17-accessibility-i18n-performance)
+    - 17a. [Glossary and tours](#17a-glossary-and-tours)
 18. [Security, privacy, legal](#18-security-privacy-legal)
 19. [Release plan](#19-release-plan)
 20. [Risks and mitigations](#20-risks-and-mitigations)
@@ -46,8 +47,8 @@ assistant beside the page. Everything works offline. Your writing stays yours.
 | Structure | Book › Acts (optional) › Chapters › Scenes (optional) › Beats. Single book now, series-ready data model |
 | Planner | Board, Outline, Matrix, Timeline, Corkboard. 11 card fields. Display presets (Compact / Standard / Detailed) |
 | Templates | 9 structures (Three-Act … Snowflake wizard, Custom). Scaffold a new book **and** overlay on an existing one |
-| Codex | 9 entry types, structured fields + notes, aliases, auto + @-mentions, backlinks, per-entry AI context |
-| Writing | Three panes (navigator · page · Plan/Codex/AI). Edit by scene, chapter or whole manuscript |
+| World (codex) | 9 entry types, structured fields + notes, aliases, auto + @-mentions, backlinks, per-entry AI context |
+| Writing | Three panes (navigator · page · Chapter plan/World/AI). Edit by scene, chapter or whole manuscript |
 | AI | "Light+": 11 inline tools + Draft from beats + Chapter feedback. No chat (architecture allows it later) |
 | AI output | Cards in a side panel (Insert / Copy / Retry). AI text tinted until edited. "% AI-assisted" stat |
 | AI engine | Hosted credits (paid) + bring-your-own-key + local models. Any-model picker. Editable context preview |
@@ -82,8 +83,8 @@ assistant beside the page. Everything works offline. Your writing stays yours.
 | Persona | Core jobs | What they need from bookbookbook |
 |---|---|---|
 | **Plotter** (outlines first) | Break a story into acts and chapters; check structure; track threads | Templates + overlay, Board/Outline, Matrix, Timeline, beats per chapter |
-| **Pantser / discovery writer** | Write first, organize later | Fast editor, Summarize chapter → card, auto codex mentions, Brainstorm |
-| **Hybrid / series author** | Keep a large cast and world consistent | Codex with aliases and backlinks, AI context from the codex, series-ready model |
+| **Pantser / discovery writer** | Write first, organize later | Fast editor, Summarize chapter → card, auto World mentions, Brainstorm |
+| **Hybrid / series author** | Keep a large cast and world consistent | World entries with aliases and backlinks, AI context from World, series-ready model |
 | **Busy / mobile writer** | Capture ideas anywhere, write in short sessions | Voice Inbox, phone editing, sprints, daily goals, sync (paid) |
 | **AI-cautious writer** | Write without AI, or keep it at arm's length | AI fully optional, BYOK/local only, provenance tint, % AI-assisted |
 
@@ -96,25 +97,43 @@ they know, so I can write it without rereading the whole book."
 
 ```
 App
-├─ Book switcher (books; later: series/universes)
-├─ Plan ─────── Board · Outline · Matrix · Timeline · Corkboard  (+ chapter detail drawer, Structure overlay)
-├─ Write ────── Navigator │ Page (scene / chapter / manuscript) │ Right panel: Plan · Codex · AI
-├─ Codex ────── Types │ Entries │ Entry page (fields, notes, aliases, appears-in, relationships, progressions)
-├─ Inbox ────── Quick notes + voice notes → clean up, turn into beats / summary / codex entry, file to chapter
+├─ Home ─────── Your books, the last opened first → open one where you left it · New book · Import · Restore · Backups · Trash
+├─ Book menu ── All books · New book · Restore · Import · Book settings · Export · Backups · Trash
+├─ Plan ─────── Board · Outline · Matrix · Timeline · Corkboard  (+ chapter pop-out, Structure overlay)
+├─ Write ────── Navigator │ Page (scene / chapter / manuscript) │ Right panel: Chapter plan · World · AI
+├─ World ────── Types │ Entries │ Entry page (fields, notes, aliases, appears-in, relationships, progressions)
+├─ Inbox ────── Quick notes + voice notes → clean up, turn into moments / summary / World entry, file to chapter
+├─ Help ─────── How to use this (a tour of the page) · Glossary (every term in plain English)
 ├─ Command palette (Ctrl/Cmd+K) — navigate, switch views, run any AI tool, toggle modes, settings
 └─ Settings ─── AI & models · Writing style · Speech · Appearance · Backups · Account & plan · Privacy
 ```
 
-**Global elements:** book switcher, today's word goal ring, quick-capture mic, theme switch, command palette, sync /
-"Saved locally" status, account chip ("Guest · Local only" before sign-up).
+**Global elements:** the bookbookbook logo (home), book menu, How to use this and Glossary, today's word goal ring,
+quick-capture mic, theme switch, command palette, sync / "Saved locally" status, account chip ("Guest · Local only"
+before sign-up).
 
 **Navigation rules**
-- Plan → **Write ▸** (card, drawer, outline row) opens the Writing studio at that chapter. Write → right-panel **Plan**
-  tab edits the same chapter's summary and beats.
-- Every codex mention links to its entry: resting the mouse on it shows a preview card whose **Details** opens the
+- The app opens on the home screen. A book opens on the screen it was last open on (Plan, Write or World, per
+  device), or else Write once it has words and Plan before that. The logo and the book menu's **All books** go home.
+- Plan → **Write ▸** (card, pop-out, outline row) opens the Writing studio at that chapter. Write → right-panel
+  **Chapter plan** edits the same chapter's summary and moments.
+- Every World mention links to its entry: resting the mouse on it shows a preview card whose **Details** opens the
   entry in the side panel, and Ctrl+click (⌘-click on a Mac) opens the full page. A plain click places the caret.
 - The last-used Plan view, Display preset and editing unit are remembered **per book, per device**.
-- Deep links: `/b/:bookId/plan/:view`, `/b/:bookId/write/:chapterId[/:sceneId]`, `/b/:bookId/codex/:entryId`, `/inbox`.
+- Deep links: `/` (home), `/b/:bookId/plan/:view`, `/b/:bookId/write/:chapterId[/:sceneId]`,
+  `/b/:bookId/world/:entryId` (older `/codex/` links redirect), `/b/:bookId/inbox`.
+
+### Built after M7: the home screen
+- **Your books** lists every book as a card: title, author and genre, words against the word count target, the number
+  of chapters and when it was last opened here ("Opened today", "Opened 3 days ago", "Opened 3 Mar", "Not opened
+  yet"). They're in order of when each was last opened here, or made if it never was, newest first.
+- The whole card is the link, so it's one big target; its title is the link's name. Visits are kept per device in
+  `localStorage` (`bbb.bookVisits`), as the last screen and when, and only Plan, Write and World count as visits.
+- **New book**, **Import a manuscript**, **Restore from backup**, **Backups** and **Trash** sit above the list. With
+  no books the screen says so ("No books yet") and offers the same five.
+- Inside a book the header shows the book menu, which starts with **All books**; on the home screen it doesn't, since
+  there's no book open. Backups from home covers folder backups and the browser's storage, with no "This book".
+- An address that isn't a page says so and links to your books.
 
 ## 5. Domain model
 
@@ -183,24 +202,32 @@ client in a worker. Prose is never stored as an HTML blob, so offline edits from
 ### Views
 | View | Shows | Interactions |
 |---|---|---|
-| **Board** | Acts as rows, chapter cards left → right | Drag to reorder or move between acts; click → drawer; "+ Chapter" per act |
+| **Board** | Acts as rows, chapter cards left → right | Drag to reorder or move between acts; click → chapter pop-out; "+ Chapter" per act |
 | **Outline** | Tree: Act › Chapter › Scene with summaries and beats inline | Keyboard-first: Enter = new item, Tab = fold into the item above, Shift+Tab = split off; inline editing |
 | **Matrix** | Rows = characters and plot threads; columns = chapters (grouped by act) | ★ POV · ● present · blank = absent; click to toggle; warns when a thread goes quiet for ≥ 3 chapters |
 | **Timeline** | Chapters placed by **in-story** time in POV lanes; codex Events as markers | Toggle story order vs reading order; flashbacks visibly out of sequence |
 | **Corkboard** | Index cards (title + summary) | Fast reorder; print/export as cards later |
 
 ### Card fields (all 11)
-Summary · beats checklist · POV · status · word count / target · labels & colors · plot threads · characters present ·
-location · in-story date/time · template beat.
+Summary · moments checklist · point of view · status · word count / word count target · labels & colors · story
+points · what characters are present · location · in-story date/time · structure moment.
 
-**Display menu (per view):** presets *Compact* (title, status, POV), *Standard* (+ summary, words, threads) and
-*Detailed* (all fields), plus per-field toggles. Saved in local `ui_prefs`.
+**Plain labels.** The app says what a field is for rather than using the trade's shorthand: **Point of view** (POV),
+**Word count target** (target), **What characters are present** (characters present), **Moments** (beats),
+**Story points** (plot threads), **Structure moment** (template beat), and **World** (the codex). The old words
+stay in the glossary as "also called", so searching for one finds the other (§17a). The data model and the code keep
+the old names (`beats`, `pov_entry_id`, `plot_threads`, `codex_entries`).
 
-**Chapter detail drawer:** every field, beats (check / add / reorder / dictate), scenes list, notes, linked codex
-entries, **Summarize with AI** (writes a proposed summary for you to accept) and **Write ▸**.
+**Display menu (per view):** presets *Compact* (title, status, point of view), *Standard* (+ summary, words, story
+points) and *Detailed* (all fields), plus per-field toggles. Saved in local `ui_prefs`.
 
-**Characters present** combines manual links with auto-detected mentions. Auto links show a subtle "auto" style and
-can be confirmed or removed.
+**Chapter pop-out:** clicking a chapter on the Board or Outline pops its details out over the Plan: centered on
+wider screens, the whole screen on phones. It has every field, moments (check / add / reorder / dictate), the scenes
+list, notes, linked World entries, **Summarize with AI** (writes a proposed summary for you to accept) and **Write
+this chapter ▸**.
+
+**What characters are present** combines manual links with auto-detected mentions. Auto links show a subtle "auto"
+style and can be confirmed or removed.
 
 ### In-story time
 `story_time` is a small structure so loose and exact timelines both work:
@@ -222,9 +249,9 @@ Seven-Point · Romance beats (Romancing the Beat-style) · Kishōtenketsu · Sno
 - **Naming:** "Save the Cat!", "Snowflake Method" and "Romancing the Beat" are third-party brands. Use descriptive names
   (as above) unless a license is obtained. Get legal advice.
 
-### Plot threads
-A plot thread is a codex entry (type *Plot thread*) with a color and a question it raises. Threads appear as colored
-tags on cards, as rows in the Matrix and as filters on every view.
+### Story points (plot threads)
+A story point is a World entry (type *Plot thread*) with a color and a question it raises. Story points appear as
+colored tags on cards, as rows in the Matrix and as filters on every view.
 
 ### Built in M1
 M1 built the Board, the Outline, the chapter drawer and the Display menu, plus filters, quick create and the Trash.
@@ -238,6 +265,7 @@ The Matrix, Timeline, Corkboard and templates follow in M5. Details it settled:
 - **Drawer.** From 1024 px up it docks beside the Board or Outline, which stay usable. Narrower screens get a modal
   sheet, full-screen on phones. `?chapter=` in the URL opens it, so it survives a reload (focus starts on its heading)
   and Back closes it. Word targets show the locale's digit grouping ("3,000") and read it back when typed.
+  *Superseded after M7 by the chapter pop-out at every width; see "Built after M7" below.*
 - **Filters** by POV, status and thread dim the chapters that don't match, and live in the URL. The Display preset
   and fields are saved per book and per view in `ui_prefs`.
 - **Quick create:** "+ Act" and "+ Chapter" in the toolbar, "+" on each act of the Board, Enter in the Outline. The
@@ -250,7 +278,29 @@ The Matrix, Timeline, Corkboard and templates follow in M5. Details it settled:
 - **Not yet:** characters present are manual links only. Auto-detected mentions, Summarize with AI and dictating
   beats come with M3, M4 and M11.
 
-## 7. Codex
+### Built after M7: the chapter pop-out
+The docked drawer read as a sidebar, so a chapter's details now pop out over the Plan instead, at every width:
+- **Shape.** A modal dialog, centered from 640 px (up to 56rem wide and 54rem tall, the page dimmed behind it) and
+  the whole screen on phones. Wide enough pop-outs put the details (status, point of view, word count target,
+  location, story time, story points, what characters are present, labels, structure moment) in a column beside the
+  summary, moments, scenes and notes.
+- **Write this chapter** sits under the title, beside the chapter's words against its word count target, and opens
+  Write at the chapter's heading.
+- **Previous chapter / Next chapter** in its header step through the book in reading order without closing it.
+  The ⋯ menu moves the chapter to the Trash.
+- **The address.** `?chapter=` still opens it, so it survives a reload with focus on its heading, and Back closes it.
+- **Focus (§17).** Escape, the X or a click outside closes it, and focus returns to the chapter's card or Outline row:
+  the one shown last, if Previous or Next moved on.
+- **"?" buttons** beside each label open the glossary at that term (§17a).
+- `e2e/plan.spec.ts` covers the pop-out's fields, stepping, the address and focus; `e2e/touch.spec.ts` its targets.
+
+## 7. World (the codex)
+
+In the app this is **World**: the people, places, things and story points a book is built from. It was called the
+Codex until after M7, but "codex" is jargon a new writer wouldn't know (§22). The screen, its tab, Write's side-panel
+page and every button now say World ("Open in World", "Search your world", the "Entry type" menu). The data model,
+the code and the older notes below still say codex (`codex_entries`, `src/features/codex/`), and `/b/:bookId/codex/…`
+links redirect to `/world/…`.
 
 **Types:** Characters · Locations · Objects · Factions · Lore / Magic / Tech · Events (also on the Timeline) · Plot
 threads (drive card tags and Matrix rows) · Themes · Custom types.
@@ -270,18 +320,21 @@ Dialogue polish) · Arc.
   survives renames and resolves ambiguity.
 - **Rendering:** auto-mentions are ProseMirror **decorations**, not stored marks. They are recomputed per changed
   paragraph after a short idle delay, so the prose stays clean and typing never jumps the caret.
-- **Hover card:** portrait/initials, type, key fields (or the notes), "Open in Codex", and "Details", which opens the
+- **Hover card:** portrait/initials, type, key fields (or the notes), "Open in World", and "Details", which opens the
   entry in the right panel.
 - **Backlinks:** `mention_index` (local) is aggregated per chapter → **Appears in**, Matrix "present" suggestions and
   auto "characters present" links.
-- **Quick-create:** select a name → "Add to codex" (pre-filled type guess, alias suggestions).
+- **Quick-create:** select a name → "Add to World" (pre-filled type guess, alias suggestions).
 
-### Codex and AI
+### World and AI
 `ai_context` decides inclusion: **Always** (e.g. the protagonist, the magic system), **When mentioned** (default:
 included when mentioned in the current scene or the text being sent) and **Never**. In v1.x, progressions are resolved
 "as of" the current chapter so the AI doesn't learn spoilers too early.
 
 ### Built in M3
+*Written before the rename: the Codex screen is now World, the Codex panel is Write's World page, and "Open in
+Codex" reads "Open in World".*
+
 M3 built the Codex screen (types, the entry list, and entry pages with Appears in), hover cards for the names the text
 underlines, and a Codex page in Write's side panel. Details it settled:
 - **Layouts.** From 1024 px the types, the list and the entry sit side by side. From 768 px the list and the entry
@@ -339,9 +392,9 @@ underlines, and a Codex page in Write's side panel. Details it settled:
 
 ### Layout
 Three panes, each collapsible: **Navigator** (acts › chapters › scenes, with status dots and word counts) ·
-**Page** · **Right panel** with pages, each opened from the toolbar: **Plan** (summary, beats, notes, metadata for the
-current chapter/scene) · **Codex** (entries mentioned here + pinned) · **AI** (tools, model, context preview, result
-cards).
+**Page** · **Right panel** with pages, each opened from the toolbar: **Chapter plan** (summary, moments, notes,
+details for the current chapter/scene) · **World** (entries mentioned here + pinned) · **AI** (tools, model, context
+preview, result cards).
 
 ### Editing unit
 A toolbar toggle: **Scene** · **Chapter** · **Manuscript**.
@@ -427,8 +480,8 @@ beside the text. Focus mode, find & replace and the other writing aids follow in
   on the newest version, so no phone keyboard pops up, and shows paragraph by paragraph what restoring it would add
   and remove. Restore first saves the text it replaces as "Before restoring", and the toast's Undo puts that back.
   Restored words count toward Today.
-- **Chapter plan.** The Plan's chapter drawer docks beside the text from 1280 px, its state remembered per device,
-  and is a sheet below that. Trashing the chapter from it closes it.
+- **Chapter plan.** The chapter's details from the Plan dock beside the text from 1280 px, their state remembered
+  per device, and are a sheet below that. Trashing the chapter from them closes them.
 - **Phone:** the toolbar has a chapter picker, bold and italic, and a ⋯ menu with the views and the other tools.
 - **Not yet:** folding scenes, focus mode, typewriter scrolling, find & replace and the other aids (M6). Known issue:
   resizing the window can leave the URL on the previous chapter until the next scroll.
@@ -467,8 +520,8 @@ The client builds each prompt from prioritized slots and trims from the bottom w
 | 2 | Book settings (genre, POV, tense, audience) + style guide | Always |
 | 3 | Selection / text before the caret (last ~2–4k tokens) / small window after it | Per tool |
 | 4 | Current chapter/scene summary + beats (+ the next beat for Continue) | On |
-| 5 | Codex entries set to **Always** | On |
-| 6 | Codex entries **mentioned** in the scene or the sent text (resolved "as of" this chapter) | On |
+| 5 | World entries set to **Always** | On |
+| 6 | World entries **mentioned** in the scene or the sent text (resolved "as of" this chapter) | On |
 | 7 | Character voices for speakers in the selection | Dialogue polish |
 | 8 | Previous chapters' summaries ("story so far") | On, last N |
 | 9 | Sample passages (style) | On when set |
@@ -657,7 +710,7 @@ flowchart LR
 | Markdown / TXT | Same splitter: `#` / `##` headings or chapter lines | Beta (built in M7) |
 | Paste & split | Paste a manuscript, same split preview | Beta (built in M7) |
 | Scrivener `.scriv` | Folder package (zip it or use a directory picker): parse the `.scrivx` binder XML + RTF files. Synopsis → summary, notes → notes, label/status → labels/status | v1.x |
-| Codex | CSV / Markdown entries | Later |
+| World | CSV / Markdown entries | Later |
 
 ### Export
 | Format | Details | Phase |
@@ -667,7 +720,7 @@ flowchart LR
 | Full project `.zip` | Open format (see §12) | Beta |
 | EPUB 3 | JSZip + XHTML templates, validated with epubcheck in CI | v1.x |
 | PDF review copy | pdfmake or a print stylesheet | v1.x |
-| Story bible | Codex → PDF / Markdown | v1.x |
+| Story bible | World → PDF / Markdown | v1.x |
 | Outline / synopsis | Chapter list with summaries and beats → DOCX / Markdown | v1.x |
 | Print-ready interior | Trim sizes, mirrored margins, widows/orphans, drop caps (Paged.js or Typst WASM) | Later |
 
@@ -897,7 +950,7 @@ soft layered shadows, nothing loud while writing.
 | ≥ 1280 px | Full three-pane studio |
 | 1024–1279 px | Right panel becomes an overlay drawer; navigator collapsible |
 | 768–1023 px (tablet) | Navigator and right panel are sheets; touch targets ≥ 44 px; drag with long-press |
-| < 768 px (phone) | Bottom tab bar (Plan · Write · Codex · Inbox · More); page-only editor; navigator, Plan, Codex and AI open as **bottom sheets**; chapter drawer is full-screen; Board becomes a vertical list grouped by act; Matrix and Timeline scroll horizontally |
+| < 768 px (phone) | Bottom tab bar (Plan · Write · World · Inbox · More); page-only editor; navigator, Plan, World and AI open as **bottom sheets**; the chapter pop-out is full-screen; Board becomes a vertical list grouped by act; Matrix and Timeline scroll horizontally |
 
 **Touch targets** *(built in M1)*
 - Sizes follow the pointer, not the width: wherever the main pointer is coarse, at any screen size, every control is
@@ -906,8 +959,9 @@ soft layered shadows, nothing loud while writing.
 - Small marks keep their look and get a 44 px hit area from an `::after` (checkboxes, a label's remove button).
 - The Plan toolbar grows from 48 to 56 px on touch, and the docked drawer's offset and the Outline's scroll margins
   grow with it. On phones its view tabs and its Display and Filter buttons show icons only.
-- `e2e/touch.spec.ts` opens the Board, its menus and pickers, the drawer, a toast and the Outline on a phone and a
-  tablet, and fails on any control under 44 px.
+- `e2e/touch.spec.ts` opens the Board, its menus and pickers, the chapter pop-out, a toast and the Outline on a phone
+  and a tablet, and fails on any control under 44 px. Later milestones added their screens to it, and the home
+  screen, the help menu, the glossary and a tour card are checked the same way.
 
 **Mobile editing specifics**
 - On touch devices the OS selection menu competes with ours. Show our tools in a compact bar **docked above the
@@ -927,7 +981,7 @@ soft layered shadows, nothing loud while writing.
 
 **Accessibility (target WCAG 2.2 AA)**
 - Everything works from the keyboard, with visible focus. Focus never drops to the page body:
-  - Links land where a click would. A chapter link opens it with the caret in the prose, a Codex link selects the
+  - Links land where a click would. A chapter link opens it with the caret in the prose, a World link selects the
     entry's row, and jumping to a screen lands on its tab.
   - Closing a menu or dialog returns focus to the control that opened it.
   - If an action removes the focused control (retrying an AI card that history trimming drops, resetting data),
@@ -952,6 +1006,43 @@ LanguageTool or the browser spellchecker. RTL later.
 | Board drag with 100 chapters | 60 fps |
 | Manuscript scroll | 60 fps (virtualized editors) |
 | Speech models | Downloaded only on demand, cached |
+
+## 17a. Glossary and tours
+
+*Built after M7.* A new writer shouldn't need the trade's words, or a manual, to use the app. Every page has two
+helps in the header: **How to use this**, a tour of the page, and **Glossary**. Below 640 px they share a **Help**
+menu. Labels say what a thing is for in the first place (§6, "Plain labels"), and the glossary keeps the trade's
+words as "also called".
+
+**Glossary**
+- 38 terms in four groups: *Story basics* (act, chapter, scene, moment, structure moment, point of view, story point,
+  theme, draft, manuscript), *Planning a chapter* (each field of a chapter's details), *Your world* (World, entries,
+  entry types, aliases, mentions, and the kinds of entry that need explaining) and *Pages and tools* (home, Plan,
+  Board, Outline, Write, Inbox, versions, backups, export, import, Trash).
+- Each is a few sentences of plain English, an example from the sample book where one helps, and "See also" links.
+  **Scene** says what starts a new one: a jump in place, time or point of view. **Moment** explains beats: one thing
+  that happens, the smallest piece of a story; a few make a scene, and a few scenes a chapter.
+- **Search** matches every word typed against each term's names, other names and text, names first, ignoring case
+  and accents. Old words find the new ones: "beat" finds Moment, "POV" Point of view, "codex" World, "thread" Story
+  point and "target" Word count target. A search with no match says so.
+- **"?" buttons** beside each label of a chapter's details (in the Plan's pop-out and Write's Chapter plan), and a
+  tour step's "What does “X” mean?", open the glossary at that term, over a pop-out or a tour. Escape closes only
+  the glossary, and focus goes back to the button that opened it.
+
+**Tours**
+- One per page: Home (9 steps), Plan (11), Write (10), World (7) and Inbox (1, until M11 builds it).
+- **The card** is a modal dialog with "Step N of M", Back, Next (Done on the last) and an X. ← and → move between
+  steps. The page dims around a spotlight on what the step is about, which keeps clear of the sticky bars and follows
+  the page as it scrolls. The card sits beside the spotlight, over it when nothing beside fits, or centered for a step
+  about the whole page or one whose target isn't showing.
+- **Steps fit the device.** Touch screens are told to tap, with nothing about pointing, and narrow screens are told
+  which tools are in the ⋯ menu.
+- **Staging.** The Plan's steps about a chapter's details open the first chapter's pop-out, and the tour closes it
+  after. A tour started as the Plan opens waits for its chapters to load; a step that can't be shown within 3 s is
+  skipped.
+- **Ending.** Done, the X, Escape or leaving the page ends the tour, and focus returns to the button that started it.
+- `e2e/help.spec.ts` walks every tour to Done and checks the Plan's staging, the glossary's search and links, and
+  focus. Unit tests cover the card's placement, every step's copy in every context, and the glossary's search.
 
 ---
 
@@ -989,7 +1080,7 @@ LanguageTool or the browser spellchecker. RTL later.
 
 | Phase | Price | Contents |
 |---|---|---|
-| **Beta** | Free | Every local feature: Board, Outline, drawer, Matrix + threads, Timeline, Corkboard, all 9 templates (scaffold, overlay, Snowflake-style wizard), editor core + aids, codex core, all AI tools via BYOK / local, DOCX/MD/paste import, DOCX/MD/zip export, folder backup, phone layout. No server costs |
+| **Beta** | Free | Every local feature: home screen, Board, Outline, chapter pop-out, Matrix + story points, Timeline, Corkboard, all 9 templates (scaffold, overlay, Snowflake-style wizard), editor core + aids, World core, glossary and page tours, all AI tools via BYOK / local, DOCX/MD/paste import, DOCX/MD/zip export, folder backup, phone layout. No server costs |
 | **v1.0** | Free + Studio | + accounts (guest migration), sync (PowerSync + Yjs), cloud history, Stripe + hosted AI credits, speech-to-text, Tauri desktop app |
 | **v1.x** (fast-follow) | — | Codex progressions, relationships, images · Scrivener import · EPUB / PDF / story bible / outline export · weekly email backup |
 | **Later** | — | Print-ready interior · beta-reader links · series (shared universe) · E2EE · co-writing · "Chat with your book" |
@@ -1025,7 +1116,8 @@ LanguageTool or the browser spellchecker. RTL later.
 2. The phone keyboard test on real devices with Gboard and Samsung Keyboard
    ([ime-smoke-test.md](ime-smoke-test.md)), left over from M0.
 3. M2, Editor core, M3, Codex core, and M7, Import / export / backups, are built and tested
-   ([README](../README.md)).
+   ([README](../README.md)). So are the home screen, the chapter pop-out, plain labels, World, the glossary and the
+   page tours (§4, §6, §7, §17a).
 
 ---
 
@@ -1090,3 +1182,7 @@ LanguageTool or the browser spellchecker. RTL later.
 | 19 | M3 hover cards and Codex panel | Cards open when the mouse rests on a name and never take the caret; a plain click places the caret, Ctrl/⌘+click opens the Codex screen; Write's side panel has Chapter plan and Codex pages, one at a time, each a toolbar button; the Codex page lists the chapter's entries first and only reads; @-mentions and quick-create move to M6 | Details in §7, "Built in M3" |
 | 20 | M7 import | Word documents read by the app's own reader, not mammoth: heading levels straight from styles, including a style based on a heading or given an outline level (mammoth maps styles by name), no HTML to sanitize, the same zip limits as restore, and one dependency fewer; one dialog, source then preview; short front matter left out to begin with; rename, merge, start acts and leave out in the preview, every change undoable; a new book beside the others, never into an open one | Details in §13, "Built in M7" |
 | 21 | M7 folder backups and reminder | Each book's backup status noted per device and decided by a fingerprint of all a backup holds, so any change counts and nothing else does; the reminder after a week of changes, or at once when folder backups need the writer, shown only as a book opens or the writer comes back, never mid-sentence; "last backup" in the book menu, not a status bar; a Backups dialog in the book menu till Settings exists; folder backups write each changed book's dated zip, replace only their own files, keep 10 per book, retry a failed folder and rewrite a missing backup; one store for the folder's state, handle and permission; a reminder that holds still while its buttons work, and buttons that keep focus as their section changes | Details in §13, "Built in M7" |
+| 22 | Home screen | The app opens on the writer's books, last opened first, and each reopens on the screen it was left on (per device); the logo and the book menu's All books go home; New book, Import, Restore, Backups and Trash on home too; no book menu there, since no book is open | Details in §4, "Built after M7" |
+| 23 | Chapter pop-out | A chapter's details pop out over the Plan at every width, centered from 640 px and full-screen on phones, replacing the docked drawer, which read as a sidebar; Write this chapter, Previous and Next inside; `?chapter=` kept | Details in §6, "Built after M7" |
+| 24 | Plain words | Labels say what a field is for: Word count target, Point of view, What characters are present, Moments (beats), Story points (plot threads), Structure moment; the Codex is World; the data model and code keep the old names, so nothing migrates | §6 "Plain labels", §7 |
+| 25 | Glossary and tours | Two header buttons on every page, How to use this and Glossary (a Help menu on phones); 38 terms with examples from the sample book, found by their old names too; "?" beside each chapter field; a spotlight tour per page that stages the pop-out, fits touch and narrow screens, and ends on leaving the page | Details in §17a |

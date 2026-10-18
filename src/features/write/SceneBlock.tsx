@@ -58,7 +58,7 @@ export function SceneBlock({ chapter, scene, index, divider, headingLevel, lazy 
       {!scene.is_implicit && (
         <SceneHeader chapter={chapter} scene={scene} index={index} words={words} headingLevel={headingLevel} />
       )}
-      <div ref={body}>
+      <div ref={body} data-tour="write-editor">
         {provider ? (
           <SceneEditor provider={provider} matcher={matcher} label={sceneLabel(scene, index)} />
         ) : (

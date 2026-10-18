@@ -164,7 +164,7 @@ test("Today counts the words written in the book", async ({ page }) => {
   await expect(today).toHaveAttribute("title", "Today: 5 words added, 0 removed")
 })
 
-test("the chapter plan sits beside the text, and opens the chapter in the Plan", async ({ page }) => {
+test("the chapter plan sits beside the text, and pops the chapter out in the Plan", async ({ page }) => {
   await openFirstChapter(page)
   await page.getByRole("button", { name: "Chapter plan" }).click()
   const panel = page.getByRole("complementary", { name: "Chapter details" })
@@ -177,6 +177,6 @@ test("the chapter plan sits beside the text, and opens the chapter in the Plan",
 
   await panel.getByRole("link", { name: "Open in Plan" }).click()
   await expect(page).toHaveURL(/\/plan\/board\?chapter=/)
-  const drawer = page.getByRole("complementary", { name: "Chapter details" })
-  await expect(drawer.getByRole("heading", { name: "Chapter 1", exact: true })).toBeVisible()
+  const popout = page.getByRole("dialog", { name: "Chapter 1: The Ferry Home" })
+  await expect(popout.getByRole("heading", { name: "Chapter 1", exact: true })).toBeVisible()
 })

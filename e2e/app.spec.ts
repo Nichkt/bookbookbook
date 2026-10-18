@@ -1,6 +1,6 @@
 import { expect, flushAll, focusEnd, openFirstChapter, test } from "./fixtures"
 
-test("opens the sample book at its first chapter, with codex names underlined", async ({ page }) => {
+test("opens the sample book at its first chapter, with World names underlined", async ({ page }) => {
   const editor = await openFirstChapter(page)
   await expect(page.getByRole("heading", { level: 1, name: "The Ferry Home" })).toBeVisible()
   const chapters = page.getByRole("navigation", { name: "Chapters" })

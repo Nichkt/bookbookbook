@@ -33,7 +33,7 @@ const SINGULAR: Record<CodexTypeKey, string> = {
   factions: "Faction",
   lore: "Lore",
   events: "Event",
-  plot_threads: "Plot thread",
+  plot_threads: "Story point",
   themes: "Theme",
 }
 
@@ -197,6 +197,7 @@ const byName = (a: { name: string }, b: { name: string }) =>
   a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true })
 
 const BUILTIN_ORDER = new Map<string, number>(CODEX_TYPES.map((type, index) => [type.key, index]))
+const BUILTIN_NAME = new Map<string, string>(CODEX_TYPES.map((type) => [type.key, type.name]))
 
 const isBuiltinKey = (key: string | null | undefined): key is CodexTypeKey => !!key && BUILTIN_ORDER.has(key)
 
@@ -209,8 +210,9 @@ export function typeSingular(type: { key: string | null; name: string | null; bu
 export function buildCodex(typeRows: readonly CodexTypeRow[], entryRows: readonly CodexEntryRow[]): Codex {
   const types = typeRows.map((row): CodexType => {
     const key = row.key ?? ""
-    const name = row.name?.trim() || UNTITLED_TYPE
     const builtin = !!row.builtin && isBuiltinKey(key)
+    // Built-in types can't be renamed, so they read as the app names them now ("Plot threads" became "Story points").
+    const name = (builtin && BUILTIN_NAME.get(key)) || row.name?.trim() || UNTITLED_TYPE
     return {
       id: row.id,
       key,
@@ -291,9 +293,9 @@ export function fieldValue(entry: CodexEntry, label: string): string {
   return ""
 }
 
-/** `/b/:bookId/codex/:entryId?`. */
+/** `/b/:bookId/world/:entryId?`: the World screen, which the code calls the codex. */
 export const codexPath = (bookId: string, entryId?: string | null) =>
-  `/b/${bookId}/codex${entryId ? `/${entryId}` : ""}`
+  `/b/${bookId}/world${entryId ? `/${entryId}` : ""}`
 
 /** Whether the text underlines the entry (see NO_AUTO_MENTION_TYPES). Entries without a type are underlined. */
 export const isTracked = (codex: Pick<Codex, "typeById">, entry: CodexEntry) =>

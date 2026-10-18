@@ -3,7 +3,10 @@ import { insertRow, type Tx } from "./tx"
 
 const CHARACTER_FIELDS = ["Role", "Age", "Appearance", "Personality", "Goal", "Wound / fear", "Voice & speech", "Arc"]
 
-/** The built-in codex types (DESIGN.md §7). Every new universe gets them; users add fields and custom types later. */
+/**
+ * The built-in World types (DESIGN.md §7; the code calls the World the codex). Every new universe gets them; users add
+ * fields and custom types later. Their names show from here, not from the database, so a rename reaches every book.
+ */
 export const CODEX_TYPES = [
   { key: "characters", name: "Characters", icon: "user-round", fields: CHARACTER_FIELDS },
   { key: "locations", name: "Locations", icon: "map-pin", fields: ["Atmosphere", "Senses", "History"] },
@@ -11,7 +14,7 @@ export const CODEX_TYPES = [
   { key: "factions", name: "Factions", icon: "shield", fields: ["Power", "Public face", "Secret"] },
   { key: "lore", name: "Lore / Magic / Tech", icon: "sparkles", fields: ["Meaning", "Rules", "Symbol"] },
   { key: "events", name: "Events", icon: "calendar", fields: ["When", "Where", "Consequences"] },
-  { key: "plot_threads", name: "Plot threads", icon: "spline", fields: ["Question", "Stakes", "Resolution"] },
+  { key: "plot_threads", name: "Story points", icon: "spline", fields: ["Question", "Stakes", "Resolution"] },
   { key: "themes", name: "Themes", icon: "feather", fields: ["Statement", "Motifs"] },
 ] as const
 

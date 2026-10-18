@@ -90,7 +90,7 @@ export function chapterEntries(
 
 export const mentionsText = (count: number) => `${formatCount(count)} ${count === 1 ? "mention" : "mentions"}`
 
-/** "POV · Present · 4 mentions". */
+/** "Point of view · Present · 4 mentions". */
 export function chapterEntryText({ roles, mentions }: Pick<ChapterEntry, "roles" | "mentions">): string {
   const parts = roles.map((role) => ROLE_LABELS.get(role) ?? role)
   if (mentions > 0) parts.push(mentionsText(mentions))

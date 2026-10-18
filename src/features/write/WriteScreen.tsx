@@ -148,7 +148,7 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
   const known = plan.chapterById.has(chapterId)
 
   useEffect(() => {
-    rememberBook(bookId)
+    rememberBook(bookId, "write")
     if (known) saveLastChapter(bookId, chapterId)
   }, [bookId, chapterId, known])
 

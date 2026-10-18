@@ -127,40 +127,80 @@ test.describe("Board", () => {
   })
 })
 
-test.describe("Chapter drawer", () => {
+test.describe("Chapter pop-out", () => {
   test("saves what you change, and opens again from the URL after a reload", async ({ page }) => {
     await openPlan(page)
     await page.getByRole("button", { name: "Chapter 5: The Archive" }).click()
     await expect(page).toHaveURL(/\?chapter=/)
-    const drawer = page.getByRole("complementary", { name: "Chapter details" })
-    await expect(drawer.getByRole("heading", { name: "Chapter 5", exact: true })).toBeVisible()
+    const popout = page.getByRole("dialog", { name: /^Chapter 5: / })
+    await expect(popout.getByRole("heading", { name: "Chapter 5", exact: true })).toBeVisible()
 
     const summary = "Mara reads the harbor records by lamplight."
-    await drawer.getByRole("textbox", { name: "Chapter title" }).fill("The Records Room")
-    await drawer.getByRole("combobox", { name: "Status" }).click()
+    await popout.getByRole("textbox", { name: "Chapter title" }).fill("The Records Room")
+    await popout.getByRole("combobox", { name: "Status" }).click()
     await page.getByRole("option", { name: "Drafting" }).click()
-    await drawer.getByRole("textbox", { name: "Summary" }).fill(summary)
+    await popout.getByRole("textbox", { name: "Summary" }).fill(summary)
 
-    // The card follows along, which also means it's saved.
-    const updated = card(page, "The Records Room")
+    // The card follows along, which also means it's saved. The pop-out hides the page from the accessibility tree.
+    const updated = page.locator("li[data-chapter-card]").filter({ hasText: "The Records Room" })
     await expect(updated).toContainText(summary)
     await expect(updated).toContainText("Drafting")
 
     await page.reload()
-    await expect(drawer.getByRole("heading", { name: "Chapter 5", exact: true })).toBeFocused()
-    await expect(drawer.getByRole("textbox", { name: "Chapter title" })).toHaveValue("The Records Room")
-    await expect(drawer.getByRole("combobox", { name: "Status" })).toHaveText("Drafting")
-    await expect(drawer.getByRole("textbox", { name: "Summary" })).toHaveValue(summary)
+    await expect(popout).toHaveAccessibleName("Chapter 5: The Records Room")
+    await expect(popout.getByRole("heading", { name: "Chapter 5", exact: true })).toBeFocused()
+    await expect(popout.getByRole("textbox", { name: "Chapter title" })).toHaveValue("The Records Room")
+    await expect(popout.getByRole("combobox", { name: "Status" })).toHaveText("Drafting")
+    await expect(popout.getByRole("textbox", { name: "Summary" })).toHaveValue(summary)
+  })
+
+  test("steps through the chapters, and Write this chapter opens one in Write", async ({ page }) => {
+    await openPlan(page)
+    await page.getByRole("button", { name: "Chapter 2: The Keeper's Room" }).click()
+    const popout = page.getByRole("dialog", { name: /^Chapter \d+: / })
+    await expect(popout).toHaveAccessibleName("Chapter 2: The Keeper's Room")
+    await expect(popout.getByRole("textbox", { name: "Word count target" })).toBeVisible()
+    await expect(popout.getByText("Point of view", { exact: true })).toBeVisible()
+    await expect(popout.getByText("What characters are present", { exact: true })).toBeVisible()
+    await expect(popout.getByText("Story points", { exact: true })).toBeVisible()
+
+    await popout.getByRole("button", { name: "Next chapter" }).click()
+    await expect(popout).toHaveAccessibleName("Chapter 3: The Drowned Bell")
+    await popout.getByRole("button", { name: "Previous chapter" }).click()
+    await expect(popout).toHaveAccessibleName("Chapter 2: The Keeper's Room")
+    await popout.getByRole("button", { name: "Next chapter" }).click()
+    await expect(popout).toHaveAccessibleName("Chapter 3: The Drowned Bell")
+
+    // Escape puts focus back on the card of the chapter it was showing.
+    await page.keyboard.press("Escape")
+    await expect(popout).toBeHidden()
+    await expect(page.getByRole("button", { name: "Chapter 3: The Drowned Bell" })).toBeFocused()
+    await expect(page).not.toHaveURL(/chapter=/)
+
+    await page.getByRole("button", { name: "Chapter 3: The Drowned Bell" }).click()
+    await popout.getByRole("link", { name: "Write this chapter" }).click()
+    await expect(page).toHaveURL(/\/write\/[^/?]+$/)
+    await expect(page.getByRole("heading", { level: 1, name: "The Drowned Bell" })).toBeFocused()
+  })
+
+  test("pops out from the Outline too, and gives focus back to the chapter's line", async ({ page }) => {
+    await openPlan(page, "Outline")
+    await page.getByRole("button", { name: "Open details for chapter 4" }).click()
+    const popout = page.getByRole("dialog", { name: "Chapter 4: Low Tide" })
+    await expect(popout.getByRole("heading", { name: "Chapter 4", exact: true })).toBeFocused()
+    await popout.getByRole("button", { name: "Close details" }).click()
+    await expect(popout).toBeHidden()
+    await expect(page.getByRole("textbox", { name: "Title of chapter 4" })).toBeFocused()
   })
 
   test("a chapter moved to the Trash comes back from the book menu", async ({ page }) => {
     await openPlan(page)
     await page.getByRole("button", { name: "Chapter 6: Storm Warning" }).click()
-    const drawer = page.getByRole("complementary", { name: "Chapter details" })
-    await drawer.getByRole("button", { name: "More for this chapter" }).click()
+    const popout = page.getByRole("dialog", { name: "Chapter 6: Storm Warning" })
+    await popout.getByRole("button", { name: "More for this chapter" }).click()
     await page.getByRole("menuitem", { name: "Move to Trash" }).click()
 
-    await expect(drawer).toBeHidden()
+    await expect(popout).toBeHidden()
     await expect(toast(page, "Moved “Storm Warning” to the Trash")).toBeVisible()
     await expect(boardCards(page, ACT_II)).toHaveCount(4)
     await expect(page.getByRole("button", { name: /Storm Warning/ })).toHaveCount(0)
@@ -227,12 +267,12 @@ test.describe("Between Plan and Write", () => {
     const writeUrl = page.url()
     await page.getByRole("link", { name: "Plan chapter 1" }).click()
     await expect(page).toHaveURL(/\/plan\/board\?chapter=/)
-    const drawer = page.getByRole("complementary", { name: "Chapter details" })
-    await expect(drawer.getByRole("textbox", { name: "Chapter title" })).toHaveValue("The Ferry Home")
+    const popout = page.getByRole("dialog", { name: "Chapter 1: The Ferry Home" })
+    await expect(popout.getByRole("textbox", { name: "Chapter title" })).toHaveValue("The Ferry Home")
 
-    // Opened by a link, the drawer closes in place rather than going back.
-    await drawer.getByRole("button", { name: "Close details" }).click()
-    await expect(drawer).toBeHidden()
+    // Opened by a link, the pop-out closes in place rather than going back.
+    await popout.getByRole("button", { name: "Close details" }).click()
+    await expect(popout).toBeHidden()
     await expect(page).toHaveURL(/\/plan\/board$/)
 
     await page.goBack()

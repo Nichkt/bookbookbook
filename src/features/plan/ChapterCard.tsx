@@ -27,7 +27,7 @@ const MAX_BEATS = 4
 const cardClass =
   "relative w-full rounded-xl border bg-page p-3 shadow-sm select-none [-webkit-touch-callout:none] sm:w-[268px]"
 
-/** A chapter card on the Board: drag it, click it for the drawer, Alt+arrows to move it. */
+/** A chapter card on the Board: drag it, click it for its details, Alt+arrows to move it. */
 export function SortableChapterCard({ chapter }: { chapter: PlanChapter }) {
   const { openId, matches, filtering } = usePlanContext()
   const { setNodeRef, listeners, transform, transition, isDragging } = useSortable({ id: chapter.id })
@@ -38,6 +38,7 @@ export function SortableChapterCard({ chapter }: { chapter: PlanChapter }) {
       {...listeners}
       style={{ transform: CSS.Translate.toString(transform), transition }}
       data-chapter-card={chapter.id}
+      data-tour="plan-chapter"
       className={cn(
         cardClass,
         "touch-manipulation transition-[box-shadow,opacity,filter] hover:shadow-md",
@@ -95,6 +96,7 @@ function ChapterCardBody({ chapter, interactive }: { chapter: PlanChapter; inter
               <button
                 type="button"
                 data-focus-chapter={chapter.id}
+                data-open-chapter={chapter.id}
                 aria-label={`Chapter ${chapter.number}: ${title}`}
                 aria-describedby={BOARD_CARD_HELP_ID}
                 onClick={() => showChapter(chapter.id)}
@@ -136,7 +138,7 @@ function ChapterCardBody({ chapter, interactive }: { chapter: PlanChapter; inter
       <PresentLine chapter={chapter} entries={plan.entries} fields={display.fields} className="mt-2" />
 
       {has("beats") && chapter.beats.length > 0 && (
-        <ul className="mt-2 space-y-0.5 text-xs text-ink-2" aria-label="Beats">
+        <ul className="mt-2 space-y-0.5 text-xs text-ink-2" aria-label="Moments">
           {chapter.beats.slice(0, MAX_BEATS).map((beat) => (
             <li key={beat.id} className="flex items-start gap-1.5">
               {beat.done ? (
@@ -145,7 +147,7 @@ function ChapterCardBody({ chapter, interactive }: { chapter: PlanChapter; inter
                 <SquareIcon aria-label="To do" className="mt-px size-3.5 shrink-0 text-muted-foreground" />
               )}
               <span className={cn("line-clamp-1", beat.done && "text-muted-foreground line-through")}>
-                {beat.text?.trim() || "Untitled beat"}
+                {beat.text?.trim() || "Untitled moment"}
               </span>
             </li>
           ))}
@@ -165,7 +167,7 @@ function ChapterCardBody({ chapter, interactive }: { chapter: PlanChapter; inter
           <p className="mt-1 text-[0.7rem] text-muted-foreground tabular-nums">
             {formatCount(chapter.words)}
             {target > 0 ? ` / ${formatCount(target)}` : ""} words
-            {chapter.beats.length > 0 && ` · ${doneBeats}/${chapter.beats.length} beats`}
+            {chapter.beats.length > 0 && ` · ${doneBeats}/${chapter.beats.length} moments`}
           </p>
         </div>
       )}

@@ -16,14 +16,14 @@ const focusBeat = (id: string) => focusSoon(byData("beat-input", id))
 const focusAddButton = (chapterId: string) => focusSoon(byData("beats-add", chapterId))
 
 /**
- * The chapter's beats as a checklist (DESIGN.md §6). Enter adds the next beat, Backspace in an empty one removes
- * it, Alt+↑/↓ reorders.
+ * The chapter's moments (beats) as a checklist (DESIGN.md §6). Enter adds the next moment, Backspace in an empty one
+ * removes it, Alt+↑/↓ reorders.
  */
 export function BeatsEditor({ chapter, labelId }: { chapter: PlanChapter; labelId: string }) {
   const { db } = useChapterDetails()
 
   const addAt = async (index?: number) => {
-    const id = await attempt("add beat", addBeat(db, chapter.id, index))
+    const id = await attempt("add moment", addBeat(db, chapter.id, index))
     if (id) focusBeat(id)
   }
 
@@ -44,7 +44,7 @@ export function BeatsEditor({ chapter, labelId }: { chapter: PlanChapter; labelI
         className="justify-self-start text-muted-foreground"
       >
         <PlusIcon />
-        Add beat
+        Add moment
       </Button>
     </div>
   )
@@ -61,7 +61,7 @@ function BeatRow({ chapter, beat, index, onAddAfter }: BeatRowProps) {
   const { db } = useChapterDetails()
   const draft = useDraft(beat.text ?? "", (text) => updateBeat(db, beat.id, { text }))
   const beats = chapter.beats
-  const name = `Beat ${index + 1}`
+  const name = `Moment ${index + 1}`
 
   const onKeyDown = async (event: KeyboardEvent<HTMLInputElement>) => {
     if (isComposing(event.nativeEvent)) return
@@ -71,33 +71,33 @@ function BeatRow({ chapter, beat, index, onAddAfter }: BeatRowProps) {
       await draft.flush()
       await onAddAfter()
     } else if (event.key === "Backspace" && plain && draft.value === "") {
-      // An empty beat holds nothing to undo.
+      // An empty moment holds nothing to undo.
       event.preventDefault()
       const neighbor = beats[index - 1] ?? beats[index + 1]
-      if (!(await attempt("delete beat", deleteBeat(db, beat.id)))) return
+      if (!(await attempt("delete moment", deleteBeat(db, beat.id)))) return
       if (neighbor) focusBeat(neighbor.id)
       else focusAddButton(chapter.id)
     } else if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
       event.preventDefault()
       const target = index + (event.key === "ArrowUp" ? -1 : 1)
       if (target < 0 || target >= beats.length) {
-        announce(target < 0 ? "Already the first beat." : "Already the last beat.")
+        announce(target < 0 ? "Already the first moment." : "Already the last moment.")
         return
       }
       await draft.flush()
-      if (!(await attempt("move beat", moveBeat(db, beat.id, target).then(() => true)))) return
+      if (!(await attempt("move moment", moveBeat(db, beat.id, target).then(() => true)))) return
       focusBeat(beat.id)
-      announce(`Moved to beat ${target + 1} of ${beats.length}`)
+      announce(`Moved to moment ${target + 1} of ${beats.length}`)
     }
   }
 
   const remove = async () => {
     const neighbor = beats[index + 1] ?? beats[index - 1]
-    const changes = await attempt("delete beat", deleteBeat(db, beat.id))
+    const changes = await attempt("delete moment", deleteBeat(db, beat.id))
     if (!changes) return
     if (neighbor) focusBeat(neighbor.id)
     else focusAddButton(chapter.id)
-    offerUndo(db, `Deleted ${beat.text?.trim() ? `“${beat.text.trim()}”` : "a beat"}`, changes, () => focusBeat(beat.id))
+    offerUndo(db, `Deleted ${beat.text?.trim() ? `“${beat.text.trim()}”` : "a moment"}`, changes, () => focusBeat(beat.id))
   }
 
   return (
@@ -105,7 +105,7 @@ function BeatRow({ chapter, beat, index, onAddAfter }: BeatRowProps) {
       <Checkbox
         checked={!!beat.done}
         aria-label={`${name} done`}
-        onCheckedChange={(checked) => void attempt("tick beat", updateBeat(db, beat.id, { done: checked === true }))}
+        onCheckedChange={(checked) => void attempt("tick moment", updateBeat(db, beat.id, { done: checked === true }))}
         // On touch screens its hit area grows to 44px, so keep that clear of the field.
         className="ml-1 pointer-coarse:mr-2"
       />

@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react"
 import { Link } from "react-router"
+import { ProgressBar } from "@/components/WordProgress"
 import { actLabel, chapterTitle, statusOf } from "@/features/plan/status"
 import { formatCount } from "@/lib/numbers"
 import { cn } from "@/lib/utils"
-import { ProgressBar } from "./ChapterPage"
 import { sceneToShow } from "./sequence"
 import { sceneLabel, useWrite, writePath, type WriteNavState } from "./writeContext"
 
@@ -135,7 +135,7 @@ export function Navigator() {
             {book.target_words ? ` / ${formatCount(book.target_words)}` : ""} words
           </span>
         </div>
-        {!!book.target_words && <ProgressBar value={plan.words} max={book.target_words} label="Book target" />}
+        {!!book.target_words && <ProgressBar value={plan.words} max={book.target_words} label="Book word count target" />}
         {import.meta.env.DEV && (
           <p>
             Dev:{" "}

@@ -90,9 +90,9 @@ test("lists the chapter's entries: the POV, the location, then by mentions and i
 })
 
 test("describes an entry's part in the chapter", () => {
-  expect(chapterEntryText({ roles: ["pov", "present"], mentions: 4 })).toBe("POV · Present · 4 mentions")
+  expect(chapterEntryText({ roles: ["pov", "present"], mentions: 4 })).toBe("Point of view · Present · 4 mentions")
   expect(chapterEntryText({ roles: [], mentions: 1 })).toBe("1 mention")
-  expect(chapterEntryText({ roles: ["thread"], mentions: 0 })).toBe("Thread")
+  expect(chapterEntryText({ roles: ["thread"], mentions: 0 })).toBe("Story point")
 })
 
 test("groups the codex by type in the Codex's order, leaving out empty types, with lost types last", () => {

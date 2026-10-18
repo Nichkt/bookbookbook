@@ -71,7 +71,7 @@ test("lists the universe's types: the built-in ones in their order, then the wri
     "Faction",
     "Lore",
     "Event",
-    "Plot thread",
+    "Story point",
     "Theme",
     "god",
     "Ship",
@@ -211,7 +211,7 @@ test("initials", () => {
 
 test("typeSingular names one entry of a type", () => {
   expect(typeSingular({ key: "lore", name: "Lore / Magic / Tech", builtin: 1 })).toBe("Lore")
-  expect(typeSingular({ key: "plot_threads", name: "Plot threads", builtin: true })).toBe("Plot thread")
+  expect(typeSingular({ key: "plot_threads", name: "Plot threads", builtin: true })).toBe("Story point")
   expect(typeSingular({ key: null, name: " Ships ", builtin: 0 })).toBe("Ship")
   expect(typeSingular({ key: "characters", name: "Crew", builtin: 0 })).toBe("Crew")
   expect(typeSingular({ key: "moons", name: "Moons", builtin: 1 })).toBe("Moon")
@@ -228,9 +228,9 @@ test("fieldValue matches the label exactly, then ignoring case", () => {
 })
 
 test("codexPath", () => {
-  expect(codexPath("b1")).toBe("/b/b1/codex")
-  expect(codexPath("b1", null)).toBe("/b/b1/codex")
-  expect(codexPath("b1", "e1")).toBe("/b/b1/codex/e1")
+  expect(codexPath("b1")).toBe("/b/b1/world")
+  expect(codexPath("b1", null)).toBe("/b/b1/world")
+  expect(codexPath("b1", "e1")).toBe("/b/b1/world/e1")
 })
 
 describe("names the text underlines", () => {

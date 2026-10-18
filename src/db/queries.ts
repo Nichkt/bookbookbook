@@ -16,6 +16,25 @@ export interface BookListRow {
 export const BOOKS_SQL = `
   SELECT id, title, author, genre, target_words, universe_id FROM books WHERE deleted_at IS NULL ORDER BY created_at, id`
 
+export interface LibraryRow {
+  id: string
+  title: string | null
+  author: string | null
+  genre: string | null
+  target_words: number | null
+  created_at: string | null
+  chapters: number
+  words: number
+}
+
+/** The home screen's books, with how far along each is. Chapters and scenes in the Trash are left out. */
+export const LIBRARY_SQL = `
+  SELECT b.id, b.title, b.author, b.genre, b.target_words, b.created_at,
+    (SELECT count(*) FROM chapters c WHERE c.book_id = b.id AND c.deleted_at IS NULL) AS chapters,
+    (SELECT coalesce(sum(s.word_count), 0) FROM scenes s JOIN chapters c ON c.id = s.chapter_id
+      WHERE c.book_id = b.id AND c.deleted_at IS NULL AND s.deleted_at IS NULL) AS words
+  FROM books b WHERE b.deleted_at IS NULL ORDER BY b.created_at, b.id`
+
 /**
  * `title`, or if another book has it, `title (word)`, `title (word 2)`…: for a book restored or imported beside
  * the one it came from, so the two can be told apart.

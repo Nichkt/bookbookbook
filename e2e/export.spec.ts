@@ -133,10 +133,9 @@ test("the empty library offers to restore a backup", async ({ page }) => {
   await page.getByRole("menuitem", { name: "Book settings…" }).click()
   await page.getByRole("dialog", { name: "Book settings" }).getByRole("button", { name: "Move to Trash" }).click()
   await expect(page.getByRole("heading", { name: "No books yet" })).toBeVisible()
-
-  await page.getByRole("button", { name: "Books", exact: true }).click()
-  await expect(page.getByRole("menuitem", { name: "Export…" })).toBeDisabled()
-  await page.keyboard.press("Escape")
+  // The book menu is only in a book: the home screen has the same ways to start one.
+  await expect(page.getByRole("button", { name: /^Book\b/ })).toHaveCount(0)
+  await expect(page.getByRole("button", { name: "New book" })).toBeVisible()
 
   await page.getByRole("button", { name: "Restore from backup" }).click()
   const restore = page.getByRole("dialog", { name: "Restore from backup" })

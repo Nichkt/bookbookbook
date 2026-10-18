@@ -15,7 +15,7 @@ const LAB_SCENE_ID = "lab-ime"
 const MAX_ENTRIES = 400
 
 const FEATURE_LABELS: { key: keyof SceneEditorFeatures; label: string; hint: string }[] = [
-  { key: "mentions", label: "Mention highlights", hint: "Dotted underline on codex names" },
+  { key: "mentions", label: "Mention highlights", hint: "Dotted underline on names from your world" },
   { key: "guardComposition", label: "Composition guard", hint: "Hold highlights still while the keyboard composes" },
   { key: "typography", label: "Smart typography", hint: "Curly quotes, em dashes, ellipses" },
 ]

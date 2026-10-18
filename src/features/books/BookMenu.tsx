@@ -4,6 +4,7 @@ import {
   ChevronDownIcon,
   DownloadIcon,
   FileUpIcon,
+  LibraryBigIcon,
   PlusIcon,
   SettingsIcon,
   Trash2Icon,
@@ -26,10 +27,10 @@ import type { BookListRow } from "@/db/queries"
 import { LastBackupLabel } from "@/features/backup/BackupsDialog"
 import { openBookDialog, type BookDialog } from "./dialogStore"
 
-const SCREEN_RE = /^\/b\/[^/]+\/(plan|write|codex)\b/
+const SCREEN_RE = /^\/b\/[^/]+\/(plan|write|world|inbox)\b/
 
 /**
- * The header's book switcher, with New book, Restore, Import, Book settings, Export, Backups and Trash
+ * The header's book switcher, with All books (the home screen), New book, Restore, Import, Book settings, Export, Backups and Trash
  * (DESIGN.md §4, §12, §13). Backups shows when the open book was last backed up.
  */
 export function BookMenu({ book, books }: { book: BookListRow | undefined; books: readonly BookListRow[] }) {
@@ -84,9 +85,13 @@ export function BookMenu({ book, books }: { book: BookListRow | undefined; books
                 </DropdownMenuRadioItem>
               ))}
             </DropdownMenuRadioGroup>
-            <DropdownMenuSeparator />
           </>
         )}
+        <DropdownMenuItem onSelect={() => navigate("/")}>
+          <LibraryBigIcon />
+          All books
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => open("new")}>
           <PlusIcon />
           New book…

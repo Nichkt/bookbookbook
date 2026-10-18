@@ -80,7 +80,7 @@ export function neighborOf(list: readonly CodexEntry[], id: string): CodexEntry 
   return list[index + 1] ?? list[index - 1] ?? null
 }
 
-/** Location state for `/codex` that keeps an empty list on screen, instead of opening an entry on wide screens. */
+/** Location state for `/world` that keeps an empty list on screen, instead of opening an entry on wide screens. */
 export const STAY_STATE = { codexStay: true } as const
 
 export const isStayState = (state: unknown) => typeof state === "object" && state !== null && "codexStay" in state

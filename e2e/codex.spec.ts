@@ -1,11 +1,11 @@
 import type { Page } from "@playwright/test"
 import { expect, flushAll, focusEnd, openFirstChapter, queryDb, test } from "./fixtures"
 
-/** Opens the Codex from the header. On wide screens the first character, Agnes Morrow, opens with it. */
-async function openCodex(page: Page) {
+/** Opens World from the header. On wide screens the first character, Agnes Morrow, opens with it. */
+async function openWorld(page: Page) {
   await openFirstChapter(page)
-  await page.getByRole("navigation", { name: "Screens" }).getByRole("link", { name: "Codex" }).click()
-  await expect(page.getByRole("heading", { level: 1, name: "Codex" })).toBeAttached()
+  await page.getByRole("navigation", { name: "Screens" }).getByRole("link", { name: "World" }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "World" })).toBeAttached()
 }
 
 /** An entry's row in the list: a link named by the entry's name, then its aliases. */
@@ -17,9 +17,9 @@ const entryHeading = (page: Page, name: string) => page.getByRole("heading", { l
 
 const toast = (page: Page, text: string) => page.locator("[data-sonner-toast]").filter({ hasText: text })
 
-test.describe("Codex", () => {
+test.describe("World", () => {
   test("a new character keeps its name, aliases and fields after a reload", async ({ page }) => {
-    await openCodex(page)
+    await openWorld(page)
     await page.getByRole("button", { name: "New character" }).click()
     const name = page.getByRole("textbox", { name: "Name" })
     await expect(name).toBeFocused()
@@ -61,7 +61,7 @@ test.describe("Codex", () => {
   })
 
   test("Appears in opens the chapter, and Back returns to the entry's row", async ({ page }) => {
-    await openCodex(page)
+    await openWorld(page)
     await expect(entryHeading(page, "Character: Agnes Morrow")).toBeVisible()
     await page.getByRole("link", { name: /^Chapter 2: The Keeper's Room\b/ }).click()
     await expect(page.getByRole("heading", { level: 1, name: "The Keeper's Room" })).toBeFocused()
@@ -72,7 +72,7 @@ test.describe("Codex", () => {
   })
 
   test("an entry moved to the Trash comes back with Undo, or from the book menu", async ({ page }) => {
-    await openCodex(page)
+    await openWorld(page)
     await row(page, "Elias Penhallow").click()
     await expect(entryHeading(page, "Character: Elias Penhallow")).toBeVisible()
     await page.getByRole("button", { name: "More for this entry" }).click()
@@ -106,8 +106,8 @@ test.describe("Codex", () => {
   })
 
   test("a type of your own can be named, renamed, and deleted while it's empty", async ({ page }) => {
-    await openCodex(page)
-    const types = page.getByRole("navigation", { name: "Codex types" })
+    await openWorld(page)
+    const types = page.getByRole("navigation", { name: "Entry types" })
     await page.getByRole("button", { name: "New type" }).click()
     const dialog = page.getByRole("dialog", { name: "New type" })
     const name = dialog.getByRole("textbox", { name: "Name" })
@@ -147,7 +147,7 @@ test.describe("Codex", () => {
   })
 
   test("a field added to every character shows on each, and removing it can be undone", async ({ page }) => {
-    await openCodex(page)
+    await openWorld(page)
     await expect(entryHeading(page, "Character: Agnes Morrow")).toBeVisible()
     await page.getByRole("textbox", { name: "New field" }).fill("Birthplace")
     await page.getByRole("checkbox", { name: "Add to every character" }).check()
@@ -176,8 +176,8 @@ test.describe("Codex", () => {
   })
 
   test("search looks through every type, and a tag narrows what it finds", async ({ page }) => {
-    await openCodex(page)
-    const search = page.getByRole("searchbox", { name: "Search the codex" })
+    await openWorld(page)
+    const search = page.getByRole("searchbox", { name: "Search your world" })
     await search.fill("quill")
     const results = page.getByRole("list", { name: "Search results" })
     // Three by name; the Lighthouse, the Salt Ledger and the Brass Key by what their fields say.
@@ -207,7 +207,7 @@ test.describe("Codex", () => {
     await page.keyboard.type(" Zephyr Lane waved from the quay.")
     await flushAll(page)
 
-    await page.getByRole("navigation", { name: "Screens" }).getByRole("link", { name: "Codex" }).click()
+    await page.getByRole("navigation", { name: "Screens" }).getByRole("link", { name: "World" }).click()
     await page.getByRole("button", { name: "New character" }).click()
     // Once it's open: until then the Name box is Agnes Morrow's.
     const name = page.getByRole("textbox", { name: "Name" })
@@ -222,11 +222,11 @@ test.describe("Codex", () => {
   })
 })
 
-test.describe("Codex on a phone", () => {
+test.describe("World on a phone", () => {
   test.use({ viewport: { width: 412, height: 915 } })
 
   test("the list and an entry take turns, and Back returns to the entry's row", async ({ page }) => {
-    await openCodex(page)
+    await openWorld(page)
     await expect(page.getByRole("list", { name: "Characters" })).toBeVisible()
     await expect(page.locator("[data-codex-entry]")).toHaveCount(0)
 

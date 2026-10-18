@@ -87,7 +87,7 @@ export function EntryPage({ bookId, codex, entry, appearances, back, onTrash }: 
   const saveNow = (context: string, patch: EntryPatch) => void attempt(context, save(patch))
 
   return (
-    <article data-codex-entry={entry.id} className="mx-auto w-full max-w-2xl px-5 pt-6 pb-24 md:px-8">
+    <article data-codex-entry={entry.id} data-tour="world-entry" className="mx-auto w-full max-w-2xl px-5 pt-6 pb-24 md:px-8">
       {back && (
         <Link to={back.to} className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-2.5 mb-3 text-ink-2")}>
           <ChevronLeftIcon />

@@ -72,7 +72,7 @@ const ACTIVE_ROW = "bg-accent font-medium text-ink"
 
 const entriesText = (count: number) => `${formatCount(count)} ${count === 1 ? "entry" : "entries"}`
 
-/** `/b/:bookId/codex/:entryId?`: the Codex (DESIGN.md §7). */
+/** `/b/:bookId/world/:entryId?`: the World screen (DESIGN.md §7), called the codex in the code. */
 export function CodexScreen() {
   const { bookId = "" } = useParams()
   return <CodexBook key={bookId} bookId={bookId} />
@@ -84,7 +84,7 @@ function CodexBook({ bookId }: { bookId: string }) {
   if (booksLoading || codex.isLoading) return null
   if (!book) {
     return (
-      <PlaceholderScreen title="Book not found" milestone="Codex">
+      <PlaceholderScreen title="Book not found" milestone="World">
         <p>It may have been deleted. Pick another book from the book menu above, or restore it from the Trash there.</p>
       </PlaceholderScreen>
     )
@@ -148,7 +148,7 @@ function CodexWorkspace({ bookId, codex }: { bookId: string; codex: Codex }) {
   const editingType = dialog.typeId ? codex.typeById.get(dialog.typeId) : undefined
 
   useEffect(() => {
-    rememberBook(bookId)
+    rememberBook(bookId, "world")
   }, [bookId])
 
   useEffect(() => {
@@ -328,7 +328,7 @@ function CodexWorkspace({ bookId, codex }: { bookId: string; codex: Codex }) {
 
   return (
     <div className="flex flex-1 items-start">
-      <h1 className="sr-only">Codex</h1>
+      <h1 className="sr-only">World</h1>
       {layout === "wide" && <TypeNav codex={codex} list={list} filtering={filtering} actions={actions} />}
       {layout === "phone" ? (
         <div className="min-w-0 flex-1">{entryId ? pane : listPane}</div>
@@ -397,7 +397,7 @@ function TypeNav({
 
   return (
     <div className="sticky top-14 flex h-[calc(100svh-3.5rem)] w-56 shrink-0 flex-col border-r bg-surface">
-      <nav aria-label="Codex types" className="min-h-0 flex-1 overflow-y-auto p-2">
+      <nav aria-label="Entry types" data-tour="world-types" className="min-h-0 flex-1 overflow-y-auto p-2">
         <ul className="space-y-0.5">
           {codex.types.map((type) => row(type.id, type.name, type.icon))}
           {codex.entriesByType.has(NO_TYPE) && row(NO_TYPE, "No type", null)}
@@ -505,6 +505,7 @@ function ListPane({
           {type && (
             <Button
               data-codex-new
+              data-tour="world-new"
               size="sm"
               variant="outline"
               aria-label={`New ${nounOf(type.singular)}`}
@@ -518,7 +519,7 @@ function ListPane({
             </Button>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div data-tour="world-search" className="flex items-center gap-2">
           <div className="relative min-w-0 flex-1">
             <SearchIcon
               aria-hidden="true"
@@ -527,7 +528,7 @@ function ListPane({
             <Input
               type="search"
               data-codex-search
-              aria-label="Search the codex"
+              aria-label="Search your world"
               placeholder="Search"
               value={query}
               onChange={(event) => {
@@ -562,7 +563,7 @@ function ListPane({
       </div>
       <div ref={scroller} className={cn(layout !== "phone" && "min-h-0 flex-1 overflow-y-auto")}>
         {entries.length > 0 ? (
-          <ul aria-labelledby={headingId} className="space-y-0.5 p-2">
+          <ul aria-labelledby={headingId} data-tour="world-list" className="space-y-0.5 p-2">
             {entries.map((entry) => {
               const current = entry.id === currentId
               const typeName = entry.typeId ? codex.typeById.get(entry.typeId)?.singular : "No type"
@@ -624,7 +625,12 @@ function TypeSelect({
   const value = filtering ? "" : list === NO_TYPE ? NO_TYPE_VALUE : list
   return (
     <Select value={value} onValueChange={(next) => onPick(next === NO_TYPE_VALUE ? NO_TYPE : next)}>
-      <SelectTrigger aria-label="Codex type" data-codex-type-select className="mr-auto min-w-0 flex-1">
+      <SelectTrigger
+        aria-label="Entry type"
+        data-codex-type-select
+        data-tour="world-types"
+        className="mr-auto min-w-0 flex-1"
+      >
         <SelectValue placeholder="All types" />
       </SelectTrigger>
       <SelectContent position="popper">

@@ -15,7 +15,7 @@ const OPENER = "[data-write-panel-return]"
 /** The toolbar's button for a page, or on phones the menu that holds them. */
 const openerOf = (page: PanelPage) => `[data-write-panel-return="${page}"], [data-write-panel-return="menu"]`
 
-const LABELS: Record<PanelPage, string> = { plan: "Chapter details", codex: "Codex" }
+const LABELS: Record<PanelPage, string> = { plan: "Chapter details", codex: "World" }
 
 const headingOf = (page: PanelPage, chapterId: string) =>
   page === "plan" ? byData("drawer-heading", chapterId) : CODEX_PANEL_HEADING
@@ -28,7 +28,7 @@ function returnFocus(page: PanelPage, opener: Editor | null, soon: boolean) {
 }
 
 /**
- * The panel beside the text (DESIGN.md §8): the chapter's plan, as the Plan's chapter details show it, or the codex.
+ * The panel beside the text (DESIGN.md §8): the chapter's plan, as the Plan's chapter details show it, or its World page.
  * Docked on wide screens, where it stays open across visits; a sheet over the text elsewhere.
  */
 export function WritePanel() {
@@ -98,7 +98,7 @@ function PanelSheet({ page, chapterId, onClose }: PanelSheetProps) {
   const chapter = shown.chapterId ? plan.chapterById.get(shown.chapterId) : undefined
   const codex = shown.page === "codex"
   let title = "Chapter details"
-  if (codex) title = "Codex"
+  if (codex) title = "World"
   else if (chapter) title = `Chapter ${chapter.number}: ${chapterTitle(chapter.title)}`
 
   return (
@@ -121,7 +121,7 @@ function PanelSheet({ page, chapterId, onClose }: PanelSheetProps) {
           <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">
             {codex
-              ? "The codex entries this chapter names, and a search through the rest."
+              ? "The people, places and things this chapter names, and a search through the rest of your world."
               : "The chapter's plan. Changes save as you type."}
           </DialogPrimitive.Description>
           {shown.chapterId &&

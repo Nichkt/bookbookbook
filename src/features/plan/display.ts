@@ -10,16 +10,16 @@ export const viewPrefKey = (bookId: string) => `plan.view:${bookId}`
 /** What cards and outline rows show (DESIGN.md §6 "Display"). */
 export const DISPLAY_FIELDS = [
   { key: "summary", label: "Summary" },
-  { key: "beats", label: "Beats" },
-  { key: "pov", label: "POV" },
+  { key: "beats", label: "Moments" },
+  { key: "pov", label: "Point of view" },
   { key: "status", label: "Status" },
   { key: "words", label: "Word count" },
   { key: "labels", label: "Labels" },
-  { key: "threads", label: "Threads" },
-  { key: "present", label: "Characters present" },
+  { key: "threads", label: "Story points" },
+  { key: "present", label: "What characters are present" },
   { key: "location", label: "Location" },
   { key: "time", label: "Story time" },
-  { key: "templateBeat", label: "Template beat" },
+  { key: "templateBeat", label: "Structure moment" },
 ] as const
 
 export type DisplayField = (typeof DISPLAY_FIELDS)[number]["key"]

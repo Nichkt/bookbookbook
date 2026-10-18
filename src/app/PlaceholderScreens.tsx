@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { Link } from "react-router"
 
 interface Props {
   title: string
@@ -28,7 +29,12 @@ export function InboxScreen() {
 export function NotFoundScreen() {
   return (
     <PlaceholderScreen title="Page not found" milestone="404">
-      <p>That address doesn't match a screen. Use the tabs to get back to your book.</p>
+      <p>That address doesn't match a page in bookbookbook.</p>
+      <p>
+        <Link to="/" className="font-medium text-ink underline underline-offset-4 hover:text-primary">
+          Go to your books
+        </Link>
+      </p>
     </PlaceholderScreen>
   )
 }

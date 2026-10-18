@@ -1,10 +1,10 @@
 import type { Locator, Page } from "@playwright/test"
 import { expect, flushAll, focusEnd, openFirstChapter, test } from "./fixtures"
 
-const codexButton = (page: Page) => page.getByRole("button", { name: "Codex", exact: true })
-const codexPanel = (page: Page) => page.getByRole("complementary", { name: "Codex" })
+const worldButton = (page: Page) => page.getByRole("button", { name: "World", exact: true })
+const worldPanel = (page: Page) => page.getByRole("complementary", { name: "World" })
 const chapterRows = (panel: Locator) => panel.getByRole("region", { name: "In this chapter" }).getByRole("button")
-const codexEntryHeading = (page: Page, name: string) =>
+const entryHeading = (page: Page, name: string) =>
   page.locator("[data-codex-entry]").getByRole("heading", { name })
 const scrollTop = (panel: Locator) => panel.evaluate((element) => element.scrollTop)
 /** Scrolls the panel until the row sits just under its header, out of the way of the rows above. */
@@ -15,22 +15,22 @@ const scrollToRow = (row: Locator) =>
     scroller.scrollTop += element.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 64
   })
 
-test.describe("the Codex panel", () => {
+test.describe("the World panel", () => {
   test("lists what the chapter names first, and reads one entry at a time", async ({ page }) => {
     await openFirstChapter(page)
-    await codexButton(page).click()
-    const panel = codexPanel(page)
-    await expect(panel.getByRole("heading", { level: 2, name: "Codex" })).toBeFocused()
-    await expect(codexButton(page)).toHaveAttribute("aria-expanded", "true")
+    await worldButton(page).click()
+    const panel = worldPanel(page)
+    await expect(panel.getByRole("heading", { level: 2, name: "World" })).toBeFocused()
+    await expect(worldButton(page)).toHaveAttribute("aria-expanded", "true")
 
-    // The POV, then the location, then by mentions. The plan's threads aren't named in the text.
+    // The POV, then the location, then by mentions. The plan's story points aren't named in the text.
     const rows = chapterRows(panel)
     await expect(rows).toHaveCount(9)
-    await expect(rows.nth(0)).toHaveAccessibleName("Mara Quill POV · Present · 4 mentions")
+    await expect(rows.nth(0)).toHaveAccessibleName("Mara Quill Point of view · Present · 4 mentions")
     await expect(rows.nth(1)).toHaveAccessibleName("North Quay Location · 2 mentions")
     await expect(rows.nth(2)).toHaveAccessibleName("Jonas Quill Present · 2 mentions")
     await expect(rows.nth(5)).toHaveAccessibleName("Elias Penhallow Present · 1 mention")
-    await expect(rows.nth(8)).toHaveAccessibleName("Ledger mystery Thread")
+    await expect(rows.nth(8)).toHaveAccessibleName("Ledger mystery Story point")
 
     await rows.nth(2).click()
     await expect(panel.getByRole("heading", { level: 2, name: "Jonas Quill" })).toBeFocused()
@@ -39,7 +39,7 @@ test.describe("the Codex panel", () => {
     await panel.getByRole("button", { name: "Back" }).click()
     await expect(rows.nth(2)).toBeFocused()
 
-    const search = panel.getByRole("searchbox", { name: "Search the codex" })
+    const search = panel.getByRole("searchbox", { name: "Search your world" })
     await search.fill("brass")
     const results = panel.getByRole("list", { name: "Search results" }).getByRole("button")
     await expect(results.first()).toHaveAccessibleName("the Brass Key Object · brass key")
@@ -50,15 +50,15 @@ test.describe("the Codex panel", () => {
     await expect(search).toBeFocused()
 
     await rows.nth(0).click()
-    await panel.getByRole("link", { name: "Open in Codex" }).click()
-    await expect(page).toHaveURL(/\/codex\/[^/]+$/)
-    await expect(codexEntryHeading(page, "Character: Mara Quill")).toBeVisible()
+    await panel.getByRole("link", { name: "Open in World" }).click()
+    await expect(page).toHaveURL(/\/world\/[^/]+$/)
+    await expect(entryHeading(page, "Character: Mara Quill")).toBeVisible()
   })
 
   test("goes back to the list where it was left, on the entry's row", async ({ page }) => {
     const editor = await openFirstChapter(page)
-    await codexButton(page).click()
-    const panel = codexPanel(page)
+    await worldButton(page).click()
+    const panel = worldPanel(page)
     await expect(chapterRows(panel)).toHaveCount(9)
 
     // Jonas has a row in this chapter and another with the characters: Back goes to the one he was opened from.
@@ -88,10 +88,10 @@ test.describe("the Codex panel", () => {
 
   test("counts names as they're written, and shares the panel with the chapter plan", async ({ page }) => {
     const editor = await openFirstChapter(page)
-    await codexButton(page).click()
-    const panel = codexPanel(page)
+    await worldButton(page).click()
+    const panel = worldPanel(page)
     const rows = chapterRows(panel)
-    await expect(rows.nth(0)).toHaveAccessibleName("Mara Quill POV · Present · 4 mentions")
+    await expect(rows.nth(0)).toHaveAccessibleName("Mara Quill Point of view · Present · 4 mentions")
     const agnes = rows.filter({ hasText: "Agnes Morrow" })
     await expect(agnes).toHaveCount(0)
 
@@ -109,12 +109,12 @@ test.describe("the Codex panel", () => {
     await page.getByRole("button", { name: "Chapter plan" }).click()
     await expect(page.getByRole("complementary", { name: "Chapter details" })).toBeVisible()
     await expect(panel).toHaveCount(0)
-    await codexButton(page).click()
+    await worldButton(page).click()
     await expect(panel).toBeVisible()
     await expect(page.getByRole("complementary", { name: "Chapter details" })).toHaveCount(0)
-    await codexButton(page).click()
+    await worldButton(page).click()
     await expect(panel).toHaveCount(0)
-    await expect(codexButton(page)).toHaveAttribute("aria-expanded", "false")
+    await expect(worldButton(page)).toHaveAttribute("aria-expanded", "false")
   })
 })
 
@@ -141,7 +141,7 @@ test.describe("a name in the text", () => {
     // Details opens the entry beside the text. The caret stays put, and closing the panel goes back to it.
     await card.getByRole("button", { name: "Details" }).click()
     await expect(card).toHaveCount(0)
-    const panel = codexPanel(page)
+    const panel = worldPanel(page)
     await expect(panel.getByRole("heading", { level: 2, name: "Mara Quill" })).toBeVisible()
     await expect(editor).toBeFocused()
     await panel.getByRole("button", { name: "Close panel" }).click()
@@ -149,7 +149,7 @@ test.describe("a name in the text", () => {
     await expect(editor).toBeFocused()
   })
 
-  test("places the caret on a click, and opens in the Codex on Ctrl+click", async ({ page }) => {
+  test("places the caret on a click, and opens in World on Ctrl+click", async ({ page }) => {
     const editor = await openFirstChapter(page)
     const grayhaven = editor.locator(".mention-auto").first()
     await expect(grayhaven).toHaveText("Grayhaven")
@@ -158,7 +158,7 @@ test.describe("a name in the text", () => {
     await expect(page).toHaveURL(/\/write\/[^/]+$/)
 
     await grayhaven.click({ modifiers: ["ControlOrMeta"] })
-    await expect(page).toHaveURL(/\/codex\/[^/]+$/)
-    await expect(codexEntryHeading(page, "Location: Grayhaven")).toBeVisible()
+    await expect(page).toHaveURL(/\/world\/[^/]+$/)
+    await expect(entryHeading(page, "Location: Grayhaven")).toBeVisible()
   })
 })

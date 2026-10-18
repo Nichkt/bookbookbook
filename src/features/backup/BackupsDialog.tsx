@@ -92,8 +92,8 @@ export function BackupsDialog({ book }: { book: BookListRow | undefined }) {
       <DialogHeader>
         <DialogTitle>Backups</DialogTitle>
         <DialogDescription>
-          Your books are kept in this browser. A backup is a copy kept somewhere else, to restore from the book menu if
-          the browser ever loses them.
+          Your books are kept in this browser. A backup is a copy kept somewhere else, to bring back with Restore from
+          backup if the browser ever loses them.
         </DialogDescription>
       </DialogHeader>
       <div className="grid gap-5">

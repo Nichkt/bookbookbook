@@ -58,9 +58,9 @@ export function PlanToolbar() {
   }
 
   return (
-    // Taller on touch screens, to fit 44px targets. The docked drawer and the Outline's scroll margins sit below it.
-    <div className="sticky top-14 z-20 flex h-12 items-center gap-1.5 overflow-x-auto border-b bg-background/95 px-4 backdrop-blur sm:gap-2 sm:px-6 pointer-coarse:h-14">
-      <nav aria-label="Plan views" className="flex shrink-0 items-center rounded-lg bg-muted p-0.5">
+    // Taller on touch screens, to fit 44px targets. The Outline's scroll margins sit below it.
+    <div data-sticky-top="" className="sticky top-14 z-20 flex h-12 items-center gap-1.5 overflow-x-auto border-b bg-background/95 px-4 backdrop-blur sm:gap-2 sm:px-6 pointer-coarse:h-14">
+      <nav aria-label="Plan views" data-tour="plan-views" className="flex shrink-0 items-center rounded-lg bg-muted p-0.5">
         {PLAN_VIEWS.map((name) => {
           const Icon = VIEW_ICONS[name]
           const current = name === view
@@ -90,7 +90,7 @@ export function PlanToolbar() {
         {plan.chapters.length} {plan.chapters.length === 1 ? "chapter" : "chapters"} · {formatCount(plan.words)}
         {book.target_words ? ` / ${formatCount(book.target_words)}` : ""} words
       </p>
-      <div className="ml-auto flex shrink-0 items-center gap-1.5 lg:ml-2">
+      <div data-tour="plan-add" className="ml-auto flex shrink-0 items-center gap-1.5 lg:ml-2">
         <Button variant="outline" size="sm" onClick={() => void addAct()}>
           <PlusIcon />
           Act
@@ -109,7 +109,7 @@ function DisplayMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" aria-label="Display options" className="shrink-0">
+        <Button variant="ghost" size="sm" aria-label="Display options" data-tour="plan-display" className="shrink-0">
           <SlidersHorizontalIcon />
           <span className="hidden sm:inline">Display</span>
         </Button>
@@ -158,6 +158,7 @@ function FilterMenu() {
           variant={filtering ? "secondary" : "ghost"}
           size="sm"
           aria-label={count > 0 ? `Filter, ${count} on` : "Filter"}
+          data-tour="plan-filter"
           className="shrink-0"
         >
           <FilterIcon />
@@ -188,7 +189,7 @@ function FilterMenu() {
             onChange={(value) => setFilter("status", value)}
           />
           <FilterSelect
-            label="Thread"
+            label="Story point"
             value={filters.thread}
             options={entryOptions("plot_threads")}
             onChange={(value) => setFilter("thread", value)}

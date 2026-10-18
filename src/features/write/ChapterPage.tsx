@@ -3,12 +3,12 @@ import { useEffect } from "react"
 import { Link, useLocation, useNavigate } from "react-router"
 import { attempt } from "@/app/feedback"
 import { Button, buttonVariants } from "@/components/ui/button"
+import { WordProgress } from "@/components/WordProgress"
 import { whenEditor } from "@/editor/activeEditor"
 import { createScene } from "@/features/plan/mutations"
 import type { PlanChapter, PlanSceneRow } from "@/features/plan/planData"
 import { chapterTitle, statusOf } from "@/features/plan/status"
 import { byData, focusPending, focusSoon, nothingFocused } from "@/lib/focus"
-import { formatCount } from "@/lib/numbers"
 import { cn } from "@/lib/utils"
 import { revealScene, useEnsureScene } from "./pageHooks"
 import { SceneBlock } from "./SceneBlock"
@@ -32,7 +32,7 @@ export function ChapterHeader({
   const summary = chapter.summary?.trim()
 
   return (
-    <header className="mb-10 font-sans">
+    <header data-tour="write-heading" className="mb-10 font-sans">
       <div className="flex items-center gap-2">
         <p className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs font-semibold tracking-widest text-muted-foreground uppercase">
           <span>Chapter {chapter.number}</span>
@@ -76,61 +76,10 @@ export function ChapterHeader({
       <WordProgress
         words={chapter.words}
         target={chapter.word_target}
-        label={`Chapter ${chapter.number} target`}
+        label={`Chapter ${chapter.number} word count target`}
         className="mt-3"
       />
     </header>
-  )
-}
-
-/** "1,234 words", or "1,234 / 3,000 words" with a bar when there's a target. */
-export function WordProgress({
-  words,
-  target,
-  label,
-  className,
-}: {
-  words: number
-  target: number | null | undefined
-  /** The bar's name, e.g. "Chapter 3 target". */
-  label: string
-  className?: string
-}) {
-  return (
-    <div className={cn("flex items-center gap-3 text-xs text-muted-foreground tabular-nums", className)}>
-      <span>
-        {formatCount(words)}
-        {target ? ` / ${formatCount(target)}` : ""} words
-      </span>
-      {!!target && <ProgressBar value={words} max={target} label={label} className="w-24" />}
-    </div>
-  )
-}
-
-export function ProgressBar({
-  value,
-  max,
-  label,
-  className,
-}: {
-  value: number
-  max: number
-  label: string
-  className?: string
-}) {
-  const share = max > 0 ? Math.min(1, value / max) : 0
-  return (
-    <div
-      role="progressbar"
-      aria-label={label}
-      aria-valuemin={0}
-      aria-valuemax={max}
-      aria-valuenow={Math.min(value, max)}
-      aria-valuetext={`${formatCount(value)} of ${formatCount(max)} words`}
-      className={cn("h-1.5 overflow-hidden rounded-full bg-surface-2", className)}
-    >
-      <div className="h-full rounded-full bg-status-done" style={{ width: `${share * 100}%` }} />
-    </div>
   )
 }
 

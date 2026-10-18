@@ -257,7 +257,7 @@ function BoardGroup({ group, ids, highlighted }: { group: PlanGroup; ids: string
         highlighted && "bg-surface-2/60 ring-1 ring-border",
       )}
     >
-      <header className="mb-2 flex min-h-9 items-center gap-2">
+      <header data-tour="plan-act" className="mb-2 flex min-h-9 items-center gap-2">
         {act ? (
           <>
             <h2 id={headingId} className="sr-only">

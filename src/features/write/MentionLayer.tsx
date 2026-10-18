@@ -62,8 +62,8 @@ function anchorAt(span: HTMLElement, x: number, y: number): Measurable {
 
 /**
  * The writing area, where resting the mouse on a name the text underlines opens a card about its entry (DESIGN.md §7),
- * and Ctrl+click (⌘-click on a Mac) on one opens the entry in the Codex. A plain click places the caret, as anywhere in
- * the text: keyboard and touch reach the same entries through the panel's Codex page.
+ * and Ctrl+click (⌘-click on a Mac) on one opens the entry in World. A plain click places the caret, as anywhere in
+ * the text: keyboard and touch reach the same entries through the panel's World page.
  */
 export function MentionLayer({ className, children }: { className?: string; children: ReactNode }) {
   const { bookId, openEntryFromText } = useWrite()
@@ -268,7 +268,7 @@ function MentionCard({ bookId, codex, entry, onPointerEnter, onPointerLeave, onD
           title={`Or ${MOD_CLICK} the name`}
           className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-ink-2")}
         >
-          Open in Codex
+          Open in World
         </Link>
         <Button variant="secondary" size="sm" onMouseDown={(event) => event.preventDefault()} onClick={onDetails}>
           Details

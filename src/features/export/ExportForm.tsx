@@ -115,7 +115,7 @@ function ExportFields({ book, stored, saveChoices }: ExportFieldsProps) {
 
       {format === "backup" ? (
         <p className="text-sm text-muted-foreground">
-          One zip with everything in this book: plan, codex, prose, named versions and writing stats, plus a Markdown
+          One zip with everything in this book: plan, world, prose, named versions and writing stats, plus a Markdown
           copy to read anywhere. Restore it from the book menu, in this browser or another.
         </p>
       ) : (

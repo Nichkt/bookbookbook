@@ -1,4 +1,13 @@
-import { EllipsisIcon, LayoutGridIcon, PenLineIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react"
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  EllipsisIcon,
+  LayoutGridIcon,
+  PenLineIcon,
+  PlusIcon,
+  Trash2Icon,
+  XIcon,
+} from "lucide-react"
 import { useEffect, useId, useRef, useState, type ReactNode } from "react"
 import { Link } from "react-router"
 import { announce, attempt } from "@/app/feedback"
@@ -15,6 +24,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useDraft } from "@/components/useDraft"
+import { WordProgress } from "@/components/WordProgress"
+import { TermHint } from "@/features/help/TermHint"
+import { writePath, type WriteNavState } from "@/features/write/writeContext"
 import { byData, focusSoon } from "@/lib/focus"
 import { formatCount, parseCount, tidyCount } from "@/lib/numbers"
 import { cn } from "@/lib/utils"
@@ -25,14 +37,32 @@ import { EntryPicker } from "./EntryPicker"
 import { createScene, setChapterLinks, updateChapter, updateScene } from "./mutations"
 import { useChapterDetails, type FocusItem } from "./planContext"
 import type { PlanChapter } from "./planData"
-import { isStatus, STATUS_OPTIONS, UNTITLED_CHAPTER } from "./status"
+import { chapterTitle, isStatus, STATUS_OPTIONS, UNTITLED_CHAPTER } from "./status"
 import { StoryTimeEditor } from "./StoryTimeEditor"
 
 /** A chapter that just vanished (trashed elsewhere) gets a moment to come back before saying so. */
 const MISSING_DELAY_MS = 600
 
-/** The chapter drawer (DESIGN.md §6): everything the plan holds about one chapter. Changes save as you type. */
-export function ChapterDrawer({ chapterId, onClose }: { chapterId: string; onClose: () => void }) {
+/** “Write this chapter” lands on the chapter's heading in Write. */
+const WRITE_STATE: WriteNavState = { focus: "heading" }
+
+export type ChapterStepDirection = "previous" | "next"
+
+/** Moves the details to another chapter: the pop-out's previous and next buttons. */
+export type ChapterStep = (chapterId: string, direction: ChapterStepDirection) => void
+
+interface ChapterDrawerProps {
+  chapterId: string
+  onClose: () => void
+  /** Given in the Plan's pop-out, which steps through the chapters. */
+  onStep?: ChapterStep
+}
+
+/**
+ * A chapter's details (DESIGN.md §6): everything the plan holds about it, popped out over the Plan or beside the text
+ * in Write. Two columns when there's room. Changes save as you type.
+ */
+export function ChapterDrawer({ chapterId, onClose, onStep }: ChapterDrawerProps) {
   const { plan } = useChapterDetails()
   const chapter = plan.chapterById.get(chapterId)
   const [missing, setMissing] = useState(false)
@@ -43,7 +73,7 @@ export function ChapterDrawer({ chapterId, onClose }: { chapterId: string; onClo
     return () => clearTimeout(timer)
   }, [chapter])
 
-  if (chapter) return <ChapterForm key={chapter.id} chapter={chapter} onClose={onClose} />
+  if (chapter) return <ChapterForm key={chapter.id} chapter={chapter} onClose={onClose} onStep={onStep} />
   if (!missing) return null
   return (
     <div className="grid gap-3 p-5">
@@ -58,7 +88,7 @@ export function ChapterDrawer({ chapterId, onClose }: { chapterId: string; onClo
   )
 }
 
-function ChapterForm({ chapter, onClose }: { chapter: PlanChapter; onClose: () => void }) {
+function ChapterForm({ chapter, onClose, onStep }: { chapter: PlanChapter; onClose: () => void; onStep?: ChapterStep }) {
   const { db, bookId, plan, focusItem, place } = useChapterDetails()
   const id = useId()
   const fieldId = (name: string) => `${id}-${name}`
@@ -75,58 +105,60 @@ function ChapterForm({ chapter, onClose }: { chapter: PlanChapter; onClose: () =
 
   return (
     <div className="flex min-h-full flex-col">
-      <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center gap-1 border-b bg-surface/95 px-4 backdrop-blur">
+      <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center gap-1 border-b bg-surface/95 px-4 backdrop-blur sm:px-5 pointer-coarse:h-14">
         <h2
           tabIndex={-1}
           data-drawer-heading={chapter.id}
-          className="mr-auto rounded-sm text-xs font-semibold tracking-widest text-muted-foreground uppercase outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="rounded-sm text-xs font-semibold tracking-widest text-muted-foreground uppercase outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           Chapter {chapter.number}
         </h2>
-        {place === "plan" ? (
-          <Link
-            to={`/b/${bookId}/write/${chapter.id}`}
-            className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-ink-2")}
+        {onStep && <ChapterSteps chapter={chapter} onStep={onStep} />}
+        <div className="ml-auto flex shrink-0 items-center gap-1">
+          {place === "write" && (
+            <Link
+              to={`/b/${bookId}/plan?chapter=${chapter.id}`}
+              className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-ink-2")}
+            >
+              <LayoutGridIcon />
+              Open in Plan
+            </Link>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-sm" aria-label="More for this chapter" className="text-muted-foreground">
+                <EllipsisIcon />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="w-56"
+              onCloseAutoFocus={(event) => {
+                if (!menuRan.current) return
+                menuRan.current = false
+                event.preventDefault()
+              }}
+            >
+              <DropdownMenuItem variant="destructive" onSelect={trash}>
+                <Trash2Icon />
+                Move to Trash
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Close details"
+            data-popout-close=""
+            onClick={onClose}
+            className="text-muted-foreground"
           >
-            <PenLineIcon />
-            Write
-          </Link>
-        ) : (
-          <Link
-            to={`/b/${bookId}/plan?chapter=${chapter.id}`}
-            className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-ink-2")}
-          >
-            <LayoutGridIcon />
-            Open in Plan
-          </Link>
-        )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label="More for this chapter" className="text-muted-foreground">
-              <EllipsisIcon />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className="w-56"
-            onCloseAutoFocus={(event) => {
-              if (!menuRan.current) return
-              menuRan.current = false
-              event.preventDefault()
-            }}
-          >
-            <DropdownMenuItem variant="destructive" onSelect={trash}>
-              <Trash2Icon />
-              Move to Trash
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Button variant="ghost" size="icon-sm" aria-label="Close details" onClick={onClose} className="text-muted-foreground">
-          <XIcon />
-        </Button>
+            <XIcon />
+          </Button>
+        </div>
       </header>
 
-      <div className="grid gap-5 px-4 pt-3 pb-8">
+      <div className="@container px-4 pt-3 pb-8 sm:px-5">
         <DraftInput
           data-drawer-title={chapter.id}
           aria-label="Chapter title"
@@ -135,170 +167,271 @@ function ChapterForm({ chapter, onClose }: { chapter: PlanChapter; onClose: () =
           onSave={(title) => save({ title })}
           className="-mx-2 h-auto w-[calc(100%+1rem)] border-transparent bg-transparent px-2 py-1 font-heading text-2xl leading-tight font-semibold shadow-none hover:border-input md:text-2xl dark:bg-transparent"
         />
+        {place === "plan" && (
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Link
+              to={writePath(bookId, chapter.id)}
+              state={WRITE_STATE}
+              data-tour="popout-write"
+              className={cn(buttonVariants({ size: "sm" }), "pointer-coarse:h-11")}
+            >
+              <PenLineIcon />
+              Write this chapter
+            </Link>
+            <WordProgress
+              words={chapter.words}
+              target={chapter.word_target}
+              label={`Chapter ${chapter.number} word count target`}
+            />
+          </div>
+        )}
 
-        <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2.5 text-sm">
-          <Label htmlFor={fieldId("status")} className="text-ink-2">
-            Status
-          </Label>
-          <Select value={isStatus(chapter.status) ? chapter.status : "idea"} onValueChange={(status) => void attempt("save status", save({ status }))}>
-            <SelectTrigger id={fieldId("status")} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent position="popper">
-              {STATUS_OPTIONS.map((option) => (
-                <SelectItem key={option.key} value={option.key}>
-                  <span aria-hidden="true" className={cn("size-2 shrink-0 rounded-full", option.dot)} />
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="mt-5 grid gap-x-8 gap-y-7 @2xl:grid-cols-[minmax(0,1fr)_17rem]">
+          <div className="grid content-start gap-6">
+            <Section title="Summary" htmlFor={fieldId("summary")} term="summary">
+              <DraftTextarea
+                id={fieldId("summary")}
+                placeholder="What happens in this chapter?"
+                value={chapter.summary ?? ""}
+                onSave={(summary) => save({ summary })}
+                className="min-h-20"
+              />
+            </Section>
 
-          <Label id={fieldId("pov-label")} className="text-ink-2">
-            POV
-          </Label>
-          <EntryPicker
-            labelId={fieldId("pov-label")}
-            typeKey="characters"
-            noun="character"
-            emptyText="No POV"
-            value={chapter.pov_entry_id ? [chapter.pov_entry_id] : []}
-            onChange={(ids) => save({ pov_entry_id: ids[0] ?? null })}
-          />
+            <Section title="Moments" labelId={fieldId("beats-label")} term="moment" tour="popout-moments">
+              <BeatsEditor chapter={chapter} labelId={fieldId("beats-label")} />
+            </Section>
 
-          <Label htmlFor={fieldId("target")} className="text-ink-2">
-            Target
-          </Label>
-          <TargetField chapter={chapter} inputId={fieldId("target")} />
+            <Section title="Scenes" labelId={fieldId("scenes-label")} term="scene">
+              <ScenesList chapter={chapter} labelId={fieldId("scenes-label")} />
+            </Section>
 
-          <Label id={fieldId("location-label")} className="text-ink-2">
-            Location
-          </Label>
-          <EntryPicker
-            labelId={fieldId("location-label")}
-            typeKey="locations"
-            noun="place"
-            emptyText="No location"
-            value={chapter.location_entry_id ? [chapter.location_entry_id] : []}
-            onChange={(ids) => save({ location_entry_id: ids[0] ?? null })}
-          />
+            <Section title="Notes" htmlFor={fieldId("notes")} term="notes">
+              <DraftTextarea
+                id={fieldId("notes")}
+                placeholder="Research, reminders, anything."
+                value={chapter.notes ?? ""}
+                onSave={(notes) => save({ notes })}
+                className="min-h-20"
+              />
+            </Section>
+          </div>
 
-          <Label id={fieldId("time-label")} className="text-ink-2">
-            Story time
-          </Label>
-          <StoryTimeEditor
-            labelId={fieldId("time-label")}
-            value={chapter.time}
-            onSave={(storyTime) => save({ story_time: storyTime })}
-          />
+          <section
+            aria-labelledby={fieldId("details")}
+            data-tour="popout-details"
+            className="grid content-start gap-4 text-sm @2xl:border-l @2xl:pl-8"
+          >
+            <h3 id={fieldId("details")} className={SECTION_TITLE}>
+              Details
+            </h3>
+            <Field label="Status" htmlFor={fieldId("status")} term="status">
+              <Select
+                value={isStatus(chapter.status) ? chapter.status : "idea"}
+                onValueChange={(status) => void attempt("save status", save({ status }))}
+              >
+                <SelectTrigger id={fieldId("status")} className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper">
+                  {STATUS_OPTIONS.map((option) => (
+                    <SelectItem key={option.key} value={option.key}>
+                      <span aria-hidden="true" className={cn("size-2 shrink-0 rounded-full", option.dot)} />
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
 
-          <Label id={fieldId("threads-label")} className="self-start pt-2 text-ink-2">
-            Threads
-          </Label>
-          <EntryPicker
-            labelId={fieldId("threads-label")}
-            typeKey="plot_threads"
-            noun="thread"
-            emptyText="No threads"
-            multiple
-            value={chapter.threads}
-            onChange={(ids) => setChapterLinks(db, chapter.id, "thread", ids)}
-          />
+            <Field label="Point of view" labelId={fieldId("pov-label")} term="point-of-view">
+              <EntryPicker
+                labelId={fieldId("pov-label")}
+                typeKey="characters"
+                noun="character"
+                emptyText="Nobody chosen"
+                value={chapter.pov_entry_id ? [chapter.pov_entry_id] : []}
+                onChange={(ids) => save({ pov_entry_id: ids[0] ?? null })}
+              />
+            </Field>
 
-          <Label id={fieldId("present-label")} className="self-start pt-2 text-ink-2">
-            Present
-          </Label>
-          <EntryPicker
-            labelId={fieldId("present-label")}
-            typeKey="characters"
-            noun="character"
-            emptyText="Nobody yet"
-            multiple
-            value={chapter.present}
-            onChange={(ids) => setChapterLinks(db, chapter.id, "present", ids)}
-          />
+            <Field label="Word count target" htmlFor={fieldId("target")} term="word-count-target">
+              <TargetField chapter={chapter} inputId={fieldId("target")} />
+            </Field>
 
-          <Label htmlFor={fieldId("labels")} className="self-start pt-2 text-ink-2">
-            Labels
-          </Label>
-          <ChipsInput
-            id={fieldId("labels")}
-            noun="label"
-            placeholder="Add a label…"
-            values={chapter.labelList}
-            suggestions={plan.labels}
-            onChange={(labels) => save({ labels: JSON.stringify(labels) })}
-          />
+            <Field label="Location" labelId={fieldId("location-label")} term="location">
+              <EntryPicker
+                labelId={fieldId("location-label")}
+                typeKey="locations"
+                noun="place"
+                emptyText="No location"
+                value={chapter.location_entry_id ? [chapter.location_entry_id] : []}
+                onChange={(ids) => save({ location_entry_id: ids[0] ?? null })}
+              />
+            </Field>
 
-          {chapter.template_beat_key && (
-            <>
-              <span className="text-ink-2">Template beat</span>
-              <span className="truncate px-1">{templateBeatName(chapter.template_beat_key)}</span>
-            </>
-          )}
+            <Field label="Story time" labelId={fieldId("time-label")} term="story-time">
+              <StoryTimeEditor
+                labelId={fieldId("time-label")}
+                value={chapter.time}
+                onSave={(storyTime) => save({ story_time: storyTime })}
+              />
+            </Field>
+
+            <Field label="Story points" labelId={fieldId("threads-label")} term="story-point">
+              <EntryPicker
+                labelId={fieldId("threads-label")}
+                typeKey="plot_threads"
+                noun="story point"
+                emptyText="No story points"
+                multiple
+                value={chapter.threads}
+                onChange={(ids) => setChapterLinks(db, chapter.id, "thread", ids)}
+              />
+            </Field>
+
+            <Field label="What characters are present" labelId={fieldId("present-label")} term="characters-present">
+              <EntryPicker
+                labelId={fieldId("present-label")}
+                typeKey="characters"
+                noun="character"
+                emptyText="Nobody yet"
+                multiple
+                value={chapter.present}
+                onChange={(ids) => setChapterLinks(db, chapter.id, "present", ids)}
+              />
+            </Field>
+
+            <Field label="Labels" htmlFor={fieldId("labels")} term="labels">
+              <ChipsInput
+                id={fieldId("labels")}
+                noun="label"
+                placeholder="Add a label…"
+                values={chapter.labelList}
+                suggestions={plan.labels}
+                onChange={(labels) => save({ labels: JSON.stringify(labels) })}
+              />
+            </Field>
+
+            {chapter.template_beat_key && (
+              <Field label="Structure moment" labelId={fieldId("structure-label")} term="structure-moment">
+                <p className="px-1 text-ink">
+                  {templateBeatName(chapter.template_beat_key)}
+                </p>
+              </Field>
+            )}
+          </section>
         </div>
-
-        <Section title="Summary" htmlFor={fieldId("summary")}>
-          <DraftTextarea
-            id={fieldId("summary")}
-            placeholder="What happens in this chapter?"
-            value={chapter.summary ?? ""}
-            onSave={(summary) => save({ summary })}
-            className="min-h-20"
-          />
-        </Section>
-
-        <Section title="Beats" labelId={fieldId("beats-label")}>
-          <BeatsEditor chapter={chapter} labelId={fieldId("beats-label")} />
-        </Section>
-
-        <Section title="Scenes" labelId={fieldId("scenes-label")}>
-          <ScenesList chapter={chapter} labelId={fieldId("scenes-label")} />
-        </Section>
-
-        <Section title="Notes" htmlFor={fieldId("notes")}>
-          <DraftTextarea
-            id={fieldId("notes")}
-            placeholder="Research, reminders, anything."
-            value={chapter.notes ?? ""}
-            onSave={(notes) => save({ notes })}
-            className="min-h-20"
-          />
-        </Section>
       </div>
     </div>
   )
 }
 
+/** The pop-out's previous and next chapter buttons. They stay focusable at the ends, so focus doesn't drop. */
+function ChapterSteps({ chapter, onStep }: { chapter: PlanChapter; onStep: ChapterStep }) {
+  const { plan } = useChapterDetails()
+  const index = plan.chapters.findIndex((other) => other.id === chapter.id)
+  return (
+    <div className="ml-1 flex items-center">
+      <StepButton direction="previous" target={plan.chapters[index - 1]} onStep={onStep} />
+      <StepButton direction="next" target={plan.chapters[index + 1]} onStep={onStep} />
+    </div>
+  )
+}
+
+function StepButton({
+  direction,
+  target,
+  onStep,
+}: {
+  direction: ChapterStepDirection
+  target: PlanChapter | undefined
+  onStep: ChapterStep
+}) {
+  const label = direction === "previous" ? "Previous chapter" : "Next chapter"
+  const Icon = direction === "previous" ? ChevronLeftIcon : ChevronRightIcon
+  return (
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      data-chapter-nav={direction}
+      aria-label={label}
+      aria-disabled={!target || undefined}
+      title={target ? `${label}: ${target.number}. ${chapterTitle(target.title)}` : undefined}
+      onClick={() => target && onStep(target.id, direction)}
+      className="text-muted-foreground aria-disabled:cursor-default aria-disabled:opacity-40 aria-disabled:hover:bg-transparent"
+    >
+      <Icon />
+    </Button>
+  )
+}
+
+const SECTION_TITLE = "text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+
 function Section({
   title,
   htmlFor,
   labelId,
+  term,
+  tour,
   children,
 }: {
   title: string
   htmlFor?: string
   labelId?: string
+  /** The glossary term the "?" beside the title opens. */
+  term?: string
+  /** Where the page tour points. */
+  tour?: string
   children: ReactNode
 }) {
-  const className = "text-xs font-semibold tracking-wide text-muted-foreground uppercase"
   return (
-    <section className="grid gap-1.5">
-      {htmlFor ? (
-        <Label htmlFor={htmlFor} className={className}>
-          {title}
-        </Label>
-      ) : (
-        <h3 id={labelId} className={className}>
-          {title}
-        </h3>
-      )}
+    <section className="grid gap-1.5" data-tour={tour}>
+      <div className="flex items-center gap-1">
+        {htmlFor ? (
+          <Label htmlFor={htmlFor} className={SECTION_TITLE}>
+            {title}
+          </Label>
+        ) : (
+          <h3 id={labelId} className={SECTION_TITLE}>
+            {title}
+          </h3>
+        )}
+        {term && <TermHint term={term} />}
+      </div>
       {children}
     </section>
   )
 }
 
-/** The chapter's word target, with separators. Takes "3000" or "3,000"; anything else goes back to the saved value. */
+/** A detail with its label above it, and a "?" that explains it. */
+function Field({
+  label,
+  htmlFor,
+  labelId,
+  term,
+  children,
+}: {
+  label: string
+  htmlFor?: string
+  labelId?: string
+  term: string
+  children: ReactNode
+}) {
+  return (
+    <div className="grid gap-1.5">
+      <div className="flex min-h-5 items-center gap-1">
+        <Label htmlFor={htmlFor} id={labelId} className="text-ink-2">
+          {label}
+        </Label>
+        <TermHint term={term} />
+      </div>
+      {children}
+    </div>
+  )
+}
+
+/** The chapter's word count target, with separators. Takes "3000" or "3,000"; anything else goes back to the saved value. */
 function TargetField({ chapter, inputId }: { chapter: PlanChapter; inputId: string }) {
   const { db } = useChapterDetails()
   const stored = chapter.word_target ? formatCount(chapter.word_target) : ""
@@ -329,7 +462,7 @@ function TargetField({ chapter, inputId }: { chapter: PlanChapter; inputId: stri
           draft.onBlur()
           if (invalid) {
             draft.reset()
-            announce("The target needs to be a number of words, like 3000.")
+            announce("The word count target needs to be a number of words, like 3000.")
           }
         }}
         className="w-24 tabular-nums"

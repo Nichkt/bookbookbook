@@ -127,13 +127,14 @@ function WideToolbar({ active, format }: ToolbarProps) {
   const { plan, unit, setUnit, navOpen, toggleNav } = useWrite()
   const editor = active?.editor
   return (
-    <div data-write-toolbar="" className={BAR_CLASS}>
+    <div data-write-toolbar="" data-sticky-top="" className={BAR_CLASS}>
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
             variant="ghost"
             size="icon-sm"
             aria-label="Navigator"
+            data-tour="write-chapters"
             aria-expanded={navOpen}
             aria-controls={navOpen ? NAVIGATOR_ID : undefined}
             onClick={toggleNav}
@@ -149,6 +150,7 @@ function WideToolbar({ active, format }: ToolbarProps) {
         type="single"
         spacing={1}
         aria-label="Write view"
+        data-tour="write-views"
         value={unit}
         onValueChange={(value) => isWriteUnit(value) && setUnit(value)}
         // Looks like the Plan's view switcher.
@@ -224,6 +226,7 @@ function WideToolbar({ active, format }: ToolbarProps) {
             variant="ghost"
             size="icon-sm"
             aria-label="History"
+            data-tour="write-history"
             disabled={!active}
             onClick={(event) => showHistory(plan, event.currentTarget)}
             className="text-ink-2"
@@ -233,14 +236,22 @@ function WideToolbar({ active, format }: ToolbarProps) {
         </TooltipTrigger>
         <TooltipContent>History · Snapshot {shortcutLabel("Mod+Alt+S")}</TooltipContent>
       </Tooltip>
-      <PanelButton page="plan" label="Chapter plan" icon={NotebookTextIcon} />
-      <PanelButton page="codex" label="Codex" icon={BookUserIcon} />
+      <PanelButton page="plan" label="Chapter plan" icon={NotebookTextIcon} tour="write-plan-panel" />
+      <PanelButton page="codex" label="World" icon={BookUserIcon} tour="write-world-panel" />
     </div>
   )
 }
 
+interface PanelButtonProps {
+  page: PanelPage
+  label: string
+  icon: LucideIcon
+  /** Where the Write tour points. */
+  tour: string
+}
+
 /** Opens the panel at its page, or closes it when the page is showing: the toolbar's buttons are the panel's tabs. */
-function PanelButton({ page, label, icon: Icon }: { page: PanelPage; label: string; icon: LucideIcon }) {
+function PanelButton({ page, label, icon: Icon, tour }: PanelButtonProps) {
   const { panel, setPanel } = useWrite()
   const showing = panel === page
   return (
@@ -249,6 +260,7 @@ function PanelButton({ page, label, icon: Icon }: { page: PanelPage; label: stri
       size="sm"
       aria-expanded={showing}
       data-write-panel-return={page}
+      data-tour={tour}
       onClick={() => setPanel(showing ? null : page)}
       className="shrink-0 text-ink-2"
     >
@@ -300,12 +312,13 @@ function PhoneToolbar({ active, format }: ToolbarProps) {
   const navigate = useNavigate()
   const editor = active?.editor
   return (
-    <div data-write-toolbar="" className={BAR_CLASS}>
+    <div data-write-toolbar="" data-sticky-top="" className={BAR_CLASS}>
       <label htmlFor="chapter-picker" className="sr-only">
         Chapter
       </label>
       <select
         id="chapter-picker"
+        data-tour="write-chapters"
         value={chapterId}
         onChange={(event) => navigate(writePath(bookId, event.target.value))}
         className="h-11 min-w-0 flex-1 rounded-md border bg-surface px-3 text-base text-ink"
@@ -362,6 +375,7 @@ function PhoneMenu({ active, format }: ToolbarProps) {
           size="icon-sm"
           aria-label="More writing tools"
           data-write-panel-return="menu"
+          data-tour="write-views write-history write-plan-panel write-world-panel write-today"
           className="shrink-0 text-ink-2"
         >
           <EllipsisIcon />
@@ -406,7 +420,7 @@ function PhoneMenu({ active, format }: ToolbarProps) {
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => after(() => setPanel("codex"))}>
           <BookUserIcon />
-          Codex
+          World
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuLabel className="font-normal text-muted-foreground tabular-nums">
@@ -424,7 +438,11 @@ function TodayCount({ className }: { className?: string }) {
   const net = added - removed
   const detail = `Today: ${formatCount(added)} words added, ${formatCount(removed)} removed`
   return (
-    <p title={detail} className={cn("shrink-0 text-xs whitespace-nowrap text-muted-foreground tabular-nums", className)}>
+    <p
+      title={detail}
+      data-tour="write-today"
+      className={cn("shrink-0 text-xs whitespace-nowrap text-muted-foreground tabular-nums", className)}
+    >
       <span aria-hidden="true">
         Today {net < 0 ? "−" : "+"}
         {formatCount(Math.abs(net))}
