@@ -4,23 +4,10 @@ import { useLayoutEffect, useRef, useState, type ReactNode } from "react"
 import type { Reminder } from "@/backup/record"
 import { Button } from "@/components/ui/button"
 import type { BookListRow } from "@/db/queries"
+import { focusPast } from "@/lib/focus"
 import { backUpBook, resumeFolderBackups, startFolderBackups } from "./commands"
 import { useBackupReminder } from "./useBackupReminder"
 import { useFolder, whyStopped, type Folder } from "./useFolder"
-
-const TABBABLE =
-  'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), [contenteditable="true"]'
-
-/** Moves focus on to what follows the reminder, rather than let it drop to the top of the page as the reminder goes. */
-function focusPast(section: HTMLElement) {
-  for (const element of document.querySelectorAll<HTMLElement>(TABBABLE)) {
-    const follows = section.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING
-    if (follows && !section.contains(element) && element.checkVisibility()) {
-      element.focus()
-      return
-    }
-  }
-}
 
 const ago = (days: number) => (days <= 0 ? "today" : days === 1 ? "yesterday" : `${days} days ago`)
 

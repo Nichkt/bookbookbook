@@ -1033,8 +1033,21 @@ flowchart LR
   The first time, a toast says "Ready to work offline". `npm run dev` never registers it.
 - **It can be installed.** A web app manifest (name, standalone window, start URL) with icons at 192 and 512 px, one
   of them maskable, with the letter well inside the safe zone, and a 180 px Apple touch icon, all drawn from
-  `public/favicon.svg` by `npm run icons`. Chrome's install checks pass. Asking to install, and Safari's steps, come
-  next.
+  `public/favicon.svg` by `npm run icons`. Chrome's install checks pass.
+- **It asks to be installed**, in a notice on the home screen, above the books. In Chrome and Edge the app holds on to
+  the browser's offer (`beforeinstallprompt`), and Install opens the browser's own dialog: the notice goes once the
+  app is installed, and for the rest of the visit if the dialog is dismissed. Their installed app shares the site's
+  storage, so the books come with it. Safari makes no offer, so the notice gives its steps instead: on an iPhone or
+  iPad, in any browser there (an iPad asking for pages as a Mac does is known by its touch screen), Share, under
+  More ⋯ when it isn't shown, then Add to Home Screen; in Safari 17 or later on a Mac, File, then Add to Dock. It
+  says why: Safari can clear a website's data after a week without a visit, but not an installed app's. An app added
+  from Safari keeps its own storage, apart from Safari's, so when there are books already, the notice says how to take
+  them across: back them up, then restore the backup in the app.
+- **It asks once.** Not now, or Got it, hides the notice for good on this device (`ui_prefs`). Search's "Install
+  bookbookbook" and the glossary's "Installing the app" stay for as long as there's a way to install, and the Backups
+  dialog offers Install when the browser won't promise to keep the books (`persist()` refused). The installed app,
+  or one opened from the Home Screen, offers nothing. Focus in the notice as it goes moves on to what follows it, the
+  first book, rather than to the top of the page.
 - **New versions wait for the writer.** Browsers look for one whenever a page opens, and a long visit looks hourly.
   It downloads in the background, then a toast says it's ready, with Reload and Later, and stays until one's chosen.
   Later leaves it waiting: the toast comes back when a page opens, and the new version starts by itself once every
@@ -1053,6 +1066,10 @@ flowchart LR
   typed kept; and Reload in one tab taking both open tabs into it, one of them opened before any version controlled
   it. The server gives a browser carrying a cookie a new version of the service worker, so each test publishes its
   own and the tests run side by side. `app.spec.ts` checks the title bar's color in each theme.
+- `e2e/install.spec.ts` fakes Chrome's offer, which the dev server, with no manifest, never gets, and Safari's user
+  agents: Install accepted, the browser's dialog dismissed, Not now kept, Search and the glossary on an iPhone and a
+  Mac, Install in the Backups dialog, and nothing offered once installed. `src/app/install.test.ts` checks which
+  devices and browsers are given Safari's steps.
 
 ---
 
@@ -1405,16 +1422,17 @@ menu. Labels say what a thing is for in the first place (§6, "Plain labels"), a
 words as "also called".
 
 **Glossary**
-- 71 terms in five groups: *Story basics* (act, chapter, scene, moment, structure moment, story structure, premise,
+- 72 terms in five groups: *Story basics* (act, chapter, scene, moment, structure moment, story structure, premise,
   synopsis, flashback, point of view, tense, story point, theme, show don't tell, draft, manuscript), *Planning a
   chapter* (each field of a chapter's details), *Your world* (World, entries, entry types, aliases, mentions, AI
   context, and the kinds of entry that need explaining), *Pages and tools* (home, Search, Plan, Board, Corkboard,
   Outline, Matrix, Timeline, structure ribbon, Write and its writing aids, Inbox, filing a note, dictation, versions,
-  backups, export, import, Trash) and *AI tools* (AI tools, model, API key, local model, token, context, AI-written,
-  your own tools, style guide). M5 added the eight about structures and its views, M6 the nine about writing aids
-  (focus mode, typewriter scrolling, daily goal, streak, sprint, find and replace, pattern, read aloud and Add to
-  World), M4 the eleven about the AI tools and a book's style, M11 the four about dictation and the Inbox (filing a
-  note, dictation, voice commands, and on this device or online), and M8 Search (the command palette).
+  backups, export, import, Trash, installing the app) and *AI tools* (AI tools, model, API key, local model, token,
+  context, AI-written, your own tools, style guide). M5 added the eight about structures and its views, M6 the nine
+  about writing aids (focus mode, typewriter scrolling, daily goal, streak, sprint, find and replace, pattern, read
+  aloud and Add to World), M4 the eleven about the AI tools and a book's style, M11 the four about dictation and the
+  Inbox (filing a note, dictation, voice commands, and on this device or online), and M8 Search (the command palette)
+  and installing the app.
 - Each is a few sentences of plain English, an example from the sample book where one helps, and "See also" links.
   **Scene** says what starts a new one: a jump in place, time or point of view. **Moment** explains beats: one thing
   that happens, the smallest piece of a story; a few make a scene, and a few scenes a chapter.
@@ -1520,7 +1538,7 @@ words as "also called".
    Harper, read-through and @-mentions (§8, "Built in M6"), and M11 on the browser's own speech recognition, without
    voice memos, the in-browser models, cloud transcription and the AI helpers (§10, "Built in M11"). So are the home
    screen, the chapter pop-out, plain labels, World, the glossary and the page tours (§4, §6, §7, §17a), and from
-   M8, Search, the command palette (§4), and the app opening offline and installing (§11).
+   M8, Search, the command palette (§4), and the app opening offline, installing and asking to be installed (§11).
 
 ---
 
@@ -1531,7 +1549,7 @@ words as "also called".
 | **Scope is very large** for a small team | Slips, half-finished features | Milestone gates; Beta cut list; prototype first; defer v1.x items without guilt |
 | **Sync correctness** (PowerSync + Yjs) | Lost or duplicated writing | Follow the official Yjs + Supabase demo pattern; offline/online chaos tests; multi-device e2e; snapshots + backups as a safety net |
 | **Yjs update growth** | Slow loads, storage cost | Per-scene docs; compaction into snapshots; GC on |
-| **Browser storage eviction** (esp. Safari ~7-day rule) | Data loss in Beta | `persist()`, install prompts, folder backups, a calm backup reminder, "last backup" in the book menu (built in M7) |
+| **Browser storage eviction** (esp. Safari ~7-day rule) | Data loss in Beta | `persist()`, folder backups, a calm backup reminder, "last backup" in the book menu (built in M7); install prompts, with Safari's steps (built in M8) |
 | **Mobile IME bugs** in ProseMirror | Broken typing on Android | Test from M0 on real devices (`/lab/ime`, [checklist](ime-smoke-test.md)); no decoration updates during composition; an e2e test replays a composition through the Chrome DevTools Protocol; keep a list of known keyboards |
 | **AI cost abuse** | Margin loss | Reserve/settle credits, rate limits, max tokens, model allow-list, anomaly alerts; no hosted AI on Free |
 | **Model refusals on mature fiction** | Frustrated writers | Model choice, fiction framing, graceful refusals, local models |
@@ -1595,3 +1613,4 @@ words as "also called".
 | 29 | M11 dictation and Inbox | Live dictation on the browser's own speech recognition, set up per device on first use: on this device (Chrome's language packs, private, offline) or online with the browser's maker, named; one session at a time, restarted through a browser's silences, its words shown in a Listening pill until they settle; English voice commands, "scratch that" and "literal", and "new moment" in notes; dictation into the text at the caret as the writer's own words, by the toolbar or Ctrl+Shift+M (Ctrl+Shift+S is the editor's strikethrough), stopping Read aloud and stopped by it; an Inbox of notes typed or dictated, To sort and Filed, filed into a chapter's notes, moments or summary, or an entry's notes, or made into an entry, each with Undo; Quick note in every book page's header, its unsaved note kept for the visit; Inbox notes in backups, still version 1; dictation and the Inbox moved into the Beta, as they cost nothing to run; voice memos, in-browser models, cloud transcription and the AI helpers deferred | Details in §10, "Built in M11" |
 | 30 | M8 command palette | Search in every page's header and Ctrl/Cmd+K, the page's before the browser's but left to other dialogs and menus; finds chapters, titled scenes, World entries, views, books and glossary terms once something's typed, and does what each page's toolbars and menus do, the AI tools included (Continue at once, the rest in the panel); every word typed must match, the label over keywords and a word's start over letters inside, glossary terms a step lower; a command runs after the palette closes, with focus back where it was, so dialogs return there; each page opens a chapter, scene or entry its own way, the Plan through `?chapter=` even while loading; Back closes it, the app's redirects don't; opened again as it fades, it starts afresh | Details in §4, "Built in M8" |
 | 31 | M8 offline and installing | Production builds keep a copy of the app in a service worker (vite-plugin-pwa): the app, its fonts and icons and the one SQLite build it loads, 60 files and 6.8 MB, not PowerSync's encrypted and OPFS builds; every address falls back to the app's page, so any opens offline; a new version downloads in the background and waits for the writer, a toast offering Reload or Later, rather than reloading under them mid-sentence, and starts by itself once every tab has closed; Reload saves pending edits first and every open tab reloads into the new version, the tab clicked watching for it itself when no version controlled it as it opened; hourly checks on long visits; the startup and error screens update too; the title bar takes the header's color in each theme; icons drawn from the favicon by a script; tested on a production build, each test publishing its own new version through a cookie | Details in §11, "Built in M8" |
+| 32 | M8 install prompts | A notice on the home screen alone, above the books, saying why: Chrome's and Edge's offer held for Install, which opens the browser's own dialog, and Safari's steps where no offer comes, on an iPhone or iPad in any browser and in Safari 17 or later on a Mac, as Safari may clear a website's data after a week away but not an installed app's; an app added from Safari keeps its own books, so the notice says to back up and restore those begun in the browser; Not now and Got it are for good on the device, a dismissed browser dialog only for the visit; Search and the glossary keep a way to install, and the Backups dialog offers it when the browser won't promise to keep the books; nothing's offered in the installed app; no tour step, as the notice comes and goes | Details in §11, "Built in M8" |

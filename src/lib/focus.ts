@@ -71,3 +71,26 @@ export const nothingFocused = () => {
 
 /** A selector for `[data-<name>="<value>"]`, with the value quoted safely. */
 export const byData = (name: string, value: string) => `[data-${name}="${value.replace(/["\\]/g, "\\$&")}"]`
+
+const TABBABLE = [
+  "a[href]",
+  "button:not([disabled])",
+  'input:not([disabled]):not([type="hidden"])',
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+  '[contenteditable="true"]',
+].join(", ")
+
+/**
+ * Moves focus on to what follows `element`, or with nothing after it, to what comes before: for a notice that's going
+ * with focus in it, rather than let focus drop to the top of the page.
+ */
+export function focusPast(element: HTMLElement) {
+  const others = [...document.querySelectorAll<HTMLElement>(TABBABLE)].filter(
+    (other) => !element.contains(other) && other.checkVisibility(),
+  )
+  const follows = (other: HTMLElement) => element.compareDocumentPosition(other) & Node.DOCUMENT_POSITION_FOLLOWING
+  const next = others.find(follows) ?? others.findLast((other) => !follows(other))
+  next?.focus()
+}

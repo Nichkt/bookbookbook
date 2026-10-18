@@ -9,6 +9,7 @@ import { LIBRARY_SQL, type LibraryRow } from "@/db/queries"
 import { openBookDialog, type BookDialog } from "@/features/books/dialogStore"
 import { formatCount } from "@/lib/numbers"
 import { cn } from "@/lib/utils"
+import { InstallNotice } from "./InstallNotice"
 import { bookPath, libraryOrder, openedLabel } from "./library"
 
 const HEADING_ID = "home-heading"
@@ -28,6 +29,7 @@ export function HomeScreen() {
           Start one, import a manuscript, or restore one from a backup. A book you deleted may still be in the Trash.
         </p>
         <LibraryActions className="mt-6" />
+        <InstallNotice hasBooks={false} className="mt-10" />
       </section>
     )
   }
@@ -44,6 +46,7 @@ export function HomeScreen() {
         </div>
         <LibraryActions />
       </div>
+      <InstallNotice hasBooks className="mt-8" />
       <ul aria-labelledby={HEADING_ID} data-tour="home-books" className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {libraryOrder(books, visits).map((book) => (
           <BookCard key={book.id} book={book} visit={visits[book.id]} now={now} />

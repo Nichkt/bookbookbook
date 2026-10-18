@@ -682,7 +682,7 @@ export const GLOSSARY: GlossaryTerm[] = [
     body: [
       "A copy of a whole book in one file, which you can restore if something goes wrong, or open on another computer. Backups can be saved to a folder for you automatically, and you're reminded when it's been a while.",
     ],
-    related: ["export"],
+    related: ["export", "install"],
   },
   {
     id: "export",
@@ -708,6 +708,19 @@ export const GLOSSARY: GlossaryTerm[] = [
     body: [
       "Where deleted chapters, scenes, entries and books go. They stay there for 30 days, so you can restore them, and are then deleted for good.",
     ],
+  },
+  {
+    id: "install",
+    term: "Installing the app",
+    aka: ["Install", "Add to Home Screen", "Add to Dock", "Offline", "PWA"],
+    group: "app",
+    body: [
+      "bookbookbook runs in your browser, and once it has opened there, it opens without the internet too. Installed, it's an app like any other: it opens in a window of its own, from your dock, taskbar or Home Screen.",
+      "In Chrome or Edge, choose Install above your books, or the install button at the right end of the address bar. Your books come with it.",
+      "On an iPhone or iPad, open bookbookbook in Safari, tap Share (under More ⋯, if you don't see it), then Add to Home Screen. On a Mac, in Safari, choose File, then Add to Dock.",
+      "Safari can clear a website's data, books and all, after a week without a visit, but not an app's on your Home Screen or in your Dock. The app keeps its own books, apart from Safari's: to take a book you started in Safari, back it up there, then restore the backup in the app.",
+    ],
+    related: ["backup"],
   },
 
   {

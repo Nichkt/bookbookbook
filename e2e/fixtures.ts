@@ -20,7 +20,19 @@ declare global {
     __speech: { spoken: Spoken[]; finish(): void }
     /** The stand-in for speech recognition that fakeDictation puts in place. */
     __dictation: FakeDictation
+    /** What offerInstall's stand-in for the browser's offer to install has seen. */
+    __install: FakeInstall
   }
+}
+
+/** How a test answers for the writer through offerInstall. */
+export interface FakeInstall {
+  /** Whether the app kept the offer for itself, so the browser shows no banner of its own. */
+  kept: boolean
+  /** How many times the app has shown the browser's dialog. */
+  prompted: number
+  /** Answers the dialog, as the writer would. Accepting installs the app, as the browser then announces. */
+  answer(outcome: "accepted" | "dismissed"): void
 }
 
 /** What the app asked fakeSpeech's voices to say. */
@@ -288,6 +300,36 @@ export async function fakeDictation(page: Page) {
     }
     Object.defineProperty(window, "SpeechRecognition", { value: Recognition, configurable: true })
     Object.defineProperty(window, "__dictation", { value: dictation })
+  })
+}
+
+/**
+ * Makes the offer to install the app that Chrome and Edge make once it can be installed, which they never do for
+ * these tests' browser profiles (DESIGN.md §11). The test answers for the writer through `window.__install`.
+ */
+export async function offerInstall(page: Page) {
+  await page.evaluate(() => {
+    let choose: (outcome: "accepted" | "dismissed") => void = () => undefined
+    const userChoice = new Promise<{ outcome: string; platform: string }>((resolve) => {
+      choose = (outcome) => resolve({ outcome, platform: "web" })
+    })
+    const install: FakeInstall = {
+      kept: false,
+      prompted: 0,
+      answer(outcome) {
+        choose(outcome)
+        if (outcome === "accepted") setTimeout(() => window.dispatchEvent(new Event("appinstalled")))
+      },
+    }
+    const offer = Object.assign(new Event("beforeinstallprompt", { cancelable: true }), {
+      prompt: async () => {
+        install.prompted++
+      },
+      userChoice,
+    })
+    Object.defineProperty(window, "__install", { value: install, configurable: true })
+    window.dispatchEvent(offer)
+    install.kept = offer.defaultPrevented
   })
 }
 

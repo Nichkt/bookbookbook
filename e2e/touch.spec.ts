@@ -6,6 +6,7 @@ import {
   FIRST_LOAD_TIMEOUT,
   focusEnd,
   LOCAL_AI,
+  offerInstall,
   openFirstChapter,
   seedBackupRecord,
   selectText,
@@ -319,6 +320,8 @@ for (const [device, viewport] of [
       await page.goto("/")
       await page.getByRole("link", { name: "The Salt Ledger" }).waitFor({ timeout: FIRST_LOAD_TIMEOUT })
       await check("Home")
+      await offerInstall(page)
+      await check("Install notice", 'section[aria-labelledby="install-notice-title"]')
 
       const openHelp = async (item: "How to use this" | "Glossary") => {
         if (device === "phone") {

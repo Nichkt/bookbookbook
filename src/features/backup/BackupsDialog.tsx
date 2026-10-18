@@ -10,6 +10,7 @@ import {
   type FocusEvent,
   type ReactNode,
 } from "react"
+import { promptInstall, useInstallWay } from "@/app/install"
 import { KEEP_PER_BOOK } from "@/backup/folder"
 import { daysBetween, lastBackupLabel, lastBackupSentence, parseRecord, recordKey } from "@/backup/record"
 import { Button } from "@/components/ui/button"
@@ -262,6 +263,8 @@ function BrowserStorage() {
   const [storage, setStorage] = useState<StorageState | null>(null)
   const { busy, run } = useOneAtATime()
   const keepFocus = useKeepFocus()
+  // An installed app's books are kept more readily.
+  const offered = useInstallWay() === "offer"
 
   useEffect(() => {
     let current = true
@@ -310,6 +313,17 @@ function BrowserStorage() {
             >
               {storage.refused ? "Ask again" : "Ask the browser to keep them"}
             </Button>
+            {storage.refused && offered && (
+              <Button
+                size="sm"
+                variant="outline"
+                aria-disabled={busy !== null}
+                className="aria-disabled:opacity-50"
+                onClick={() => void run("install", promptInstall)}
+              >
+                Install bookbookbook
+              </Button>
+            )}
           </Actions>
         </>
       )}

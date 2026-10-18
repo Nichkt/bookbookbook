@@ -1,4 +1,5 @@
 import {
+  AppWindowIcon,
   ArchiveIcon,
   ArchiveRestoreIcon,
   BookAIcon,
@@ -23,6 +24,7 @@ import { useMemo } from "react"
 import { useLocation, useNavigate, type Location, type NavigateFunction } from "react-router"
 import { rememberBook, type BookScreen } from "@/app/books"
 import { announce } from "@/app/feedback"
+import { promptInstall, useInstallWay } from "@/app/install"
 import { THEME_ICONS, THEME_LABELS, THEMES, useTheme } from "@/app/theme"
 import type { BookListRow } from "@/db/queries"
 import { openBookDialog } from "@/features/books/dialogStore"
@@ -43,8 +45,8 @@ import { screenHandler } from "./paletteStore"
 
 /*
  * The command palette's own commands (DESIGN.md §4 "Command palette"): the pages, the books and what the book menu
- * does, help and the theme everywhere; in a book, its chapters, scenes and World entries too. The showing screen adds
- * its own with usePaletteSource.
+ * does, installing the app, help and the theme everywhere; in a book, its chapters, scenes and World entries too. The
+ * showing screen adds its own with usePaletteSource.
  */
 
 type BookPage = BookScreen | "inbox"
@@ -74,6 +76,7 @@ export function useAppCommands(book: BookListRow | undefined, books: readonly Bo
   const location = useLocation()
   const theme = useTheme((state) => state.theme)
   const setTheme = useTheme((state) => state.setTheme)
+  const installWay = useInstallWay()
 
   return useMemo(() => {
     const inBook = book?.id ?? null
@@ -201,6 +204,21 @@ export function useAppCommands(book: BookListRow | undefined, books: readonly Bo
         run: (from) => openBookDialog("trash", from),
       },
     )
+    if (installWay) {
+      commands.push({
+        id: "app:install",
+        label: "Install bookbookbook",
+        group: "Books",
+        icon: AppWindowIcon,
+        // Safari makes no offer to install, so the glossary gives its steps.
+        hint: installWay === "offer" ? undefined : "Glossary",
+        keywords: ["app", "add to home screen", "add to dock", "desktop", "window", "offline"],
+        run: (from) => {
+          if (installWay === "offer") void promptInstall()
+          else openGlossary("install", from)
+        },
+      })
+    }
 
     if (tour) {
       commands.push({
@@ -249,7 +267,7 @@ export function useAppCommands(book: BookListRow | undefined, books: readonly Bo
       })
     }
     return commands
-  }, [book, books, location, navigate, theme, setTheme])
+  }, [book, books, location, navigate, theme, setTheme, installWay])
 }
 
 /** The Plan's views: on the Plan, the open chapter and filters stay as they were, as the toolbar's links keep them. */

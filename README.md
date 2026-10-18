@@ -17,7 +17,9 @@ a folder as it changes (Chrome and Edge).
 
 **M8, Offline and installing** (DESIGN.md §11, "Built in M8"):
 - **Works offline:** once bookbookbook has opened, it opens without an internet connection, at any of its pages.
-- **Install it** from Chrome's or Edge's address bar, for a window and an icon of its own.
+- **Install it** for a window and an icon of its own. The home screen offers to, in Chrome and Edge, and gives
+  Safari's steps on an iPhone, iPad or Mac, where Safari can clear a website's data after a week without a visit,
+  though not an installed app's. Not now puts the offer away; Search's "Install bookbookbook" stays.
 - **Updates wait for you:** a new version downloads in the background, then a message offers **Reload**, which saves
   your writing first and moves every open tab to it, or **Later**, and it starts the next time you open bookbookbook.
 - Only a build does this: see [Trying it offline](#trying-it-offline).
@@ -242,10 +244,10 @@ npm run preview
 ```
 
 Open <http://localhost:4173> and wait for "Ready to work offline". Then it opens with no connection (try DevTools →
-Network → Offline, and reload), and Chrome's address bar offers to install it. Its books are kept apart from the dev
-server's, as it's another address. To see an update arrive, change something and build again with it open: the browser
-finds the new version when a page next opens, or within the hour. To be rid of the service worker, clear the site's
-data.
+Network → Offline, and reload), and Chrome offers to install it, above your books and in the address bar. Its books
+are kept apart from the dev server's, as it's another address. To see an update arrive, change something and build
+again with it open: the browser finds the new version when a page next opens, or within the hour. To be rid of the
+service worker, clear the site's data.
 
 ## Setting up the AI tools
 
@@ -286,6 +288,7 @@ in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). 
   paragraphs), splitting into acts, chapters and scenes, the title and author, the preview's edits and Undo, and the
   book it writes;
 - the home screen's order, links and "Opened …" labels, and the visits it remembers;
+- installing: which devices and browsers are given Safari's steps to add the app;
 - writing aids: find and replace (searching a paragraph at a time, whole words, patterns and their replacements,
   the panel's list and counts, where Next goes), its marks in the text, read aloud's sentences and its mark, goals,
   streaks and sprints, the day's words, and which selections Add to World takes for a name;
@@ -366,12 +369,16 @@ They cover:
   browser's cache cleared; Chrome's install checks, the manifest and the icons; a new version waiting through Later
   and a reload, then Reload keeping the last words typed; and Reload moving every open tab to it. Each test gets a
   new version of its own, through a cookie the server looks for, so they run side by side;
+- installing (`install.spec.ts`), the browser's offer faked: Install on the home screen, accepted or dismissed, Not
+  now remembered, Safari's steps on an iPhone and a Mac and Search taking them to the glossary, Install in the
+  Backups dialog when the browser won't keep the books, and nothing offered once installed;
 - touch targets (`touch.spec.ts`): on a phone and a tablet, every control on the Board, its menus, the chapter
   pop-out, a toast, the Outline, the Write screen with its menus, History, chapter plan and World panel, World, the
   writing aids (Goals and sprints, Find and replace, Add to World, the reading bar and focus mode), the AI tools
   (the panel and its cards, AI settings and your own tools), the Import dialog with its menus, the backup reminder,
   the Backups dialog, the Inbox (its menus, File this note, Quick note), dictation (Set up dictation and the
-  Listening pill), the home screen, the help menu, the glossary, a tour card and Search must be at least 44 px.
+  Listening pill), the home screen and its install notice, the help menu, the glossary, a tour card and Search must
+  be at least 44 px.
 
 Use `npx playwright test --ui` to debug, and `--project=chrome` or `--project=pwa` for the dev server's tests or the
 offline ones alone. A failed test keeps a trace in `test-results/`; open it with `npx playwright show-trace <path>`.
@@ -402,7 +409,7 @@ one replaces the live doc's prose with a copy in a single edit, so it's saved, a
 src/
   ai/             providers, requests and streamed answers, what a run sends, the tools and your own, cards and runs
   app/            shell, routes, startup and error screens, theme, toasts and announcements, the service worker and
-                  updates, dev hooks
+                  updates, installing, dev hooks
   backup/         backup status, folder backups, and when backups run
   components/     fields that save as you type; ui/ holds the shadcn components
   db/             PowerSync schema, queries, sample book and seeding, ordering, undo, Trash, prefs, the scene store,
@@ -411,11 +418,11 @@ src/
   export/         manuscript, Word, Markdown and plain-text files, backups and restoring them
   features/       plan/ (Board, Outline, chapter pop-out), write/ (views, toolbar, navigator, History, side panel with
                   the chapter plan and World, hover cards, dictation into the text, and ai/ with the AI tools panel,
-                  its cards and settings), home/ (the home screen), help/ (glossary, tours, "?" buttons), books/ (book
-                  dialogs and style), export/ (Export and Restore dialogs), import/ (Import dialog and its preview),
-                  backup/ (the reminder and the Backups dialog), codex/ (the World screen, entry pages, Appears in),
-                  inbox/ (the Inbox, filing and Quick note), dictation/ (Dictate, its setup and the Listening pill),
-                  lab/ (IME lab)
+                  its cards and settings), home/ (the home screen and its install notice), help/ (glossary, tours,
+                  "?" buttons), books/ (book dialogs and style), export/ (Export and Restore dialogs), import/ (Import
+                  dialog and its preview), backup/ (the reminder and the Backups dialog), codex/ (the World screen,
+                  entry pages, Appears in), inbox/ (the Inbox, filing and Quick note), dictation/ (Dictate, its setup
+                  and the Listening pill), lab/ (IME lab)
   import/         reading Word, Markdown and plain text, splitting into acts, chapters and scenes, writing the book
   lib/            small helpers (ids, word counts, numbers, keys, focus, colors, plain text as rich text)
   speech/         speech recognition: the engine, dictation sessions, voice commands and their settings
