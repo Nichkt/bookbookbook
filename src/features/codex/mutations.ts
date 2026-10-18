@@ -27,7 +27,10 @@ async function universeOf(tx: Tx, bookId: string) {
   return universeId
 }
 
-async function insertEntry(tx: Tx, values: { universeId: string; typeId: string | null; name: string; color: string }) {
+async function insertEntry(
+  tx: Tx,
+  values: { universeId: string; typeId: string | null; name: string; color: string; fields?: Record<string, string> },
+) {
   const id = newId()
   await insertRow(tx, "codex_entries", {
     id,
@@ -35,7 +38,7 @@ async function insertEntry(tx: Tx, values: { universeId: string; typeId: string 
     type_id: values.typeId,
     name: values.name.trim(),
     aliases: "[]",
-    fields: "{}",
+    fields: JSON.stringify(values.fields ?? {}),
     notes: EMPTY_NOTES,
     tags: "[]",
     ai_context: "mentioned",
@@ -54,15 +57,31 @@ export async function createCodexEntry(
   db: Db,
   input: { bookId: string; typeKey: CodexTypeKey; name: string; color: string },
 ): Promise<string> {
-  return db.writeTransaction(async (tx) => {
-    const universeId = await universeOf(tx, input.bookId)
-    const type = await tx.getOptional<{ id: string }>(
-      "SELECT id FROM codex_types WHERE universe_id = ? AND key = ? ORDER BY id LIMIT 1",
-      [universeId, input.typeKey],
-    )
-    const typeId = type?.id ?? (await insertCodexType(tx, universeId, input.typeKey))
-    return insertEntry(tx, { universeId, typeId, name: input.name, color: input.color })
-  })
+  return db.writeTransaction((tx) => insertCodexEntry(tx, input))
+}
+
+/**
+ * `createCodexEntry` inside a transaction, with field values (label → text) if wanted. Notes what it creates in
+ * `changes`, when given, so Undo removes it.
+ */
+export async function insertCodexEntry(
+  tx: Tx,
+  input: { bookId: string; typeKey: CodexTypeKey; name: string; color: string; fields?: Record<string, string> },
+  changes?: ChangeSet,
+): Promise<string> {
+  const universeId = await universeOf(tx, input.bookId)
+  const type = await tx.getOptional<{ id: string }>(
+    "SELECT id FROM codex_types WHERE universe_id = ? AND key = ? ORDER BY id LIMIT 1",
+    [universeId, input.typeKey],
+  )
+  let typeId = type?.id
+  if (!typeId) {
+    typeId = await insertCodexType(tx, universeId, input.typeKey)
+    changes?.created("codex_types", typeId)
+  }
+  const id = await insertEntry(tx, { universeId, typeId, name: input.name, color: input.color, fields: input.fields })
+  changes?.created("codex_entries", id)
+  return id
 }
 
 /** A new entry of a type the Codex lists, built-in or the writer's own. Returns its id. */

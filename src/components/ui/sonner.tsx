@@ -1,10 +1,13 @@
 import { CircleCheckIcon, InfoIcon, Loader2Icon, OctagonXIcon, TriangleAlertIcon } from "lucide-react"
+import { useEffect } from "react"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { useTheme } from "@/app/theme"
+import { letToastsThroughDialogs } from "@/lib/toasts"
 
 // shadcn's Toaster, reading the app's theme store instead of next-themes. Sepia is a light theme.
 const Toaster = ({ ...props }: ToasterProps) => {
   const theme = useTheme((s) => s.theme)
+  useEffect(letToastsThroughDialogs, [])
 
   return (
     <Sonner

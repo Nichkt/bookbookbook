@@ -23,6 +23,9 @@ const SYNCABLE = {
     style_guide: text,
     sample_passages: text,
     template_key: text,
+    // From planning step by step (DESIGN.md §6): the book in a sentence, and in a paragraph.
+    premise: text,
+    synopsis: text,
     created_at: text,
     deleted_at: text,
   },

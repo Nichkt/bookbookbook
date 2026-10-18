@@ -5,6 +5,7 @@ import { byData } from "@/lib/focus"
 import type { Display, DisplayField, PlanView, PresetName } from "./display"
 import type { FilterKey, PlanFilters } from "./filters"
 import type { Plan, PlanChapter } from "./planData"
+import type { BookStructures } from "./useStructures"
 
 export type ItemKind = "act" | "chapter" | "scene"
 
@@ -19,6 +20,10 @@ export interface PlanContextValue {
   bookId: string
   book: BookListRow
   plan: Plan
+  structures: BookStructures
+  /** Whether the Board and Corkboard show the structure ribbon, for this book on this device. */
+  ribbonShown: boolean
+  setRibbonShown: (shown: boolean) => void
   view: PlanView
   display: Display
   setPreset: (preset: PresetName) => void
@@ -49,6 +54,7 @@ export interface ChapterDetailsValue {
   db: Db
   bookId: string
   plan: Plan
+  structures: BookStructures
   focusItem: FocusItem
   /** The screen showing the details. Each links to the other. */
   place: "plan" | "write"
@@ -62,14 +68,17 @@ export function useChapterDetails(): ChapterDetailsValue {
   const planContext = useContext(PlanContext)
   if (details) return details
   if (!planContext) throw new Error("useChapterDetails needs a ChapterDetailsContext or PlanContext provider")
-  const { db, bookId, plan, focusItem } = planContext
-  return { db, bookId, plan, focusItem, place: "plan" }
+  const { db, bookId, plan, structures, focusItem } = planContext
+  return { db, bookId, plan, structures, focusItem, place: "plan" }
 }
 
-/** The element focus goes to for an item, per view. The Board has no scene items. */
+/**
+ * The element focus goes to for an item, per view. Only the Outline has scene items; the Matrix and Timeline have no
+ * act items either.
+ */
 export function itemSelector(view: PlanView, kind: ItemKind, id: string): string | null {
   if (view === "outline") return byData("outline-stop", `${kind}:${id}`)
-  if (kind === "act") return byData("act-title", id)
+  if (kind === "act") return view === "board" || view === "corkboard" ? byData("act-title", id) : null
   if (kind === "chapter") return byData("focus-chapter", id)
   return null
 }

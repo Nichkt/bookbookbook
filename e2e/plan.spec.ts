@@ -216,6 +216,28 @@ test.describe("Chapter pop-out", () => {
     await expect(boardCards(page, ACT_II)).toHaveCount(5)
     await expect(page.getByRole("button", { name: "Chapter 6: Storm Warning" })).toBeVisible()
   })
+
+  test("deleting a moment offers Undo, which brings it back without closing the pop-out", async ({ page }) => {
+    await openPlan(page)
+    await page.getByRole("button", { name: "Chapter 1: The Ferry Home" }).click()
+    const popout = page.getByRole("dialog", { name: "Chapter 1: The Ferry Home" })
+    const moment2 = popout.getByRole("textbox", { name: "Moment 2", exact: true })
+    await expect(moment2).toHaveValue("Jonas dodges the Harbor Guild")
+
+    await popout.getByRole("button", { name: "Delete moment 2" }).click()
+    const deleted = toast(page, "Deleted “Jonas dodges the Harbor Guild”")
+    await expect(deleted).toBeVisible()
+    await expect(moment2).toHaveValue("Elias offers help she refuses")
+    await expect(moment2).toBeFocused()
+
+    await deleted.getByRole("button", { name: "Undo" }).click()
+    await expect(popout).toBeVisible()
+    await expect(moment2).toHaveValue("Jonas dodges the Harbor Guild")
+    await expect(moment2).toBeFocused()
+    await expect(popout.getByRole("textbox", { name: "Moment 3", exact: true })).toHaveValue(
+      "Elias offers help she refuses",
+    )
+  })
 })
 
 test.describe("Outline", () => {

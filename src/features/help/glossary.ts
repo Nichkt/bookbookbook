@@ -80,14 +80,62 @@ export const GLOSSARY: GlossaryTerm[] = [
   {
     id: "structure-moment",
     term: "Structure moment",
-    aka: ["Template beat", "Beat sheet", "Story structure", "Save the Cat"],
+    aka: ["Template beat", "Structure beat"],
     group: "story",
     body: [
-      "A turning point from a story-structure guide. Guides like Save the Cat map out the moments most stories pass through, such as the Catalyst (the event that sets the story going) or the Midpoint (where everything changes).",
-      "When a book is planned with one of these guides, each chapter can say which of its moments it delivers. It's a planning aid, not a rule.",
+      "A turning point from a story structure, such as the Catalyst (the event that sets the story going) or the Midpoint (where everything changes).",
+      "When your book follows a structure, each chapter can say which of its moments it delivers: choose it in the chapter's pop-out, or click the moment's pin on the structure ribbon. It's a planning aid, not a rule.",
     ],
     example: "Chapter 2 of The Salt Ledger is its Catalyst: Mara finds the ledger, and the mystery begins.",
-    related: ["moment", "act"],
+    related: ["story-structure", "moment", "structure-ribbon"],
+  },
+  {
+    id: "story-structure",
+    term: "Story structure",
+    aka: ["Beat sheet", "Plot structure", "Save the Cat", "Hero's journey", "Three-act structure"],
+    group: "story",
+    body: [
+      "A map of the shape most stories take: the turning points they pass through, and roughly how far into the book each one comes. Writers use one to check their plot has the parts readers expect, in about the right places.",
+      "Choose one for your book from the Structure menu on the Plan, or make your own there. Your chapters can then be marked as its moments, and the ribbon above the Board shows where each one should land.",
+    ],
+    example:
+      "The Salt Ledger follows the 15-beat structure. Its Catalyst, the event that sets the story going, comes in chapter 2, about a tenth of the way in.",
+    related: ["structure-moment", "structure-ribbon", "act"],
+  },
+  {
+    id: "premise",
+    term: "Premise",
+    aka: ["Logline", "Pitch", "Story in a sentence"],
+    group: "story",
+    body: [
+      "Your whole story in one sentence: who it's about, what they want, and what stands in their way. It keeps you on course while you plan, and it's what to say when someone asks what your book is about.",
+      "Keep it in Book settings. Plan step by step, in the Structure menu on the Plan, starts from it.",
+    ],
+    example:
+      "“When her lighthouse-keeper father dies, Mara Quill finds a ledger of ships that never existed, and must learn what he was hiding before the Harbor Guild buries it for good.”",
+    related: ["synopsis", "story-structure"],
+  },
+  {
+    id: "synopsis",
+    term: "Synopsis",
+    aka: ["Story summary", "Outline of the story"],
+    group: "story",
+    body: [
+      "The whole story told briefly, from start to finish, ending included: a paragraph or a page, not a teaser. It's a map for you while you write, and agents and publishers often ask for one.",
+      "Keep it in Book settings. Plan step by step helps you write one: five sentences for how the story begins, its three disasters, and how it ends.",
+    ],
+    related: ["premise", "summary"],
+  },
+  {
+    id: "flashback",
+    term: "Flashback",
+    aka: ["Main story", "Era", "Backstory", "Outside the main timeline"],
+    group: "story",
+    body: [
+      "A part of the story set earlier than the rest, like a memory or a stretch of someone's past. Everything else is the main story.",
+      "To mark a chapter as one, give it a story time, tick “Outside the main timeline”, and name it: “flashback”, “1890s”, “the war”. The Timeline then shows it apart from the main story.",
+    ],
+    related: ["story-time", "timeline"],
   },
   {
     id: "point-of-view",
@@ -328,8 +376,9 @@ export const GLOSSARY: GlossaryTerm[] = [
     group: "app",
     body: [
       "The page for organizing your book: its acts, its chapters, and what happens in each. Click a chapter to pop out everything planned for it.",
+      "It has five views of the same plan: the Board, the Corkboard, the Outline, the Matrix and the Timeline.",
     ],
-    related: ["board", "outline"],
+    related: ["board", "corkboard", "outline", "matrix", "timeline"],
   },
   {
     id: "board",
@@ -338,7 +387,17 @@ export const GLOSSARY: GlossaryTerm[] = [
     body: [
       "The Plan laid out as cards, one per chapter, grouped under the act they belong to. Drag the cards to reorder chapters or move them to another act.",
     ],
-    related: ["outline"],
+    related: ["corkboard", "outline"],
+  },
+  {
+    id: "corkboard",
+    term: "Corkboard",
+    aka: ["Index cards"],
+    group: "app",
+    body: [
+      "The Plan as index cards, like the ones writers pin to a corkboard: each chapter's title and summary, which you can edit right on the card. Drag a card by the strip along its top to move it, or press Alt and an arrow key there.",
+    ],
+    related: ["board"],
   },
   {
     id: "outline",
@@ -348,6 +407,37 @@ export const GLOSSARY: GlossaryTerm[] = [
       "The Plan as a list you read from top to bottom, with each chapter's moments and scenes under it. Good for seeing the whole story at once, and quick to edit from the keyboard.",
     ],
     related: ["board"],
+  },
+  {
+    id: "matrix",
+    term: "Matrix",
+    aka: ["Grid", "Plot grid"],
+    group: "app",
+    body: [
+      "The Plan as a table, with a column for each chapter and a row for each character and story point in your World. Each square shows whether they're in that chapter, so you can follow one through the book at a glance.",
+      "Click a character's square to mark them present, or as the chapter's point of view; a ring means the chapter's text names them but they aren't marked. Click a story point's square to tag the chapter with it. One that goes quiet for three chapters or more is flagged, so it isn't forgotten.",
+    ],
+    related: ["characters-present", "story-point", "point-of-view"],
+  },
+  {
+    id: "timeline",
+    term: "Timeline",
+    group: "app",
+    body: [
+      "The Plan in the order things happen in the story, rather than the order readers meet them. A chapter appears on it once it has a story time.",
+      "Switch to reading order to see where the book jumps back or forward in time. Chapters outside the main story, like flashbacks, are shown apart.",
+    ],
+    related: ["story-time", "flashback"],
+  },
+  {
+    id: "structure-ribbon",
+    term: "Structure ribbon",
+    group: "app",
+    body: [
+      "The strip above the Board and the Corkboard showing your book's story structure: a pin for each of its moments, where it should land in the book. Click a pin to see which chapter is marked as that moment, or to mark one.",
+      "Hide or show it from the Structure menu.",
+    ],
+    related: ["story-structure", "structure-moment"],
   },
   {
     id: "write-page",

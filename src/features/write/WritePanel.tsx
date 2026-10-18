@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { ChapterDrawer } from "@/features/plan/ChapterDrawer"
 import { ChapterDetailsContext, type ChapterDetailsValue } from "@/features/plan/planContext"
 import { chapterTitle } from "@/features/plan/status"
+import { useBookStructures } from "@/features/plan/useStructures"
 import { byData, focusPending, focusSoon } from "@/lib/focus"
 import { isComposing } from "@/lib/keys"
 import { CodexPanel } from "./CodexPanel"
@@ -32,10 +33,11 @@ function returnFocus(page: PanelPage, opener: Editor | null, soon: boolean) {
  * Docked on wide screens, where it stays open across visits; a sheet over the text elsewhere.
  */
 export function WritePanel() {
-  const { db, bookId, plan, focusItem, chapterId, panelDocked, panel, setPanel } = useWrite()
+  const { db, bookId, book, plan, focusItem, chapterId, panelDocked, panel, setPanel } = useWrite()
+  const structures = useBookStructures(book.template_key)
   const details = useMemo<ChapterDetailsValue>(
-    () => ({ db, bookId, plan, focusItem, place: "write" }),
-    [db, bookId, plan, focusItem],
+    () => ({ db, bookId, plan, structures, focusItem, place: "write" }),
+    [db, bookId, plan, structures, focusItem],
   )
   const chapter = plan.chapterById.get(chapterId)
   const close = () => setPanel(null)

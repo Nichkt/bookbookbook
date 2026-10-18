@@ -8,7 +8,7 @@ import { useMediaQuery } from "@/lib/useMediaQuery"
 import { termById } from "./glossary"
 import { endTour, openGlossary, useHelp, type TourId } from "./helpStore"
 import { placeCard, revealBy, spotlightBox, type Band, type Box, type CardPlacement, type Size } from "./tourLayout"
-import { textOf, TOURS, tourForPath, type TourContext } from "./tours"
+import { stepsFor, textOf, TOURS, tourForPath, type TourContext } from "./tours"
 
 /** Below this, the Write toolbar folds most of its tools into its ⋯ menu, which some steps mention. */
 const WIDE_QUERY = "(min-width: 48rem)"
@@ -116,11 +116,13 @@ interface Layout {
  * For steps about a chapter's details, it opens the first chapter's pop-out, and closes it after.
  */
 function TourRun({ tour }: { tour: TourId }) {
-  const { title, steps } = TOURS[tour]
+  const { title } = TOURS[tour]
   const { pathname } = useLocation()
   const narrow = !useMediaQuery(WIDE_QUERY)
   const coarse = useMediaQuery("(pointer: coarse)")
   const context: TourContext = { narrow, coarse, pathname }
+  // Fixed for the run: a tour ends when its page does.
+  const [steps] = useState(() => stepsFor(TOURS[tour], context))
   const [index, setIndex] = useState(0)
   const [shown, setShown] = useState(true)
   const [announcement, setAnnouncement] = useState("")

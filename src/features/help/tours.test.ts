@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest"
 import { termById } from "./glossary"
-import { textOf, tourForPath, TOURS, type TourContext } from "./tours"
+import { stepsFor, textOf, tourForPath, TOURS, type TourContext } from "./tours"
 
-const PATHS = ["/", "/b/b1/plan/board", "/b/b1/plan/outline", "/b/b1/write/c1", "/b/b1/world", "/b/b1/inbox"]
+const PLAN_VIEWS = ["board", "outline", "corkboard", "matrix", "timeline"]
+const PATHS = ["/", ...PLAN_VIEWS.map((view) => `/b/b1/plan/${view}`), "/b/b1/write/c1", "/b/b1/world", "/b/b1/inbox"]
 const CONTEXTS: TourContext[] = PATHS.flatMap((pathname) =>
   [false, true].flatMap((narrow) => [false, true].map((coarse) => ({ narrow, coarse, pathname }))),
 )
 const steps = Object.entries(TOURS).flatMap(([id, tour]) => tour.steps.map((step) => ({ id, step })))
+const planTargets = (view: string) =>
+  stepsFor(TOURS.plan, { narrow: false, coarse: false, pathname: `/b/b1/plan/${view}` }).map((step) => step.target)
 
 describe("tourForPath", () => {
   it("finds each page's tour", () => {
@@ -53,5 +56,49 @@ describe("TOURS", () => {
     for (const { step } of steps) {
       expect(step.stage === "chapter-popout", step.title).toBe(Boolean(step.target?.startsWith("popout-")))
     }
+  })
+})
+
+describe("stepsFor", () => {
+  it("shows each Plan view the parts it has", () => {
+    expect(planTargets("board")).toEqual([
+      undefined,
+      "plan-views",
+      "plan-structure",
+      "plan-ribbon",
+      "plan-act",
+      "plan-chapter",
+      "popout-moments",
+      "popout-details",
+      "popout-write",
+      "plan-add",
+      "plan-display",
+      "plan-filter",
+      undefined,
+    ])
+    expect(planTargets("corkboard")).toContain("plan-ribbon")
+    expect(planTargets("corkboard")).not.toContain("plan-display")
+    expect(planTargets("outline")).not.toContain("plan-ribbon")
+    expect(planTargets("outline")).toEqual(expect.arrayContaining(["plan-act", "plan-chapter", "plan-display"]))
+    for (const view of ["matrix", "timeline"]) {
+      for (const target of ["plan-ribbon", "plan-act", "plan-chapter", "plan-display"]) {
+        expect(planTargets(view), `${view}: ${target}`).not.toContain(target)
+      }
+    }
+    expect(planTargets("matrix")).toContain("plan-matrix")
+    expect(planTargets("timeline")).toContain("plan-timeline-order")
+  })
+
+  it("keeps the chapter pop-out's steps, and the Plan's, in every view", () => {
+    for (const view of PLAN_VIEWS) {
+      expect(planTargets(view)).toEqual(
+        expect.arrayContaining(["plan-views", "plan-structure", "popout-moments", "popout-write", "plan-filter"]),
+      )
+    }
+  })
+
+  it("takes every step of tours that don't depend on the screen", () => {
+    const context = { narrow: false, coarse: false, pathname: "/b/b1/write/c1" }
+    expect(stepsFor(TOURS.write, context)).toEqual(TOURS.write.steps)
   })
 })

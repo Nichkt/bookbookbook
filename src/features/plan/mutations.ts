@@ -162,6 +162,16 @@ export async function updateChapter(db: Db, id: string, patch: ChapterPatch) {
   await updateRow(db, "chapters", id, pick(patch, CHAPTER_FIELDS))
 }
 
+/** Marks a chapter as a structure moment, or unmarks it with null. Returns what Undo needs. */
+export async function setChapterMoment(db: Db, id: string, key: string | null): Promise<ChangeSet> {
+  return db.writeTransaction(async (tx) => {
+    const changes = new ChangeSet()
+    await changes.captureIds(tx, "chapters", [id])
+    await updateRow(tx, "chapters", id, { template_beat_key: key })
+    return changes
+  })
+}
+
 /** Moves a chapter to `index` within an act, which may be another act. */
 export async function moveChapter(db: Db, id: string, placement: ChapterPlacement) {
   await db.writeTransaction(async (tx) => {
@@ -384,6 +394,63 @@ export async function setChapterLinks(db: Db, chapterId: string, role: ChapterLi
         scene_id: null,
         entry_id: entryId,
         role,
+        source: "manual",
+      })
+    }
+  })
+}
+
+/** Adds or removes one of the chapter's links, leaving the others as they are. */
+export async function setChapterLink(db: Db, chapterId: string, role: ChapterLinkRole, entryId: string, on: boolean) {
+  await db.writeTransaction(async (tx) => {
+    const chapter = await getChapter(tx, chapterId)
+    if (!chapter) return
+    const existing = await tx.getAll<{ id: string }>(
+      "SELECT id FROM entity_links WHERE chapter_id = ? AND scene_id IS NULL AND role = ? AND entry_id = ?",
+      [chapterId, role, entryId],
+    )
+    if (on && existing.length > 0) return
+    for (const link of existing) await tx.execute("DELETE FROM entity_links WHERE id = ?", [link.id])
+    if (!on) return
+    await insertRow(tx, "entity_links", {
+      id: newId(),
+      book_id: chapter.book_id,
+      chapter_id: chapterId,
+      scene_id: null,
+      entry_id: entryId,
+      role,
+      source: "manual",
+    })
+  })
+}
+
+export type CharacterPart = "none" | "present" | "pov"
+
+/**
+ * Puts a character in a chapter, or takes them out. The point of view is present too, so it's both; making someone
+ * else the point of view leaves the one it replaces present.
+ */
+export async function setCharacterInChapter(db: Db, chapterId: string, entryId: string, part: CharacterPart) {
+  await db.writeTransaction(async (tx) => {
+    const chapter = await getChapter(tx, chapterId)
+    if (!chapter) return
+    const links = await tx.getAll<{ id: string }>(
+      "SELECT id FROM entity_links WHERE chapter_id = ? AND scene_id IS NULL AND role = 'present' AND entry_id = ?",
+      [chapterId, entryId],
+    )
+    if (part === "pov") await updateRow(tx, "chapters", chapterId, { pov_entry_id: entryId })
+    else if (chapter.pov_entry_id === entryId) await updateRow(tx, "chapters", chapterId, { pov_entry_id: null })
+    // Keep one link, dropping duplicates left by concurrent edits.
+    const keep = part === "none" ? 0 : 1
+    for (const link of links.slice(keep)) await tx.execute("DELETE FROM entity_links WHERE id = ?", [link.id])
+    if (part !== "none" && links.length === 0) {
+      await insertRow(tx, "entity_links", {
+        id: newId(),
+        book_id: chapter.book_id,
+        chapter_id: chapterId,
+        scene_id: null,
+        entry_id: entryId,
+        role: "present",
         source: "manual",
       })
     }

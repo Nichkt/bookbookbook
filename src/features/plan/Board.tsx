@@ -25,6 +25,7 @@ import { createPortal } from "react-dom"
 import { attempt } from "@/app/feedback"
 import { DraftInput } from "@/components/DraftField"
 import { Button } from "@/components/ui/button"
+import { byData, focusSoon } from "@/lib/focus"
 import { formatCount } from "@/lib/numbers"
 import { cn } from "@/lib/utils"
 import { ActMenu } from "./ActMenu"
@@ -40,10 +41,12 @@ import {
 } from "./boardDnd"
 import { BOARD_CARD_HELP_ID, ChapterCardOverlay, SortableChapterCard } from "./ChapterCard"
 import { capitalize, chapterName, relocateChapter } from "./commands"
+import { IndexCardOverlay, SortableIndexCard } from "./IndexCard"
 import { createChapter, renameAct } from "./mutations"
 import { usePlanContext } from "./planContext"
 import { LOOSE_GROUP, type Plan, type PlanGroup } from "./planData"
 import { actLabel } from "./status"
+import { StructureRibbon } from "./StructureRibbon"
 
 /** How long the board shows a dropped card in its new place while the database catches up. */
 const SETTLE_MS = 1500
@@ -53,11 +56,15 @@ const CLICK_GUARD_MS = 100
 const orderOf = (plan: Plan): BoardOrder =>
   Object.fromEntries(plan.groups.map((group) => [group.key, group.chapters.map((chapter) => chapter.id)]))
 
+/** The Board's chapter cards, or the Corkboard's index cards. */
+export type BoardCards = "chapter" | "index"
+
 /**
- * The Board (DESIGN.md §6): acts as bands of chapter cards. Drag cards within and between acts (mouse, or a long
- * press on touch); from the keyboard, Alt+arrows on a card do the same.
+ * The Board and the Corkboard (DESIGN.md §6): acts as bands of cards. Drag cards within and between acts (mouse, or
+ * a long press on touch); from the keyboard, Alt+arrows on a card do the same. The Corkboard's index cards hold just
+ * the title and summary, edited on the card, and drag by a handle so their text can be selected.
  */
-export function Board() {
+export function Board({ cards }: { cards: BoardCards }) {
   const { db, plan } = usePlanContext()
   const derived = useMemo(() => orderOf(plan), [plan])
   /** The order while a drag is in progress. */
@@ -206,6 +213,7 @@ export function Board() {
       <p id={BOARD_CARD_HELP_ID} hidden>
         Enter opens details. Alt plus arrow keys move the chapter.
       </p>
+      <StructureRibbon />
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
@@ -220,6 +228,7 @@ export function Board() {
           {plan.groups.map((group) => (
             <BoardGroup
               key={group.key}
+              cards={cards}
               group={group}
               ids={(order[group.key] ?? []).filter((id) => plan.chapterById.has(id))}
               highlighted={activeGroup === group.key}
@@ -227,7 +236,10 @@ export function Board() {
           ))}
         </div>
         {createPortal(
-          <DragOverlay>{active ? <ChapterCardOverlay chapter={active} /> : null}</DragOverlay>,
+          <DragOverlay>
+            {active && cards === "index" && <IndexCardOverlay chapter={active} />}
+            {active && cards === "chapter" && <ChapterCardOverlay chapter={active} />}
+          </DragOverlay>,
           document.body,
         )}
       </DndContext>
@@ -235,7 +247,17 @@ export function Board() {
   )
 }
 
-function BoardGroup({ group, ids, highlighted }: { group: PlanGroup; ids: string[]; highlighted: boolean }) {
+function BoardGroup({
+  cards,
+  group,
+  ids,
+  highlighted,
+}: {
+  cards: BoardCards
+  group: PlanGroup
+  ids: string[]
+  highlighted: boolean
+}) {
   const { db, bookId, plan, showChapter } = usePlanContext()
   const stray = !group.act && plan.hasActs
   const { setNodeRef } = useDroppable({ id: group.key, disabled: stray })
@@ -245,7 +267,10 @@ function BoardGroup({ group, ids, highlighted }: { group: PlanGroup; ids: string
 
   const addChapter = async () => {
     const id = await attempt("add chapter", createChapter(db, bookId, { actId: act?.id ?? null }))
-    if (id) showChapter(id, "title")
+    if (!id) return
+    // An index card's title is written on the card.
+    if (cards === "index") focusSoon(byData("index-title", id))
+    else showChapter(id, "title")
   }
 
   return (
@@ -299,10 +324,14 @@ function BoardGroup({ group, ids, highlighted }: { group: PlanGroup; ids: string
       </header>
       <SortableContext items={ids} strategy={rectSortingStrategy}>
         {ids.length > 0 ? (
-          <ul aria-labelledby={headingId} className="flex flex-wrap items-start gap-3">
-            {ids.map((id) => (
-              <SortableChapterCard key={id} chapter={plan.chapterById.get(id)!} />
-            ))}
+          <ul aria-labelledby={headingId} className={cn("flex flex-wrap", cards === "index" ? "gap-4" : "items-start gap-3")}>
+            {ids.map((id) =>
+              cards === "index" ? (
+                <SortableIndexCard key={id} chapter={plan.chapterById.get(id)!} />
+              ) : (
+                <SortableChapterCard key={id} chapter={plan.chapterById.get(id)!} />
+              ),
+            )}
           </ul>
         ) : (
           <div className="flex min-h-24 items-center justify-center rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">

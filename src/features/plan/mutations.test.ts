@@ -18,7 +18,9 @@ import {
   moveScene,
   restoreChapter,
   restoreScene,
+  setChapterLink,
   setChapterLinks,
+  setCharacterInChapter,
   splitActAt,
   splitChapterAt,
   splitTarget,
@@ -398,5 +400,41 @@ describe("beats and links", () => {
     )
     await setChapterLinks(db, "ch-A", "thread", ["ledger", "grief"])
     expect(await links(db, "ch-A")).toEqual(["thread:grief", "thread:ledger"])
+  })
+
+  test("setChapterLink adds or removes one link, duplicates included", async () => {
+    await buildBook(db, { chapters: [{ title: "A", threads: ["ledger"], present: ["mara"] }] })
+    await setChapterLink(db, "ch-A", "thread", "grief", true)
+    await setChapterLink(db, "ch-A", "thread", "grief", true)
+    expect(await links(db, "ch-A")).toEqual(["present:mara", "thread:grief", "thread:ledger"])
+    await db.execute(
+      "INSERT INTO entity_links (id, chapter_id, entry_id, role) VALUES ('dupe', 'ch-A', 'ledger', 'thread')",
+    )
+    await setChapterLink(db, "ch-A", "thread", "ledger", false)
+    expect(await links(db, "ch-A")).toEqual(["present:mara", "thread:grief"])
+  })
+
+  test("setCharacterInChapter: the point of view is present too, and only one character has it", async () => {
+    await buildBook(db, { chapters: [{ title: "A", pov: "mara", present: ["mara"] }] })
+    const pov = async () => (await chapterRow(db, "ch-A")).pov_entry_id
+
+    await setCharacterInChapter(db, "ch-A", "jonas", "pov")
+    expect(await pov()).toBe("jonas")
+    expect(await links(db, "ch-A")).toEqual(["present:jonas", "present:mara"])
+
+    await setCharacterInChapter(db, "ch-A", "jonas", "present")
+    expect(await pov()).toBeNull()
+    expect(await links(db, "ch-A")).toEqual(["present:jonas", "present:mara"])
+
+    await setCharacterInChapter(db, "ch-A", "mara", "pov")
+    await setCharacterInChapter(db, "ch-A", "mara", "none")
+    expect(await pov()).toBeNull()
+    expect(await links(db, "ch-A")).toEqual(["present:jonas"])
+
+    // Taking out someone who isn't the point of view leaves it alone.
+    await setCharacterInChapter(db, "ch-A", "elias", "pov")
+    await setCharacterInChapter(db, "ch-A", "jonas", "none")
+    expect(await pov()).toBe("elias")
+    expect(await links(db, "ch-A")).toEqual(["present:elias"])
   })
 })

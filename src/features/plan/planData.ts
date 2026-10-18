@@ -1,6 +1,7 @@
 import { useQuery } from "@powersync/react"
 import { useMemo } from "react"
 import { groupChapters, sortByPosition } from "@/db/order"
+import type { Tx } from "@/db/tx"
 import { parseStringList } from "@/lib/json"
 import { colorFor } from "@/lib/palette"
 import { parseStoryTime, type StoryTime } from "./storyTime"
@@ -239,6 +240,19 @@ export function buildPlan(
     hasActs: acts.length > 0,
     words: chapters.reduce((sum, chapter) => sum + chapter.words, 0),
   }
+}
+
+/** The plan read once, outside React. */
+export async function readPlan(db: Tx, bookId: string): Promise<Plan> {
+  const [acts, chapters, scenes, beats, links, entries] = await Promise.all([
+    db.getAll<PlanActRow>(ACTS_SQL, [bookId]),
+    db.getAll<PlanChapterRow>(CHAPTERS_SQL, [bookId]),
+    db.getAll<PlanSceneRow>(SCENES_SQL, [bookId]),
+    db.getAll<PlanBeatRow>(BEATS_SQL, [bookId]),
+    db.getAll<PlanLinkRow>(LINKS_SQL, [bookId]),
+    db.getAll<PlanEntryRow>(ENTRIES_SQL, [bookId]),
+  ])
+  return buildPlan(acts, chapters, scenes, beats, links, entries)
 }
 
 export function usePlan(bookId: string): { plan: Plan; isLoading: boolean } {

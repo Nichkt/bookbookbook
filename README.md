@@ -8,10 +8,31 @@ takes after NovelCrafter, the writing side after Sudowrite.
 
 ## Status: home, planner, World, editor, help, import, export and backups
 
-Milestones 0 to 3 and 7 from DESIGN.md §19 are built, plus a home screen, a glossary and a tour of every page.
+Milestones 0 to 3, 5 and 7 from DESIGN.md §19 are built, plus a home screen, a glossary and a tour of every page.
 Everything stays on the device; there are no accounts or sync yet, so keep backups: Backups… in the book menu downloads
 one, or backs every book up to a folder as it changes (Chrome and Edge).
 The Inbox tab is a placeholder until M11.
+
+**M5, Planner II** (DESIGN.md §6, "Built in M5"):
+- **Matrix:** who and what is in each chapter. Click a character's cell to mark them present or the point of view,
+  and a story point's cell to put it in the chapter. A story point away for 3 chapters or more is flagged, so
+  readers don't forget it. The arrow keys move around the grid.
+- **Timeline:** chapters in the order they happen in the story, a lane per point-of-view character, with flashbacks
+  set apart and World events alongside; or in reading order, with each jump back in time marked. Set a chapter's
+  story time in its pop-out.
+- **Corkboard:** index cards to write each chapter's title and summary on, moved by dragging or Alt+arrow keys.
+- **Story structures:** choose one from the Plan's Structure menu (Three-act, 15-beat, Hero's journey, Story circle,
+  Seven-point, Romance beats, Kishōtenketsu or your own). A ribbon above the Board and Corkboard shows where each
+  structure moment should fall and which chapter is marked as it; click one to mark a chapter. Its Hide button tucks
+  it away, and the menu brings it back.
+- **Your structures:** make your own, from nothing or a copy, in Your structures… in the Structure menu. Save one
+  as a file to share, and add one from a file.
+- **New book, Start with:** one blank chapter, a structure (a chapter for each of its moments, the word count target
+  shared between them), or planning step by step.
+- **Plan step by step:** your story in a sentence, then in five, then its main characters, then a chapter list
+  grown from the five sentences. Adding it fills in the premise and synopsis (in Book settings), puts the characters
+  in World and the chapters in the Plan, and one Undo takes it all back. Close it to finish later.
+- **Undo works over dialogs:** a toast's Undo can be clicked, or reached with Alt+T, without closing the dialog.
 
 **After M7, home, chapter pop-out, World and help** (DESIGN.md §4, §6, §7, §17a):
 - **Home screen:** the app opens on your books, the last opened first, each with its words against its word count
@@ -156,8 +177,11 @@ in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). 
   paragraphs), splitting into acts, chapters and scenes, the title and author, the preview's edits and Undo, and the
   book it writes;
 - the home screen's order, links and "Opened …" labels, and the visits it remembers;
+- the Matrix (marks, mentions and quiet story points), the Timeline (story and reading order, flashbacks, time
+  jumps), story structures (placing moments, stacking the ribbon's pins, a new book's chapters, files), saving your
+  own structures and planning step by step, with their exact undo;
 - help: every glossary term's links and search (old names included), every tour step's copy on touch and narrow
-  screens, and where a tour card goes beside, over or without what it points at.
+  screens and in each Plan view, and where a tour card goes beside, over or without what it points at.
 
 **End-to-end tests** (`e2e/`) run in your installed Chrome against a dev server on port 5174, which Playwright starts
 (or reuses if it's already running). Every test gets a fresh browser profile, so each one starts from the sample book.
@@ -170,8 +194,12 @@ They cover:
 - the phone layout;
 - a phone-style keyboard composition, replayed through the Chrome DevTools Protocol;
 - the planner (`plan.spec.ts`): dragging and keyboard moves on the Board, display presets, filters, the chapter
-  pop-out (its fields, Previous and Next, Write this chapter) and its URL, the Trash, folding and splitting in the
-  Outline, and the links between Plan and Write;
+  pop-out (its fields, Previous and Next, Write this chapter, deleting a moment and Undo) and its URL, the Trash,
+  folding and splitting in the Outline, and the links between Plan and Write;
+- the planner's other views and structures (`plan-views.spec.ts`): the Matrix's cells, quiet story points and keys,
+  both Timeline orders and a story time changed, writing on and moving Corkboard cards, the structure ribbon and
+  Structure menu, a new book from a structure, planning step by step (and its Undo) in a new book and the sample,
+  and Your structures: a copy, its file, adding one from a file, deleting with Undo, and focus throughout;
 - the Write screen (`write.spec.ts`): the three views and their addresses, a jump holding still while the
   Manuscript settles, which scene the toolbar acts on, formatting, naming, adding and trashing scenes, History, Today
   and the chapter plan;

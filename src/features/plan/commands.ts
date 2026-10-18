@@ -164,6 +164,21 @@ export async function relocateChapter(
 
 export type ChapterStep = "earlier" | "later" | "previousAct" | "nextAct"
 
+const STEP_KEYS: Partial<Record<string, ChapterStep>> = {
+  ArrowLeft: "earlier",
+  ArrowRight: "later",
+  ArrowUp: "previousAct",
+  ArrowDown: "nextAct",
+}
+
+type StepKeys = Pick<KeyboardEvent, "key" | "altKey" | "ctrlKey" | "metaKey" | "shiftKey">
+
+/** The move Alt+arrows on a Board or Corkboard card ask for, if that's what was pressed. */
+export function cardStep(event: StepKeys): ChapterStep | null {
+  if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return null
+  return STEP_KEYS[event.key] ?? null
+}
+
 /** Where one keyboard step takes a chapter, or a reason it can't go. Steps cross acts in the Outline. */
 export function chapterStepTarget(
   plan: Plan,

@@ -25,6 +25,8 @@ export interface TourStep {
   term?: string
   /** What the page needs open for the step: the tour opens it, and closes it again after. */
   stage?: "chapter-popout"
+  /** Only on screens where this holds, such as one of the Plan's views. */
+  when?: (context: TourContext) => boolean
 }
 
 export interface TourDefinition {
@@ -35,10 +37,20 @@ export interface TourDefinition {
 
 export const textOf = (text: TourText, context: TourContext) => (typeof text === "string" ? text : text(context))
 
+/** The steps a tour takes on this screen. */
+export const stepsFor = (tour: TourDefinition, context: TourContext) =>
+  tour.steps.filter((step) => !step.when || step.when(context))
+
 const inMenu = (body: string) => (context: TourContext) =>
   context.narrow ? `${body} On a small screen, it's in the ⋯ menu.` : body
 
-const isOutline = (context: TourContext) => context.pathname.includes("/plan/outline")
+/** The Plan view the screen shows: the Board until it says otherwise. */
+const planView = (context: TourContext) => /\/plan\/([a-z]+)/.exec(context.pathname)?.[1] ?? "board"
+const isOutline = (context: TourContext) => planView(context) === "outline"
+const inViews =
+  (...views: string[]) =>
+  (context: TourContext) =>
+    views.includes(planView(context))
 
 const HOME: TourDefinition = {
   title: "How to use the home screen",
@@ -56,7 +68,8 @@ const HOME: TourDefinition = {
     {
       target: "home-new",
       title: "Start a new book",
-      body: "Give it a title, and a word count target if you have one in mind. It starts with one blank chapter.",
+      body: "Give it a title and a word count target, and choose how to start: with one blank chapter, a chapter for each moment of a story structure, or a few questions that plan it step by step.",
+      term: "story-structure",
     },
     {
       target: "home-import",
@@ -104,18 +117,33 @@ const PLAN: TourDefinition = {
     },
     {
       target: "plan-views",
-      title: "Board or Outline",
-      body: "See the plan as cards on a Board, or as a list in the Outline. Both show the same plan, so use whichever suits you.",
-      term: "board",
+      title: "Five ways to see it",
+      body: "The Board shows your chapters as cards, the Corkboard as index cards, and the Outline as a list. The Matrix shows who and what is in each chapter, and the Timeline when each one happens in the story. They're all the same plan.",
+      term: "plan-page",
+    },
+    {
+      target: "plan-structure",
+      title: "Story structure",
+      body: "Choose a story structure, like the three-act structure, to see which of its turning points your chapters deliver. Make your own here too, or plan the book step by step, starting from a single sentence.",
+      term: "story-structure",
+    },
+    {
+      target: "plan-ribbon",
+      when: inViews("board", "corkboard"),
+      title: "The structure ribbon",
+      body: "Once your book follows a story structure, a ribbon above the chapters shows each of its moments, where it should land in the book. Click one to mark the chapter that delivers it.",
+      term: "structure-ribbon",
     },
     {
       target: "plan-act",
+      when: inViews("board", "corkboard", "outline"),
       title: "Acts",
       body: "Chapters are grouped into acts: the big parts of your story, like its beginning, middle and end. Click an act's name to rename it.",
       term: "act",
     },
     {
       target: "plan-chapter",
+      when: inViews("board", "corkboard", "outline"),
       title: "Chapters",
       body: (context) =>
         isOutline(context)
@@ -124,8 +152,24 @@ const PLAN: TourDefinition = {
                 ? "Tap the title to rename it, or the ⤢ button at the end of its line to pop out everything planned for it."
                 : "Click the title to rename it. Point at a chapter and a ⤢ button shows at the end of its line: click it to pop out everything planned for it."
             }`
-          : "Each card is a chapter. Click one to pop out everything planned for it. Drag cards to change the order.",
+          : planView(context) === "corkboard"
+            ? "Each index card is a chapter: type its title and summary right on it. Click the strip along its top to pop out everything planned for it, or drag the strip to change the order."
+            : "Each card is a chapter. Click one to pop out everything planned for it. Drag cards to change the order.",
       term: "chapter",
+    },
+    {
+      target: "plan-matrix",
+      when: inViews("matrix"),
+      title: "The Matrix",
+      body: "A column for each chapter, and a row for each character and story point. Click a square to say whether they're in that chapter, or a chapter's number to pop out everything planned for it.",
+      term: "matrix",
+    },
+    {
+      target: "plan-timeline-order",
+      when: inViews("timeline"),
+      title: "The Timeline",
+      body: "Story order shows when each chapter happens in the story. Reading order shows them as readers meet them, with each jump back or forward in time marked. Give a chapter a story time to place it here.",
+      term: "timeline",
     },
     {
       target: "popout-moments",
@@ -154,6 +198,7 @@ const PLAN: TourDefinition = {
     },
     {
       target: "plan-display",
+      when: inViews("board", "outline"),
       title: "Show more, or less",
       body: "Choose what the cards and lines show: just titles, or summaries, moments, who's there and more.",
     },

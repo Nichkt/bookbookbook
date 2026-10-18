@@ -7,20 +7,13 @@ import { buttonVariants } from "@/components/ui/button"
 import { formatCount } from "@/lib/numbers"
 import { cn } from "@/lib/utils"
 import { EntryChip, MetaChips, PresentLine, StatusBadge } from "./Chips"
-import { stepChapter, type ChapterStep } from "./commands"
+import { cardStep, stepChapter } from "./commands"
 import type { DisplayField } from "./display"
 import { usePlanContext } from "./planContext"
 import type { PlanChapter } from "./planData"
 import { chapterTitle } from "./status"
 
 export const BOARD_CARD_HELP_ID = "board-card-help"
-
-const STEP_KEYS: Partial<Record<string, ChapterStep>> = {
-  ArrowLeft: "earlier",
-  ArrowRight: "later",
-  ArrowUp: "previousAct",
-  ArrowDown: "nextAct",
-}
 
 const MAX_BEATS = 4
 
@@ -72,8 +65,7 @@ function ChapterCardBody({ chapter, interactive }: { chapter: PlanChapter; inter
   const percent = target > 0 ? Math.min(100, Math.round((chapter.words / target) * 100)) : 0
 
   const onKeyDown = (event: KeyboardEvent) => {
-    if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
-    const step = STEP_KEYS[event.key]
+    const step = cardStep(event)
     if (!step) return
     // Alt+← is also the browser's Back.
     event.preventDefault()

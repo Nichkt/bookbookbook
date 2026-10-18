@@ -32,7 +32,6 @@ import { formatCount, parseCount, tidyCount } from "@/lib/numbers"
 import { cn } from "@/lib/utils"
 import { BeatsEditor } from "./BeatsEditor"
 import { trashChapterWithUndo, trashSceneWithUndo } from "./commands"
-import { templateBeatName } from "./display"
 import { EntryPicker } from "./EntryPicker"
 import { createScene, setChapterLinks, updateChapter, updateScene } from "./mutations"
 import { useChapterDetails, type FocusItem } from "./planContext"
@@ -89,7 +88,7 @@ export function ChapterDrawer({ chapterId, onClose, onStep }: ChapterDrawerProps
 }
 
 function ChapterForm({ chapter, onClose, onStep }: { chapter: PlanChapter; onClose: () => void; onStep?: ChapterStep }) {
-  const { db, bookId, plan, focusItem, place } = useChapterDetails()
+  const { db, bookId, plan, structures, focusItem, place } = useChapterDetails()
   const id = useId()
   const fieldId = (name: string) => `${id}-${name}`
   const menuRan = useRef(false)
@@ -313,11 +312,9 @@ function ChapterForm({ chapter, onClose, onStep }: { chapter: PlanChapter; onClo
               />
             </Field>
 
-            {chapter.template_beat_key && (
-              <Field label="Structure moment" labelId={fieldId("structure-label")} term="structure-moment">
-                <p className="px-1 text-ink">
-                  {templateBeatName(chapter.template_beat_key)}
-                </p>
+            {(structures.current || chapter.template_beat_key) && (
+              <Field label="Structure moment" htmlFor={fieldId("moment")} term="structure-moment">
+                <MomentField chapter={chapter} inputId={fieldId("moment")} />
               </Field>
             )}
           </section>
@@ -470,6 +467,54 @@ function TargetField({ chapter, inputId }: { chapter: PlanChapter; inputId: stri
       <span id={`${inputId}-help`} className="text-xs text-muted-foreground tabular-nums">
         words · {formatCount(chapter.words)} written
       </span>
+    </div>
+  )
+}
+
+/** Radix Select can't use "" as a value. */
+const NO_MOMENT = "__none"
+
+/**
+ * Which moment of the book's story structure the chapter delivers, with what that moment is for. A moment from
+ * another structure (the book changed structures) stays listed, named with where it's from.
+ */
+function MomentField({ chapter, inputId }: { chapter: PlanChapter; inputId: string }) {
+  const { db, structures } = useChapterDetails()
+  const key = chapter.template_beat_key
+  const beats = structures.current?.beats ?? []
+  const own = beats.find((item) => item.key === key)
+  const foreign = key && !own ? structures.momentName(key) : null
+  return (
+    <div className="grid gap-1.5">
+      <Select
+        value={key ?? NO_MOMENT}
+        onValueChange={(value) =>
+          void attempt(
+            "save structure moment",
+            updateChapter(db, chapter.id, { template_beat_key: value === NO_MOMENT ? null : value }),
+          )
+        }
+      >
+        <SelectTrigger id={inputId} className="w-full" aria-describedby={own ? `${inputId}-about` : undefined}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent position="popper">
+          <SelectItem value={NO_MOMENT}>None</SelectItem>
+          {beats.map((item, index) => (
+            <SelectItem key={item.key} value={item.key}>
+              {index + 1}. {item.name}
+            </SelectItem>
+          ))}
+          {key && foreign && (
+            <SelectItem value={key}>{foreign.from ? `${foreign.name} (from ${foreign.from})` : foreign.name}</SelectItem>
+          )}
+        </SelectContent>
+      </Select>
+      {own && (
+        <p id={`${inputId}-about`} className="text-xs text-ink-2">
+          {own.description} Around {Math.round(own.pct)}% of the way through.
+        </p>
+      )}
     </div>
   )
 }

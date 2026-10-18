@@ -1,8 +1,9 @@
 import { ClockIcon, FlagIcon, MapPinIcon, TagIcon, UsersIcon } from "lucide-react"
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
-import { templateBeatName, type DisplayField } from "./display"
+import { type DisplayField } from "./display"
 import type { PlanChapter, PlanEntry } from "./planData"
+import { useChapterDetails } from "./planContext"
 import { statusOf } from "./status"
 import { formatStoryTime } from "./storyTime"
 
@@ -53,13 +54,15 @@ interface ChapterChipsProps {
 
 /** A chapter's story points, labels, location, story time and structure moment, as far as `fields` shows them. */
 export function MetaChips({ chapter, entries, fields, className }: ChapterChipsProps) {
+  const { structures } = useChapterDetails()
   const threads = fields.has("threads") ? chapter.threads.flatMap((id) => entries.get(id) ?? []) : []
   const labels = fields.has("labels") ? chapter.labelList : []
   const location =
     fields.has("location") && chapter.location_entry_id ? entries.get(chapter.location_entry_id) : undefined
   const time = fields.has("time") ? formatStoryTime(chapter.time) : ""
-  const beat = fields.has("templateBeat") ? chapter.template_beat_key : null
-  if (threads.length === 0 && labels.length === 0 && !location && !time && !beat) return null
+  const moment =
+    fields.has("templateBeat") && chapter.template_beat_key ? structures.momentName(chapter.template_beat_key) : null
+  if (threads.length === 0 && labels.length === 0 && !location && !time && !moment) return null
   return (
     <div className={cn("flex flex-wrap gap-1", className)}>
       {threads.map((entry) => (
@@ -83,10 +86,10 @@ export function MetaChips({ chapter, entries, fields, className }: ChapterChipsP
           <span className="truncate">{time}</span>
         </Chip>
       )}
-      {beat && (
-        <Chip title="Structure moment">
+      {moment && (
+        <Chip title={moment.from ? `Structure moment, from ${moment.from}` : "Structure moment"}>
           <FlagIcon aria-label="Structure moment" />
-          <span className="truncate">{templateBeatName(beat)}</span>
+          <span className="truncate">{moment.name}</span>
         </Chip>
       )}
     </div>

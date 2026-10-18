@@ -235,6 +235,7 @@ style and can be confirmed or removed.
 The Timeline sorts by `date` when present, else by `day` + `part`. Items with an `era` go to a compressed segment.
 
 ### Templates
+*Built in M5, with some changes: see "Built in M5" below.*
 Built-ins: Three-Act · 15-beat screenplay structure (Save the Cat!-style) · Hero's Journey (12) · Story Circle (8) ·
 Seven-Point · Romance beats (Romancing the Beat-style) · Kishōtenketsu · Snowflake-style wizard · Custom.
 
@@ -255,7 +256,7 @@ colored tags on cards, as rows in the Matrix and as filters on every view.
 
 ### Built in M1
 M1 built the Board, the Outline, the chapter drawer and the Display menu, plus filters, quick create and the Trash.
-The Matrix, Timeline, Corkboard and templates follow in M5. Details it settled:
+The Matrix, Timeline, Corkboard and templates followed in M5 (below). Details it settled:
 - **Outline keys.** Tab folds an item into the one above: a chapter becomes scenes at the end of the previous chapter,
   and an act's chapters join the previous act. Shift+Tab splits one off: a scene and the scenes after it become a new
   chapter, and on a chapter a new act starts there. Each shows an Undo toast and has a matching command in the item's
@@ -293,6 +294,74 @@ The docked drawer read as a sidebar, so a chapter's details now pop out over the
   the one shown last, if Previous or Next moved on.
 - **"?" buttons** beside each label open the glossary at that term (§17a).
 - `e2e/plan.spec.ts` covers the pop-out's fields, stepping, the address and focus; `e2e/touch.spec.ts` its targets.
+
+### Built in M5
+M5 built the Matrix, the Timeline, the Corkboard, story structures and planning step by step. Details it settled:
+- **Matrix.** Characters, then story points, down the side in World's order; chapters across the top under their
+  acts. A character's cell shows ★ point of view, ● present, or ○ when the chapter's text names them but they aren't
+  marked present. Clicking it opens a menu: Not in this chapter, Present, or Point of view, which says whose place it
+  takes (they stay present). A story point's cell toggles. A story point missing from 3 or more chapters in a row,
+  between two it's in, has *gone quiet*: its cells and name say so, and a note above the grid lists each stretch,
+  since readers forget a story point that's away for long. The grid is one Tab stop that keeps its place; arrows,
+  Home, End and Ctrl+Home/End move through it. A chapter's heading opens its pop-out, and a name opens its entry.
+- **Timeline.** Two orders, remembered per book on the device. *Story order* puts chapters in columns by story time,
+  in a lane per point-of-view character (and one for none), with World events, by their When field, in a row above.
+  Stretches outside the main story, like a flashback, come first under their own names. Chapters and events with no
+  time it can place are listed under "Not placed in time", which says how to place them. *Reading order* keeps the
+  book's order and badges each jump: "Back in time (before ch 4)", when a chapter happens before one readers have
+  already read, or "Outside the main story". A chapter opens its pop-out, where Story time is set. The view shows
+  once its order and events have loaded, so it never switches order or shifts down in front of you.
+- **Corkboard.** Index cards, act by act: the title and summary are written right on the card and saved as you
+  type. The handle at the top drags the card, or Alt+arrows move it, and a click opens its pop-out. Each card shows
+  its status, a Write link, and its words against its target with how many moments it has. "+" on an act adds a
+  card with the cursor in its title.
+- **Story structures.** Seven built in: Three-act, 15-beat, Hero's journey (12 stages), Story circle (8 steps),
+  Seven-point, Romance beats and Kishōtenketsu (four parts), plus the writer's own. A structure's beats are
+  *structure moments*, kept apart from a chapter's Moments. The Plan toolbar's **Structure** menu picks one for the
+  book (or None), shows or hides the ribbon, and opens Your structures… and Plan step by step…. A chapter's
+  Structure moment lists the book's structure's moments with what each is for; a mark from a structure the book no
+  longer follows still reads, "(from 15-beat structure)".
+- **The ribbon** sits above the acts on the Board and Corkboard. Its bar is the book, each chapter as wide as its
+  word count target (an average one when it has none; all equal when none has one), with chapters marked as a moment
+  shaded. A pin marks where each moment should land, filled once a chapter is marked as it and dashed till then;
+  pins close together stack in up to three tiers. On a touch screen a pin is 28px with a 44px hit area, and pins
+  and tiers are spaced 44px apart so the hit areas don't overlap where there's room. Pins are one Tab stop, moved
+  through with arrows, Home and End. A pin opens its moment: what it is, how far through the book it falls and in
+  which chapter, the chapters marked as it (open or unmark), and "Mark Ch N as this moment" for the chapter there,
+  saying which mark that replaces. Each change has Undo. **Hide** keeps it hidden for the book on this device, says
+  the Structure menu brings it back, and puts focus there. That setting and the writer's own structures load with
+  the plan, so the ribbon never appears late and pushes the cards down as you reach for one.
+- **New book, Start with:** one blank chapter (the default), Plan it step by step, or a structure. A structure
+  gives a chapter per moment, titled after it and marked as it, in the act its moment falls in, with the book's word
+  count target shared out evenly (to the nearest hundred). Their Moments stay empty: the writer's own checklist,
+  with the moment's description in the Structure moment picker rather than copied into it. A book's premise and
+  synopsis are in Book settings.
+- **Your structures.** Shared by all the writer's books. A new one starts from nothing or a copy of any other. The
+  editor has its name, its acts (title, and where each starts as a percentage of the book) and its moments (name,
+  percentage and what happens), and can make the book follow it. Names stay unique ("My beats 2"). **Save as a
+  file** writes JSON (`{ format: "bookbookbook-structure", version: 1, name, acts, beats }`) to share, and **Add
+  from a file** reads one back if it's JSON in that format, under 1 MB, with at least one named moment; it keeps at
+  most 60 moments and 12 acts, and trims long text. Delete has Undo; a book that followed the structure follows none
+  until then. Chapters keep their marks when their structure loses a moment.
+- **Plan step by step** (after the Snowflake method) has four steps: the story in a sentence (the premise), in five
+  (how it begins, three disasters, how it ends: the synopsis), the main characters (name, part in the story, what
+  they want), and the chapters, a chapter per sentence titled after its part and summed up by it, in three acts.
+  Adding them saves the premise and synopsis, makes each character a World entry with Role and Goal, and adds the
+  chapters, all with one Undo, draft included:
+  - **Where they go.** In place of a new book's one untouched chapter, sharing out its word count target; otherwise
+    after the book's chapters in new acts, or at the end when it has no acts. There, a checkbox can leave the
+    chapters out. Acts left empty aren't added.
+  - **The draft** is kept per book on the device as you go, so closing and opening it again returns to the same
+    step. Adding clears it.
+  - **A synopsis already written** is replaced only after the five-sentence step says so, and the toast says it was.
+- **A book's word count target**, in New book and Book settings, accepts "80,000" or "80000" and tidies up as you
+  leave the field; anything else says what to type, beside the field.
+- **Undo toasts work over dialogs** (§17), so deleting a structure or a moment in the pop-out can be undone in place.
+- **Tours** show only the Plan steps a view has (§17a).
+- `e2e/plan-views.spec.ts` covers the Matrix, Timeline and Corkboard, the ribbon and Structure menu, a new book from
+  a structure, planning step by step (a new book and one with chapters), and Your structures with its files, Undo
+  and focus. Unit tests cover the Matrix's marks and quiet stretches, both Timeline orders and their jumps, placing
+  moments and stacking pins, scaffolds, structure files, saving structures and the step-by-step plan, with Undo.
 
 ## 7. World (the codex)
 
@@ -987,6 +1056,9 @@ soft layered shadows, nothing loud while writing.
   - If an action removes the focused control (retrying an AI card that history trimming drops, resetting data),
     focus moves to its replacement.
 - Radix gives ARIA semantics for menus, tabs and dialogs.
+- **Undo toasts work over dialogs** *(built in M5)*. Clicking one isn't a click outside the dialog, and focus in one
+  isn't focus leaving it, so the dialog stays open. Alt+T reaches the toasts from the keyboard, and Escape there goes
+  back to the dialog rather than closing it.
 - Streaming AI output is announced through a throttled polite live region. Dictation state is announced.
 - Color is never the only signal:
   - Status pills and thread tags include text.
@@ -1015,10 +1087,11 @@ menu. Labels say what a thing is for in the first place (§6, "Plain labels"), a
 words as "also called".
 
 **Glossary**
-- 38 terms in four groups: *Story basics* (act, chapter, scene, moment, structure moment, point of view, story point,
-  theme, draft, manuscript), *Planning a chapter* (each field of a chapter's details), *Your world* (World, entries,
-  entry types, aliases, mentions, and the kinds of entry that need explaining) and *Pages and tools* (home, Plan,
-  Board, Outline, Write, Inbox, versions, backups, export, import, Trash).
+- 46 terms in four groups: *Story basics* (act, chapter, scene, moment, structure moment, story structure, premise,
+  synopsis, flashback, point of view, story point, theme, draft, manuscript), *Planning a chapter* (each field of a
+  chapter's details), *Your world* (World, entries, entry types, aliases, mentions, and the kinds of entry that need
+  explaining) and *Pages and tools* (home, Plan, Board, Corkboard, Outline, Matrix, Timeline, structure ribbon,
+  Write, Inbox, versions, backups, export, import, Trash). M5 added the eight about structures and its views.
 - Each is a few sentences of plain English, an example from the sample book where one helps, and "See also" links.
   **Scene** says what starts a new one: a jump in place, time or point of view. **Moment** explains beats: one thing
   that happens, the smallest piece of a story; a few make a scene, and a few scenes a chapter.
@@ -1030,7 +1103,9 @@ words as "also called".
   the glossary, and focus goes back to the button that opened it.
 
 **Tours**
-- One per page: Home (9 steps), Plan (11), Write (10), World (7) and Inbox (1, until M11 builds it).
+- One per page: Home (9 steps), Plan (13 on the Board), Write (10), World (7) and Inbox (1, until M11 builds it).
+  A step can belong to some views only, so each Plan view skips the steps about what it doesn't show: the ribbon,
+  acts and chapter cards, the Display menu, the Matrix or the Timeline. The Matrix and Timeline have 10.
 - **The card** is a modal dialog with "Step N of M", Back, Next (Done on the last) and an X. ← and → move between
   steps. The page dims around a spotlight on what the step is about, which keeps clear of the sticky bars and follows
   the page as it scrolls. The card sits beside the spotlight, over it when nothing beside fits, or centered for a step
@@ -1115,7 +1190,7 @@ words as "also called".
 1. Name clearance for "bookbookbook" (trademark, domain, app stores).
 2. The phone keyboard test on real devices with Gboard and Samsung Keyboard
    ([ime-smoke-test.md](ime-smoke-test.md)), left over from M0.
-3. M2, Editor core, M3, Codex core, and M7, Import / export / backups, are built and tested
+3. M2, Editor core, M3, Codex core, M5, Planner II, and M7, Import / export / backups, are built and tested
    ([README](../README.md)). So are the home screen, the chapter pop-out, plain labels, World, the glossary and the
    page tours (§4, §6, §7, §17a).
 
@@ -1186,3 +1261,4 @@ words as "also called".
 | 23 | Chapter pop-out | A chapter's details pop out over the Plan at every width, centered from 640 px and full-screen on phones, replacing the docked drawer, which read as a sidebar; Write this chapter, Previous and Next inside; `?chapter=` kept | Details in §6, "Built after M7" |
 | 24 | Plain words | Labels say what a field is for: Word count target, Point of view, What characters are present, Moments (beats), Story points (plot threads), Structure moment; the Codex is World; the data model and code keep the old names, so nothing migrates | §6 "Plain labels", §7 |
 | 25 | Glossary and tours | Two header buttons on every page, How to use this and Glossary (a Help menu on phones); 38 terms with examples from the sample book, found by their old names too; "?" beside each chapter field; a spotlight tour per page that stages the pop-out, fits touch and narrow screens, and ends on leaving the page | Details in §17a |
+| 26 | M5 planner II | The Matrix's character cells open a menu (not in it, present, point of view instead of whom) and quiet story points are flagged after 3 chapters away; the Timeline toggles story and reading order, flashbacks first and time jumps badged; Corkboard cards are written on directly; 7 built-in structures under descriptive names plus the writer's own, shared as JSON files; a ribbon of structure moments on the Board and Corkboard, hideable per book; a new book can start from a structure (a chapter per moment, Moments left empty) or step by step; planning step by step is four steps whose result, draft included, one Undo takes back; Undo toasts work over dialogs | Details in §6, "Built in M5" |

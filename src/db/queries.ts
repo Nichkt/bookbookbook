@@ -11,10 +11,15 @@ export interface BookListRow {
   genre: string | null
   target_words: number | null
   universe_id: string | null
+  /** The story structure it follows (see features/plan/structures.ts). */
+  template_key: string | null
+  premise: string | null
+  synopsis: string | null
 }
 
 export const BOOKS_SQL = `
-  SELECT id, title, author, genre, target_words, universe_id FROM books WHERE deleted_at IS NULL ORDER BY created_at, id`
+  SELECT id, title, author, genre, target_words, universe_id, template_key, premise, synopsis
+  FROM books WHERE deleted_at IS NULL ORDER BY created_at, id`
 
 export interface LibraryRow {
   id: string

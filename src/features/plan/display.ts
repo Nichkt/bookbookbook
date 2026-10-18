@@ -1,11 +1,22 @@
 import { useCallback, useMemo } from "react"
 import { usePref } from "@/db/prefs"
 
-export const PLAN_VIEWS = ["board", "outline"] as const
+export const PLAN_VIEWS = ["board", "outline", "corkboard", "matrix", "timeline"] as const
 export type PlanView = (typeof PLAN_VIEWS)[number]
 export const isPlanView = (value: unknown): value is PlanView => PLAN_VIEWS.includes(value as PlanView)
 
 export const viewPrefKey = (bookId: string) => `plan.view:${bookId}`
+
+export const VIEW_LABELS: Record<PlanView, string> = {
+  board: "Board",
+  outline: "Outline",
+  corkboard: "Corkboard",
+  matrix: "Matrix",
+  timeline: "Timeline",
+}
+
+/** The views whose cards and rows the Display menu sets. The others have a fixed look. */
+export const DISPLAY_VIEWS: readonly PlanView[] = ["board", "outline"]
 
 /** What cards and outline rows show (DESIGN.md §6 "Display"). */
 export const DISPLAY_FIELDS = [
@@ -26,7 +37,7 @@ export type DisplayField = (typeof DISPLAY_FIELDS)[number]["key"]
 const ALL_FIELDS: DisplayField[] = DISPLAY_FIELDS.map((field) => field.key)
 const isField = (value: unknown): value is DisplayField => ALL_FIELDS.includes(value as DisplayField)
 
-/** How a template beat reads: until templates arrive (DESIGN.md §6 "Templates"), its key made readable. */
+/** A structure moment's key made readable, for one no structure knows (see structures.ts momentName). */
 export function templateBeatName(key: string): string {
   const words = key.replace(/[_-]+/g, " ").trim()
   return words.charAt(0).toUpperCase() + words.slice(1)
@@ -42,7 +53,13 @@ export type PresetName = keyof typeof PRESETS
 export const PRESET_NAMES = Object.keys(PRESETS) as PresetName[]
 export type DisplayPreset = PresetName | "custom"
 
-const DEFAULT_PRESET: Record<PlanView, PresetName> = { board: "standard", outline: "detailed" }
+const DEFAULT_PRESET: Record<PlanView, PresetName> = {
+  board: "standard",
+  outline: "detailed",
+  corkboard: "standard",
+  matrix: "standard",
+  timeline: "standard",
+}
 
 export interface Display {
   preset: DisplayPreset

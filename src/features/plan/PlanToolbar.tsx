@@ -1,4 +1,13 @@
-import { FilterIcon, LayoutGridIcon, ListTreeIcon, PlusIcon, SlidersHorizontalIcon } from "lucide-react"
+import {
+  ChartNoAxesGanttIcon,
+  FilterIcon,
+  Grid3x3Icon,
+  LayoutGridIcon,
+  ListTreeIcon,
+  PlusIcon,
+  SlidersHorizontalIcon,
+  StickyNoteIcon,
+} from "lucide-react"
 import { useId } from "react"
 import { Link, useLocation } from "react-router"
 import { announce, attempt } from "@/app/feedback"
@@ -23,16 +32,31 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { byData, focusSoon } from "@/lib/focus"
 import { formatCount } from "@/lib/numbers"
 import { cn } from "@/lib/utils"
-import { DISPLAY_FIELDS, PLAN_VIEWS, PRESET_NAMES, type PresetName } from "./display"
+import {
+  DISPLAY_FIELDS,
+  DISPLAY_VIEWS,
+  PLAN_VIEWS,
+  PRESET_NAMES,
+  VIEW_LABELS,
+  type PlanView,
+  type PresetName,
+} from "./display"
 import { activeFilterCount } from "./filters"
 import { createAct, createChapter } from "./mutations"
 import { usePlanContext } from "./planContext"
 import { STATUS_OPTIONS } from "./status"
+import { StructureMenu } from "./StructureMenu"
 
-const VIEW_LABELS = { board: "Board", outline: "Outline" } as const
-const VIEW_ICONS = { board: LayoutGridIcon, outline: ListTreeIcon } as const
+const VIEW_ICONS: Record<PlanView, typeof LayoutGridIcon> = {
+  board: LayoutGridIcon,
+  outline: ListTreeIcon,
+  corkboard: StickyNoteIcon,
+  matrix: Grid3x3Icon,
+  timeline: ChartNoAxesGanttIcon,
+}
 const PRESET_LABELS: Record<PresetName, string> = { compact: "Compact", standard: "Standard", detailed: "Detailed" }
 const isPreset = (value: string): value is PresetName => PRESET_NAMES.includes(value as PresetName)
 
@@ -53,8 +77,10 @@ export function PlanToolbar() {
   const addChapter = async () => {
     const id = await attempt("add chapter", createChapter(db, bookId, { actId: null }))
     if (!id) return
-    if (view === "board") showChapter(id, "title")
-    else focusItem("chapter", id)
+    // Titled where the view shows titles: in the Outline's row, on the index card, else in the details.
+    if (view === "outline") focusItem("chapter", id)
+    else if (view === "corkboard") focusSoon(byData("index-title", id))
+    else showChapter(id, "title")
   }
 
   return (
@@ -71,6 +97,7 @@ export function PlanToolbar() {
               state={location.state}
               replace
               aria-current={current ? "page" : undefined}
+              title={VIEW_LABELS[name]}
               className={cn(
                 "flex h-7 items-center justify-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition-colors pointer-coarse:h-11 pointer-coarse:min-w-11",
                 "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
@@ -78,14 +105,15 @@ export function PlanToolbar() {
               )}
             >
               <Icon aria-hidden="true" className="size-4" />
-              {/* Icons alone on phones, so the toolbar fits. */}
-              <span className="sr-only sm:not-sr-only">{VIEW_LABELS[name]}</span>
+              {/* Icons alone on phones, so the toolbar fits; on mid-size screens, only the current view's name. */}
+              <span className={current ? "sr-only sm:not-sr-only" : "sr-only xl:not-sr-only"}>{VIEW_LABELS[name]}</span>
             </Link>
           )
         })}
       </nav>
-      <DisplayMenu />
+      {DISPLAY_VIEWS.includes(view) && <DisplayMenu />}
       <FilterMenu />
+      <StructureMenu />
       <p className="ml-auto hidden shrink-0 text-xs text-muted-foreground tabular-nums lg:block">
         {plan.chapters.length} {plan.chapters.length === 1 ? "chapter" : "chapters"} · {formatCount(plan.words)}
         {book.target_words ? ` / ${formatCount(book.target_words)}` : ""} words

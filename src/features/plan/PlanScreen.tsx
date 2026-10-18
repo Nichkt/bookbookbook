@@ -10,15 +10,19 @@ import type { BookListRow } from "@/db/queries"
 import { byData, focusPending, focusSoon } from "@/lib/focus"
 import { Board } from "./Board"
 import { ChapterDrawer, type ChapterStep } from "./ChapterDrawer"
-import { isPlanView, useDisplay, viewPrefKey, type PlanView } from "./display"
+import { isPlanView, useDisplay, VIEW_LABELS, viewPrefKey, type PlanView } from "./display"
 import { useChapterDrawer } from "./drawerNav"
 import { activeFilterCount, matchesFilters, usePlanFilters } from "./filters"
+import { Matrix } from "./Matrix"
 import { Outline } from "./Outline"
 import { itemSelector, PlanContext, usePlanContext, type DrawerFocus, type PlanContextValue } from "./planContext"
 import type { PlanChapter } from "./planData"
 import { usePlan } from "./planData"
+import { PlanDialogHost } from "./PlanDialogHost"
 import { PlanToolbar } from "./PlanToolbar"
 import { chapterTitle } from "./status"
+import { Timeline } from "./Timeline"
+import { useBookStructures, useRibbonShown } from "./useStructures"
 
 /** `/b/:bookId/plan`: the view used last for this book, else the Board. */
 export function PlanIndex() {
@@ -56,6 +60,8 @@ function PlanWorkspace({ bookId, view }: { bookId: string; view: PlanView }) {
 function PlanLoaded({ book, bookId, view }: { book: BookListRow; bookId: string; view: PlanView }) {
   const db = usePowerSync()
   const { plan, isLoading } = usePlan(bookId)
+  const structures = useBookStructures(book.template_key)
+  const ribbon = useRibbonShown(bookId)
   const { display, setPreset, toggleField } = useDisplay(bookId, view)
   const { filters, setFilter, clearFilters } = usePlanFilters()
   const { chapterId, openChapter, closeChapter } = useChapterDrawer()
@@ -108,6 +114,9 @@ function PlanLoaded({ book, bookId, view }: { book: BookListRow; bookId: string;
       bookId,
       book,
       plan,
+      structures,
+      ribbonShown: ribbon.shown,
+      setRibbonShown: ribbon.setShown,
       view,
       display,
       setPreset,
@@ -127,6 +136,9 @@ function PlanLoaded({ book, bookId, view }: { book: BookListRow; bookId: string;
       bookId,
       book,
       plan,
+      structures,
+      ribbon.shown,
+      ribbon.setShown,
       view,
       display,
       setPreset,
@@ -143,7 +155,8 @@ function PlanLoaded({ book, bookId, view }: { book: BookListRow; bookId: string;
     ],
   )
 
-  if (isLoading) return null
+  // Everything that changes the layout loads first, so nothing shifts once the plan shows.
+  if (isLoading || structures.isLoading || ribbon.isLoading) return null
 
   return (
     <PlanContext.Provider value={context}>
@@ -151,13 +164,16 @@ function PlanLoaded({ book, bookId, view }: { book: BookListRow; bookId: string;
         <PlanToolbar />
         <div className="flex flex-1 items-start">
           <div data-plan-main tabIndex={-1} className="min-w-0 flex-1 self-stretch outline-none">
-            <h1 className="sr-only">
-              Plan: {view === "board" ? "Board" : "Outline"}
-            </h1>
-            {view === "board" ? <Board /> : <Outline />}
+            <h1 className="sr-only">Plan: {VIEW_LABELS[view]}</h1>
+            {view === "board" && <Board cards="chapter" />}
+            {view === "corkboard" && <Board cards="index" />}
+            {view === "outline" && <Outline />}
+            {view === "matrix" && <Matrix />}
+            {view === "timeline" && <Timeline />}
           </div>
         </div>
         <ChapterPopout chapterId={chapterId} onClose={closeChapter} onStep={stepChapter} />
+        <PlanDialogHost />
       </div>
     </PlanContext.Provider>
   )

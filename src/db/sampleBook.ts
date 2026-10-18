@@ -22,7 +22,7 @@ export interface SampleChapter {
   place: string
   /** Free text, stored as a story time (see storyTimeFromText). */
   time: string
-  /** A Save the Cat beat key, or "". */
+  /** A moment key from the 15-beat structure, or "". */
   beat: string
   target: number
   labels: string[]
@@ -55,7 +55,7 @@ export const SAMPLE_BOOK = {
   tense: "past",
   audience: "adult",
   targetWords: 90_000,
-  templateKey: "save_the_cat",
+  templateKey: "fifteen_beat",
 }
 
 export const SAMPLE_ACTS = ["ACT I — Arrival", "ACT II — The Ledger", "ACT III — The Light"]

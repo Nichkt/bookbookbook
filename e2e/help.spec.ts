@@ -63,7 +63,7 @@ test.describe("Glossary", () => {
 test.describe("How to use this", () => {
   const TOURS = [
     { name: "home screen", title: "How to use the home screen", steps: 9, open: openHome },
-    { name: "Plan", title: "How to use the Plan", steps: 11, open: (page: Page) => openScreen(page, "Plan") },
+    { name: "Plan", title: "How to use the Plan", steps: 13, open: (page: Page) => openScreen(page, "Plan") },
     { name: "Write", title: "How to use Write", steps: 10, open: openFirstChapter },
     { name: "World", title: "How to use World", steps: 7, open: (page: Page) => openScreen(page, "World") },
     { name: "Inbox", title: "How to use the Inbox", steps: 1, open: (page: Page) => openScreen(page, "Inbox") },
@@ -92,42 +92,42 @@ test.describe("How to use this", () => {
     const opener = howToUse(page)
     await opener.click()
     const card = tourCard(page)
-    const at = (step: number) => expect(card).toContainText(`How to use the Plan · Step ${step} of 11`)
+    const at = (step: number) => expect(card).toContainText(`How to use the Plan · Step ${step} of 13`)
     const back = card.getByRole("button", { name: "Back" })
     const next = card.getByRole("button", { name: "Next" })
 
     // The arrow keys move too.
-    for (let step = 1; step <= 4; step++) {
+    for (let step = 1; step <= 6; step++) {
       await at(step)
       await expect(next).toBeFocused()
       await page.keyboard.press("ArrowRight")
     }
-    await at(5)
+    await at(7)
     await expect(page.getByRole("dialog", { name: "Moments" })).toBeVisible()
     await expect(popout(page)).toBeVisible()
     await expect(page).toHaveURL(/\?chapter=/)
     await expect(next).toBeFocused()
 
     await page.keyboard.press("ArrowLeft")
-    await at(4)
+    await at(6)
     await expect(popout(page)).toBeHidden()
     await expect(back).toBeFocused()
 
     await page.keyboard.press("ArrowRight")
-    await at(5)
-    await next.click()
-    await at(6)
-    await expect(popout(page)).toBeVisible()
-    await next.click()
     await at(7)
-    await expect(popout(page)).toBeVisible()
     await next.click()
     await at(8)
+    await expect(popout(page)).toBeVisible()
+    await next.click()
+    await at(9)
+    await expect(popout(page)).toBeVisible()
+    await next.click()
+    await at(10)
     await expect(popout(page)).toBeHidden()
     await expect(next).toBeFocused()
 
     await back.click()
-    await at(7)
+    await at(9)
     await expect(popout(page)).toBeVisible()
     await expect(back).toBeFocused()
     await page.keyboard.press("Escape")

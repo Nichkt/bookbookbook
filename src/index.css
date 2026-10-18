@@ -167,6 +167,10 @@
       --toast-bottom: 24px;
     }
   }
+  /* An open dialog turns off pointer events around it, which left a toast's Undo unclickable (src/lib/toasts.ts). */
+  [data-sonner-toast][data-visible="true"] {
+    pointer-events: auto;
+  }
   * {
     @apply border-border outline-ring/50;
   }
@@ -272,6 +276,16 @@
   .ai-generated {
     background: var(--ai-tint);
     border-radius: 2px;
+  }
+  /* Corkboard index cards: faint ruled lines 1.5rem apart that scroll with the text. */
+  .ruled-lines {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0 calc(1.5rem - 1px),
+      color-mix(in oklab, var(--accent-ink) 18%, transparent) calc(1.5rem - 1px) 1.5rem
+    );
+    background-attachment: local;
+    line-height: 1.5rem;
   }
 }
 
