@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import { reloadApp, usePwa } from "./pwa"
 
 export function StartupSplash() {
   return (
@@ -11,6 +12,8 @@ export function StartupSplash() {
 /** Shown when the local database can't open. Everything lives in browser storage, so nothing works without it. */
 export function StartupError({ error }: { error: unknown }) {
   const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error)
+  // A new version may well fix it.
+  const updateReady = usePwa((state) => state.updateReady)
   return (
     <div className="grid min-h-svh place-items-center bg-background px-6 py-10">
       <section role="alert" className="w-full max-w-md space-y-4">
@@ -47,7 +50,7 @@ export function StartupError({ error }: { error: unknown }) {
           <summary className="cursor-pointer font-medium">Technical details</summary>
           <pre className="mt-2 font-mono text-xs break-words whitespace-pre-wrap text-muted-foreground">{detail}</pre>
         </details>
-        <Button onClick={() => window.location.reload()}>Try again</Button>
+        <Button onClick={reloadApp}>{updateReady ? "Update and try again" : "Try again"}</Button>
       </section>
     </div>
   )

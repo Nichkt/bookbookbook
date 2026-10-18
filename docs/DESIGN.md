@@ -1025,6 +1025,35 @@ flowchart LR
   says why. Phones reach the dev server through USB port forwarding or Chrome's insecure-origin flag
   ([ime-smoke-test.md](ime-smoke-test.md#setup)).
 
+### Built in M8: Offline and installing
+- **It opens offline.** Production builds have a service worker (vite-plugin-pwa, on Workbox) that keeps a copy of
+  the app: its code, styles, fonts and icons, and the one SQLite build it loads, 60 files and 6.8 MB. PowerSync also
+  ships encrypted builds and one for OPFS storage, 4.9 MB more, which the app never loads, so they're left out. Every
+  address in the app is the same page, so once one has opened, any of them opens offline, the database's worker too.
+  The first time, a toast says "Ready to work offline". `npm run dev` never registers it.
+- **It can be installed.** A web app manifest (name, standalone window, start URL) with icons at 192 and 512 px, one
+  of them maskable, with the letter well inside the safe zone, and a 180 px Apple touch icon, all drawn from
+  `public/favicon.svg` by `npm run icons`. Chrome's install checks pass. Asking to install, and Safari's steps, come
+  next.
+- **New versions wait for the writer.** Browsers look for one whenever a page opens, and a long visit looks hourly.
+  It downloads in the background, then a toast says it's ready, with Reload and Later, and stays until one's chosen.
+  Later leaves it waiting: the toast comes back when a page opens, and the new version starts by itself once every
+  bookbookbook tab has closed. Reload writes the edits still on their way to the database, then the new version takes
+  over and every open tab reloads into it, each saving first, so none runs on with files that are gone. While one is
+  waiting, the startup screen's Try again and the error page's Reload become "Update and try again" and "Update and
+  reload".
+- **A tab no version controlled when it opened**, on the first visit or after a hard refresh, isn't told when the
+  new version takes over, so Reload watches the waiting version itself and reloads that tab once it's in. A tab
+  reloads only once, however many ways it hears.
+- **The title bar follows the theme.** The page's `theme-color` is the header's color in light, sepia and dark, set
+  before first paint and whenever the theme changes, so an installed app's title bar and a phone's browser bar match.
+- `e2e/pwa.spec.ts` runs on a production build, which `e2e/preview.ts` builds and serves on port 4174: opening offline
+  at every address with the browser's cache cleared and the database's worker closed; Chrome's install checks, the
+  manifest and the icons' sizes; a new version waiting through Later and a reload, then Reload with the last words
+  typed kept; and Reload in one tab taking both open tabs into it, one of them opened before any version controlled
+  it. The server gives a browser carrying a cookie a new version of the service worker, so each test publishes its
+  own and the tests run side by side. `app.spec.ts` checks the title bar's color in each theme.
+
 ---
 
 ## 12. Data safety
@@ -1491,7 +1520,7 @@ words as "also called".
    Harper, read-through and @-mentions (§8, "Built in M6"), and M11 on the browser's own speech recognition, without
    voice memos, the in-browser models, cloud transcription and the AI helpers (§10, "Built in M11"). So are the home
    screen, the chapter pop-out, plain labels, World, the glossary and the page tours (§4, §6, §7, §17a), and from
-   M8, Search, the command palette (§4).
+   M8, Search, the command palette (§4), and the app opening offline and installing (§11).
 
 ---
 
@@ -1564,4 +1593,5 @@ words as "also called".
 | 27 | M6 writing aids | Focus mode for the Write screen's visit only, dimming all but the caret's paragraph; typewriter scrolling per device; a daily goal per book in net words, with a streak that can be hidden; sprints kept in localStorage that survive a reload; Add to World from a bubble over a selected name or the ⋯ menus; read aloud with the device's voices, a sentence at a time; find and replace across the whole book as a side panel page, searching scene text (live or stored) a paragraph at a time, Replace all editing the Yjs text directly after saving versions, with one Undo; navigations that pair with urgent state or quick keys use `flushSync`; comments, prose checks, Harper, read-through and @-mentions deferred | Details in §8, "Built in M6" |
 | 28 | M4 AI tools | The writer's own key (OpenAI, Anthropic, OpenRouter) or a model on their computer (Ollama, LM Studio), one at a time, set per device, keys never synced or backed up; 11 tools in Write, Revise and Plan groups plus the writer's own (placeholders, three kinds of answer), in a side panel page from 1280 px and a sheet below, run from the toolbar, the ⋯ menu or Ctrl+J; prompts built from labeled parts the writer can untick and read whole, trimmed least-needed first by a four-characters-a-token estimate; cards per book (100 kept), streamed, stoppable and run again, Replace finding the text where it was; AI text marked and tinted until the writer types in it, its share shown per chapter and book, and Today counting only the writer's words; the book's point of view, tense, audience, style guide and samples in Book settings; AI cards and own tools left out of backups; hosted AI, other triggers and key encryption deferred | Details in §9, "Built in M4" |
 | 29 | M11 dictation and Inbox | Live dictation on the browser's own speech recognition, set up per device on first use: on this device (Chrome's language packs, private, offline) or online with the browser's maker, named; one session at a time, restarted through a browser's silences, its words shown in a Listening pill until they settle; English voice commands, "scratch that" and "literal", and "new moment" in notes; dictation into the text at the caret as the writer's own words, by the toolbar or Ctrl+Shift+M (Ctrl+Shift+S is the editor's strikethrough), stopping Read aloud and stopped by it; an Inbox of notes typed or dictated, To sort and Filed, filed into a chapter's notes, moments or summary, or an entry's notes, or made into an entry, each with Undo; Quick note in every book page's header, its unsaved note kept for the visit; Inbox notes in backups, still version 1; dictation and the Inbox moved into the Beta, as they cost nothing to run; voice memos, in-browser models, cloud transcription and the AI helpers deferred | Details in §10, "Built in M11" |
-| 30 | M8 command palette | Search in every page's header and Ctrl/Cmd+K, the page's before the browser's but left to other dialogs and menus; finds chapters, titled scenes, World entries, views, books and glossary terms once something's typed, and does what each page's toolbars and menus do, the AI tools included (Continue at once, the rest in the panel); every word typed must match, the label over keywords and a word's start over letters inside, glossary terms a step lower; a command runs after the palette closes, with focus back where it was, so dialogs return there; each page opens a chapter, scene or entry its own way, the Plan through `?chapter=` even while loading; Back closes it, the app's redirects don't; opened again as it fades, it starts afresh | Details in ?4, "Built in M8" |
+| 30 | M8 command palette | Search in every page's header and Ctrl/Cmd+K, the page's before the browser's but left to other dialogs and menus; finds chapters, titled scenes, World entries, views, books and glossary terms once something's typed, and does what each page's toolbars and menus do, the AI tools included (Continue at once, the rest in the panel); every word typed must match, the label over keywords and a word's start over letters inside, glossary terms a step lower; a command runs after the palette closes, with focus back where it was, so dialogs return there; each page opens a chapter, scene or entry its own way, the Plan through `?chapter=` even while loading; Back closes it, the app's redirects don't; opened again as it fades, it starts afresh | Details in §4, "Built in M8" |
+| 31 | M8 offline and installing | Production builds keep a copy of the app in a service worker (vite-plugin-pwa): the app, its fonts and icons and the one SQLite build it loads, 60 files and 6.8 MB, not PowerSync's encrypted and OPFS builds; every address falls back to the app's page, so any opens offline; a new version downloads in the background and waits for the writer, a toast offering Reload or Later, rather than reloading under them mid-sentence, and starts by itself once every tab has closed; Reload saves pending edits first and every open tab reloads into the new version, the tab clicked watching for it itself when no version controlled it as it opened; hourly checks on long visits; the startup and error screens update too; the title bar takes the header's color in each theme; icons drawn from the favicon by a script; tested on a production build, each test publishing its own new version through a cookie | Details in §11, "Built in M8" |

@@ -6,7 +6,7 @@ takes after NovelCrafter, the writing side after Sudowrite.
 - **Design:** [docs/DESIGN.md](docs/DESIGN.md) covers every product and technical decision and the milestone plan.
 - **Prototype:** [prototype/](prototype/README.md) is a clickable mock of the whole app. Open `prototype/index.html`.
 
-## Status: home, planner, World, editor, writing aids, AI, Inbox and dictation, search, help, import, export, backups
+## Status: home, Plan, World, Write, writing aids, AI, Inbox, dictation, search, help, import, export, backups, offline
 
 Milestones 0 to 7 and 11 from DESIGN.md §19 are built, and M8 is under way, plus a home screen, a glossary and a tour
 of every page.
@@ -14,6 +14,13 @@ Everything stays on the device, except what an AI tool reads when you run it, wh
 your voice when you dictate online, which goes to the browser's maker.
 There are no accounts or sync yet, so keep backups: Backups… in the book menu downloads one, or backs every book up to
 a folder as it changes (Chrome and Edge).
+
+**M8, Offline and installing** (DESIGN.md §11, "Built in M8"):
+- **Works offline:** once bookbookbook has opened, it opens without an internet connection, at any of its pages.
+- **Install it** from Chrome's or Edge's address bar, for a window and an icon of its own.
+- **Updates wait for you:** a new version downloads in the background, then a message offers **Reload**, which saves
+  your writing first and moves every open tab to it, or **Later**, and it starts the next time you open bookbookbook.
+- Only a build does this: see [Trying it offline](#trying-it-offline).
 
 **M8, Search** (DESIGN.md §4, "Built in M8"):
 - **Search**, at the top of every page, or **Ctrl+K** (⌘K on a Mac) from anywhere, finds a chapter (by its title or
@@ -218,11 +225,27 @@ site's data (DevTools → Application → Storage → Clear site data) and reloa
 | `npm run dev` | Dev server at <http://localhost:5173> |
 | `npm run dev:lan` | The same, reachable from other devices on your network (phone testing) |
 | `npm run build` | Type-checks, then builds to `dist/` |
-| `npm run preview` | Serves the build |
+| `npm run preview` | Serves the build at <http://localhost:4173> |
 | `npm run typecheck` | `tsc -b` over the app, tests and configs |
 | `npm run lint` | oxlint |
 | `npm test` | Unit tests (Vitest) |
 | `npm run test:e2e` | End-to-end tests (Playwright) |
+| `npm run icons` | Draws the app's icons in `public/` from `public/favicon.svg`, in Chrome |
+
+### Trying it offline
+
+The dev server has no service worker, so working offline and installing only happen in a build:
+
+```sh
+npm run build
+npm run preview
+```
+
+Open <http://localhost:4173> and wait for "Ready to work offline". Then it opens with no connection (try DevTools →
+Network → Offline, and reload), and Chrome's address bar offers to install it. Its books are kept apart from the dev
+server's, as it's another address. To see an update arrive, change something and build again with it open: the browser
+finds the new version when a page next opens, or within the hour. To be rid of the service worker, clear the site's
+data.
 
 ## Setting up the AI tools
 
@@ -282,13 +305,14 @@ in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). 
   terms a step lower, sections by their best match), and a page's commands taking the place of the app's.
 
 **End-to-end tests** (`e2e/`) run in your installed Chrome against a dev server on port 5174, which Playwright starts
-(or reuses if it's already running). Every test gets a fresh browser profile, so each one starts from the sample book.
+(or reuses if it's already running). The offline tests need a build instead: `e2e/preview.ts` builds one afresh and
+serves it on port 4174. Every test gets a fresh browser profile, so each one starts from the sample book.
 They cover:
 - startup;
 - typing and reloading;
 - compaction;
 - two tabs converging;
-- the theme setting;
+- the theme setting, and the title bar's color in each theme;
 - the phone layout;
 - a phone-style keyboard composition, replayed through the Chrome DevTools Protocol;
 - the planner (`plan.spec.ts`): dragging and keyboard moves on the Board, display presets, filters, the chapter
@@ -338,6 +362,10 @@ They cover:
   fades away, a chapter and an entry on Write, the Plan's pop-out, views and a scene, an entry on World and Back,
   focus mode, a theme and Book settings, Ctrl+K left to the glossary, an AI tool picked and Continue run, a book and
   a term from the home screen, and a phone;
+- offline and installing (`pwa.spec.ts`, on the build): opening offline at every page once opened, with the
+  browser's cache cleared; Chrome's install checks, the manifest and the icons; a new version waiting through Later
+  and a reload, then Reload keeping the last words typed; and Reload moving every open tab to it. Each test gets a
+  new version of its own, through a cookie the server looks for, so they run side by side;
 - touch targets (`touch.spec.ts`): on a phone and a tablet, every control on the Board, its menus, the chapter
   pop-out, a toast, the Outline, the Write screen with its menus, History, chapter plan and World panel, World, the
   writing aids (Goals and sprints, Find and replace, Add to World, the reading bar and focus mode), the AI tools
@@ -345,8 +373,8 @@ They cover:
   the Backups dialog, the Inbox (its menus, File this note, Quick note), dictation (Set up dictation and the
   Listening pill), the home screen, the help menu, the glossary, a tour card and Search must be at least 44 px.
 
-Use `npx playwright test --ui` to debug. A failed test keeps a trace in `test-results/`; open it with
-`npx playwright show-trace <path>`.
+Use `npx playwright test --ui` to debug, and `--project=chrome` or `--project=pwa` for the dev server's tests or the
+offline ones alone. A failed test keeps a trace in `test-results/`; open it with `npx playwright show-trace <path>`.
 
 ## Phone keyboards
 
@@ -373,7 +401,8 @@ one replaces the live doc's prose with a copy in a single edit, so it's saved, a
 ```text
 src/
   ai/             providers, requests and streamed answers, what a run sends, the tools and your own, cards and runs
-  app/            shell, routes, startup and error screens, theme, toasts and announcements, dev hooks
+  app/            shell, routes, startup and error screens, theme, toasts and announcements, the service worker and
+                  updates, dev hooks
   backup/         backup status, folder backups, and when backups run
   components/     fields that save as you type; ui/ holds the shadcn components
   db/             PowerSync schema, queries, sample book and seeding, ordering, undo, Trash, prefs, the scene store,
@@ -392,10 +421,11 @@ src/
   speech/         speech recognition: the engine, dictation sessions, voice commands and their settings
   test/           in-memory SQLite and book builders for unit tests
   yjs/            SceneDocProvider, the scene store interface, Yjs helpers
-e2e/              Playwright tests
+e2e/              Playwright tests, and preview.ts, which builds and serves the app for the offline tests
 docs/             design doc and the phone keyboard test
 prototype/        the clickable design prototype
-public/           favicon; theme-init.js sets the theme before first paint
+public/           favicon and the app's icons; theme-init.js sets the theme and title bar color before first paint
+scripts/          icons.ts draws the app's icons from the favicon (`npm run icons`)
 ```
 
 ## Dev hooks

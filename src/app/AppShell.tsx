@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils"
 import { Announcer } from "./Announcer"
 import { useCurrentBook } from "./books"
 import { ThemeSwitcher } from "./ThemeSwitcher"
+import { useAppUpdates } from "./useAppUpdates"
 
 // Above the phone tab bar, or the screen edge from md up (--toast-bottom in index.css).
 const TOAST_OFFSET = { bottom: "var(--toast-bottom)" }
@@ -89,6 +90,7 @@ export function AppShell() {
   // Backups run whichever screen is open (DESIGN.md §12), and so do sprints' timers (§8).
   useEffect(() => startBackups(db), [db])
   useEffect(() => startSprintTimer(db), [db])
+  useAppUpdates()
   return (
     <TooltipProvider>
       <div className="flex min-h-svh flex-col" data-focus-mode={focusMode ? "" : undefined}>

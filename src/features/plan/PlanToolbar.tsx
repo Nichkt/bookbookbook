@@ -133,7 +133,7 @@ export function PlanToolbar() {
   )
 }
 
-/** The Plan's part of the command palette (DESIGN.md ?4): adding, and the Structure menu's choices. */
+/** The Plan's part of the command palette (DESIGN.md §4): adding, and the Structure menu's choices. */
 function planCommands(
   { structures, ribbonShown, setRibbonShown }: PlanContextValue,
   add: { addAct: () => void; addChapter: () => void },

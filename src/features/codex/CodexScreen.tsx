@@ -94,7 +94,7 @@ function CodexBook({ bookId }: { bookId: string }) {
   return <CodexWorkspace bookId={bookId} codex={codex} />
 }
 
-/** The World's part of the command palette (DESIGN.md ?4): a new entry in the list showing, and a new type. */
+/** The World's part of the command palette (DESIGN.md §4): a new entry in the list showing, and a new type. */
 function worldCommands(listType: CodexType | undefined, actions: ListActions): PaletteCommand[] {
   const commands: PaletteCommand[] = []
   if (listType) {

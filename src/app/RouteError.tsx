@@ -1,9 +1,12 @@
 import { isRouteErrorResponse, Link, useRouteError } from "react-router"
 import { Button } from "@/components/ui/button"
+import { reloadApp, usePwa } from "./pwa"
 
 /** Replaces React Router's developer error page. Edits are saved as they're typed, so a reload loses nothing. */
 export function RouteError() {
   const error = useRouteError()
+  // A new version may well fix it.
+  const updateReady = usePwa((state) => state.updateReady)
   const detail = isRouteErrorResponse(error)
     ? `${error.status} ${error.statusText}`
     : error instanceof Error
@@ -18,7 +21,7 @@ export function RouteError() {
         <pre className="mt-2 font-mono text-xs break-words whitespace-pre-wrap text-muted-foreground">{detail}</pre>
       </details>
       <div className="flex gap-2">
-        <Button onClick={() => window.location.reload()}>Reload</Button>
+        <Button onClick={reloadApp}>{updateReady ? "Update and reload" : "Reload"}</Button>
         <Button variant="outline" asChild>
           <Link to="/">Back to my book</Link>
         </Button>

@@ -62,15 +62,27 @@ test("an empty chapter opens on a blank page you can type into", async ({ page }
   await expect(page.getByRole("textbox", { name: "Chapter text" })).toHaveText("It began in the archive.")
 })
 
-test("remembers the theme", async ({ page }) => {
+test("remembers the theme, and gives the browser's title bar the header's color", async ({ page }) => {
   await openFirstChapter(page)
+  // An installed app's title bar too.
+  const titleBar = () =>
+    page.evaluate(() => ({
+      color: document.querySelector('meta[name="theme-color"]')?.getAttribute("content"),
+      header: getComputedStyle(document.documentElement).getPropertyValue("--surface").trim(),
+    }))
+  expect(await titleBar()).toEqual({ color: "#fbf8f2", header: "#fbf8f2" })
   const theme = page.getByRole("radiogroup", { name: "Theme" })
+  await theme.getByRole("radio", { name: "Sepia" }).click()
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "sepia")
+  expect(await titleBar()).toEqual({ color: "#f6edd9", header: "#f6edd9" })
   await theme.getByRole("radio", { name: "Dark" }).click()
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark")
+  expect(await titleBar()).toEqual({ color: "#1b1e24", header: "#1b1e24" })
 
   await page.reload()
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark")
   await expect(theme.getByRole("radio", { name: "Dark" })).toBeChecked()
+  expect(await titleBar()).toEqual({ color: "#1b1e24", header: "#1b1e24" })
 })
 
 test.describe("on a phone-sized screen", () => {
