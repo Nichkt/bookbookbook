@@ -47,14 +47,22 @@ export interface PendingRun {
   tool: string
   /** When it was asked for, as Date.now(). */
   at: number
+  /** False to pick the tool and wait there for the writer to fill it in and run it. */
+  run: boolean
 }
+
+/** The AI panel's tool picker, where focus goes when a tool is picked for the writer from the command palette. */
+export const AI_TOOL_PICKER = "[data-ai-tool]"
 
 export const usePendingRun = create<{ pending: PendingRun | null }>(() => ({ pending: null }))
 
 let runRequests = 0
 
-export const requestRun = (tool: string) =>
-  usePendingRun.setState({ pending: { id: ++runRequests, tool, at: Date.now() } })
+export const requestRun = (tool: string, run = true) =>
+  usePendingRun.setState({ pending: { id: ++runRequests, tool, at: Date.now(), run } })
+
+/** Picks a tool in the panel, which then has focus, for the writer to run once they've filled it in. */
+export const chooseTool = (tool: string) => requestRun(tool, false)
 
 /** Takes the pending run, so it runs once. */
 export function takePendingRun(): PendingRun | null {

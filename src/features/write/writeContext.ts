@@ -23,6 +23,12 @@ export const TYPEWRITER_PREF = "write.typewriter"
 /** From here up the panel sits beside the text instead of over it. */
 export const PANEL_DOCKED_QUERY = "(min-width: 80rem)"
 
+/**
+ * From here up the toolbar has room for every tool, and the navigator shows; below it, the phone bar puts most in a
+ * menu.
+ */
+export const WIDE_WRITE_QUERY = "(min-width: 48rem)"
+
 /** The panel's pages (DESIGN.md §8), each opened by its own button in the toolbar. */
 export const PANEL_PAGES = ["plan", "codex", "find", "ai"] as const
 export type PanelPage = (typeof PANEL_PAGES)[number]

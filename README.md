@@ -6,13 +6,23 @@ takes after NovelCrafter, the writing side after Sudowrite.
 - **Design:** [docs/DESIGN.md](docs/DESIGN.md) covers every product and technical decision and the milestone plan.
 - **Prototype:** [prototype/](prototype/README.md) is a clickable mock of the whole app. Open `prototype/index.html`.
 
-## Status: home, planner, World, editor, writing aids, AI tools, Inbox and dictation, help, import, export and backups
+## Status: home, planner, World, editor, writing aids, AI, Inbox and dictation, search, help, import, export, backups
 
-Milestones 0 to 7 and 11 from DESIGN.md §19 are built, plus a home screen, a glossary and a tour of every page.
+Milestones 0 to 7 and 11 from DESIGN.md §19 are built, and M8 is under way, plus a home screen, a glossary and a tour
+of every page.
 Everything stays on the device, except what an AI tool reads when you run it, which goes only to the AI you chose, and
 your voice when you dictate online, which goes to the browser's maker.
 There are no accounts or sync yet, so keep backups: Backups… in the book menu downloads one, or backs every book up to
 a folder as it changes (Chrome and Edge).
+
+**M8, Search** (DESIGN.md §4, "Built in M8"):
+- **Search**, at the top of every page, or **Ctrl+K** (⌘K on a Mac) from anywhere, finds a chapter (by its title or
+  "chapter 3"), a scene, a World entry (by any of its names), a page, a Plan view, another book or a glossary term.
+  Pick one and you're there: a chapter pops out on the Plan, and an entry opens beside the text on Write.
+- **It does things too:** type what you want, "focus mode", "dark theme", "export", "brainstorm", and press Enter.
+  Everything in the page's toolbars and menus is there, with its shortcut beside it, so you can learn them as you go.
+- **Back where you were:** what you pick runs with the cursor where you left it, and Esc closes Search having done
+  nothing.
 
 **M11, Inbox and dictation** (DESIGN.md §10, "Built in M11"):
 - **Inbox:** the Inbox tab catches ideas as they come, typed or dictated, to sort into the book later. **File…** adds
@@ -50,8 +60,8 @@ a folder as it changes (Chrome and Edge).
   much of the chapter and the book the AI wrote, and Today and your goals count only your own words.
 - **Book style:** Book settings has a part for the AI tools: point of view, tense, who the book is for, a style guide
   and sample passages of your writing.
-- **Not yet:** hosted AI without a key of your own (it waits for accounts, M10), AI from the selection bubble, a
-  right-click menu or a command palette, cost estimates, and keys encrypted on the device.
+- **Not yet:** hosted AI without a key of your own (it waits for accounts, M10), AI from the selection bubble or a
+  right-click menu, cost estimates, and keys encrypted on the device. (Search runs any AI tool since M8.)
 
 **M6, Writing aids** (DESIGN.md §8, "Built in M6"):
 - **Focus mode:** Ctrl+. (⌘. on a Mac), or the toolbar's Focus mode button, clears away everything but your text
@@ -267,7 +277,9 @@ in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). 
 - the Inbox: notes, filing into chapters and World entries and its exact undo, what a filed note says, and naming a
   World entry from a note;
 - help: every glossary term's links and search (old names and word order included), every tour step's copy on touch
-  and narrow screens and in each Plan view, and where a tour card goes beside, over or without what it points at.
+  and narrow screens and in each Plan view, and where a tour card goes beside, over or without what it points at;
+- Search: how what's typed ranks commands (labels over keywords, a word's start over letters inside it, glossary
+  terms a step lower, sections by their best match), and a page's commands taking the place of the app's.
 
 **End-to-end tests** (`e2e/`) run in your installed Chrome against a dev server on port 5174, which Playwright starts
 (or reuses if it's already running). Every test gets a fresh browser profile, so each one starts from the sample book.
@@ -322,12 +334,16 @@ They cover:
   and a page that doesn't exist;
 - help (`help.spec.ts`): glossary search by old names, See also, the "?" beside a field, every page's tour walked to
   Done, the Plan tour opening a chapter's pop-out and closing it, a term explained mid-tour, and leaving the page;
+- Search (`palette.spec.ts`): Ctrl+K over the text and back with the cursor where it was, opening it again as it
+  fades away, a chapter and an entry on Write, the Plan's pop-out, views and a scene, an entry on World and Back,
+  focus mode, a theme and Book settings, Ctrl+K left to the glossary, an AI tool picked and Continue run, a book and
+  a term from the home screen, and a phone;
 - touch targets (`touch.spec.ts`): on a phone and a tablet, every control on the Board, its menus, the chapter
   pop-out, a toast, the Outline, the Write screen with its menus, History, chapter plan and World panel, World, the
   writing aids (Goals and sprints, Find and replace, Add to World, the reading bar and focus mode), the AI tools
   (the panel and its cards, AI settings and your own tools), the Import dialog with its menus, the backup reminder,
   the Backups dialog, the Inbox (its menus, File this note, Quick note), dictation (Set up dictation and the
-  Listening pill), the home screen, the help menu, the glossary and a tour card must be at least 44 px.
+  Listening pill), the home screen, the help menu, the glossary, a tour card and Search must be at least 44 px.
 
 Use `npx playwright test --ui` to debug. A failed test keeps a trace in `test-results/`; open it with
 `npx playwright show-trace <path>`.

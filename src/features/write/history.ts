@@ -91,6 +91,9 @@ export function diffParagraphs(parts: Pick<ChangeObject<string>, "value" | "adde
   return paragraphs
 }
 
+/** Saves a snapshot of the scene, as History's tooltip and the command palette show it. */
+export const SNAPSHOT_KEYS = "Mod+Alt+S"
+
 /**
  * Ctrl+Alt+S, or ⌘⌥S on a Mac, saves a snapshot (DESIGN.md §8 "Keyboard"). Windows reports AltGr as Ctrl+Alt, and
  * AltGr+S types a letter on some layouts, so that's left alone. The key code catches ⌥S, which types "ß" on a Mac.

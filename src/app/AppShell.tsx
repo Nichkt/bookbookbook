@@ -14,6 +14,7 @@ import { GlossaryDialog } from "@/features/help/GlossaryDialog"
 import { HelpButtons } from "@/features/help/HelpButtons"
 import { Tour } from "@/features/help/Tour"
 import { QuickNoteButton, QuickNoteDialog } from "@/features/inbox/QuickNote"
+import { CommandPalette, PaletteButton } from "@/features/palette/CommandPalette"
 import { useFocusMode } from "@/features/write/focusMode"
 import { startSprintTimer } from "@/features/write/sprint"
 import { cn } from "@/lib/utils"
@@ -94,17 +95,18 @@ export function AppShell() {
         <header
           data-sticky-top=""
           hidden={focusMode}
-          className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-surface/95 px-4 backdrop-blur sm:gap-4"
+          className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-surface/95 px-3 backdrop-blur sm:gap-4 sm:px-4"
         >
           <div className="flex min-w-0 items-center gap-1 sm:gap-2">
+            {/* In a book, the word waits for room beside the book's title and the screen tabs. */}
             <Link
               to="/"
               aria-label="bookbookbook"
               title="Your books"
               className="flex shrink-0 items-center justify-center rounded-md font-heading text-xl font-semibold tracking-tight focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none pointer-coarse:min-h-11 pointer-coarse:min-w-11"
             >
-              <BookOpenIcon aria-hidden="true" className="size-5 sm:hidden" />
-              <span className="hidden sm:inline">bookbookbook</span>
+              <BookOpenIcon aria-hidden="true" className={cn("size-5", inBook ? "lg:hidden" : "sm:hidden")} />
+              <span className={cn("hidden", inBook ? "lg:inline" : "sm:inline")}>bookbookbook</span>
             </Link>
             {inBook && <BookMenu book={book} books={books} />}
           </div>
@@ -115,7 +117,8 @@ export function AppShell() {
               linkClassName="flex items-center px-3 py-1.5 pointer-coarse:min-h-11"
             />
           )}
-          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-0 sm:gap-2">
+            <PaletteButton />
             {inBook && book && <QuickNoteButton />}
             <HelpButtons />
             <ThemeSwitcher />
@@ -148,6 +151,7 @@ export function AppShell() {
       <ListeningPill />
       <GlossaryDialog />
       <Tour />
+      <CommandPalette book={inBook ? book : undefined} books={books} />
       <Toaster offset={TOAST_OFFSET} mobileOffset={TOAST_OFFSET} />
       <Announcer />
     </TooltipProvider>

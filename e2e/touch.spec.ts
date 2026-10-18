@@ -335,6 +335,11 @@ for (const [device, viewport] of [
       await check("Glossary", "[role=dialog]")
       await closeWith("Escape", "[role=dialog]")
 
+      await page.getByRole("banner").getByRole("button", { name: "Search", exact: true }).click()
+      await page.getByRole("dialog", { name: "Search" }).getByRole("option").first().waitFor()
+      await check("Search", "[role=dialog]")
+      await closeWith("Escape", "[role=dialog]")
+
       // The second step offers to explain a word, so it has every kind of button a tour card has.
       await openHelp("How to use this")
       await page.getByRole("dialog", { name: "Welcome to bookbookbook" }).getByRole("button", { name: "Next" }).click()

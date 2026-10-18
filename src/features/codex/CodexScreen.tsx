@@ -1,5 +1,5 @@
 import { usePowerSync } from "@powersync/react"
-import { EllipsisIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon } from "lucide-react"
+import { EllipsisIcon, PencilIcon, PlusIcon, SearchIcon, ShapesIcon, Trash2Icon } from "lucide-react"
 import { useEffect, useId, useMemo, useRef, useState, type Dispatch, type FormEvent, type ReactNode, type SetStateAction } from "react"
 import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router"
 import { rememberBook, useCurrentBook } from "@/app/books"
@@ -26,6 +26,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAfterMenu } from "@/components/useAfterMenu"
+import type { PaletteCommand } from "@/features/palette/commands"
+import { usePaletteSource } from "@/features/palette/paletteStore"
 import { byData, focusPending, focusSoon, nothingFocused } from "@/lib/focus"
 import { formatCount } from "@/lib/numbers"
 import { nextColor } from "@/lib/palette"
@@ -90,6 +92,31 @@ function CodexBook({ bookId }: { bookId: string }) {
     )
   }
   return <CodexWorkspace bookId={bookId} codex={codex} />
+}
+
+/** The World's part of the command palette (DESIGN.md ?4): a new entry in the list showing, and a new type. */
+function worldCommands(listType: CodexType | undefined, actions: ListActions): PaletteCommand[] {
+  const commands: PaletteCommand[] = []
+  if (listType) {
+    commands.push({
+      id: "world:new-entry",
+      label: `New ${nounOf(listType.singular)}`,
+      group: "Actions",
+      icon: PlusIcon,
+      keywords: ["add", "create", "new entry", listType.name],
+      movesFocus: true,
+      run: actions.newEntry,
+    })
+  }
+  commands.push({
+    id: "world:new-type",
+    label: "New type?",
+    group: "Actions",
+    icon: ShapesIcon,
+    keywords: ["add a type", "kind of entry", "category", "create"],
+    run: (from) => actions.openTypeDialog(null, from),
+  })
+  return commands
 }
 
 interface TypeDialogState {
@@ -260,6 +287,8 @@ function CodexWorkspace({ bookId, codex }: { bookId: string; codex: Codex }) {
     openTypeDialog,
     deleteType: (type) => void removeType(type),
   }
+
+  usePaletteSource("world", { commands: () => worldCommands(codex.typeById.get(list), actions) })
 
   if (layout !== "phone" && !entryId && !isStayState(location.state)) {
     const last = readLastEntry(bookId)

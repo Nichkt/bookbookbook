@@ -31,7 +31,7 @@ export function QuickNoteButton() {
       }}
     >
       <StickyNotePlusIcon aria-hidden="true" />
-      <span className="sr-only lg:not-sr-only">Quick note</span>
+      <span className="sr-only xl:not-sr-only">Quick note</span>
     </Button>
   )
 }

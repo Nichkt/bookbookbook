@@ -397,6 +397,19 @@ export const GLOSSARY: GlossaryTerm[] = [
     ],
   },
   {
+    id: "search",
+    term: "Search",
+    aka: ["Command palette", "Commands", "Quick open", "Ctrl+K"],
+    group: "app",
+    body: [
+      "The Search button at the top of every page finds anything in your book by its name: a chapter, a scene, a World entry or a page. Pick one to go straight to it. Ctrl+K (⌘K on a Mac) opens it from anywhere.",
+      "It does things for you, too. Type what you want, like “focus mode”, “dark theme” or “export”, and press Enter. It shows the keyboard shortcut for anything that has one, so you can learn them as you go.",
+      "To look for words inside what you've written, use Find and replace instead.",
+    ],
+    example: "Type “ferry” to see every chapter, scene and World entry with ferry in its name.",
+    related: ["find-and-replace", "home"],
+  },
+  {
     id: "plan-page",
     term: "Plan",
     group: "app",

@@ -62,6 +62,7 @@ describe("searchGlossary", () => {
     expect(ids(searchGlossary("dictate"))[0]).toBe("dictation")
     expect(ids(searchGlossary("online"))[0]).toBe("on-device")
     expect(ids(searchGlossary("quick note"))[0]).toBe("inbox")
+    expect(ids(searchGlossary("command palette"))[0]).toBe("search")
   })
 
   it("puts names with the words in that order before names with them in another", () => {

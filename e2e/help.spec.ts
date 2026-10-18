@@ -80,7 +80,7 @@ test.describe("Glossary", () => {
 
 test.describe("How to use this", () => {
   const TOURS = [
-    { name: "home screen", title: "How to use the home screen", steps: 9, open: openHome },
+    { name: "home screen", title: "How to use the home screen", steps: 10, open: openHome },
     { name: "Plan", title: "How to use the Plan", steps: 13, open: (page: Page) => openScreen(page, "Plan") },
     { name: "Write", title: "How to use Write", steps: 15, open: openFirstChapter },
     { name: "World", title: "How to use World", steps: 7, open: (page: Page) => openScreen(page, "World") },
@@ -168,7 +168,7 @@ test.describe("How to use this", () => {
     await page.keyboard.press("Escape")
     await expect(glossary(page)).toBeHidden()
     await expect(explain).toBeFocused()
-    await expect(card).toContainText("Step 2 of 9")
+    await expect(card).toContainText("Step 2 of 10")
 
     await page.keyboard.press("Escape")
     await expect(card).toHaveCount(0)

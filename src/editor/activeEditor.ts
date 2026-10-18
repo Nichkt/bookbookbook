@@ -81,6 +81,25 @@ function mostInView(mounted: MountedEditor[]): MountedEditor | null {
 export const editorOf = (sceneId: string): MountedEditor | undefined =>
   useEditors.getState().mounted.find((entry) => entry.sceneId === sceneId && !entry.editor.isDestroyed)
 
+/** The editor `element` is in, if it's in one: where focus goes back to, caret and all, after a dialog. */
+export function editorContaining(element: Element | null): Editor | null {
+  if (!element) return null
+  const found = useEditors
+    .getState()
+    .mounted.find(({ editor }) => !editor.isDestroyed && editor.view.dom.contains(element))
+  return found?.editor ?? null
+}
+
+/**
+ * Puts focus back on `element`, as a dialog closes. In a scene's text that goes through the editor, so the caret is
+ * back where it was: plain focus() would put it at the start, once the dialog's field has had the selection.
+ */
+export function focusBack(element: HTMLElement) {
+  const editor = editorContaining(element)
+  if (editor) editor.view.focus()
+  else element.focus()
+}
+
 /**
  * Runs `work` with a scene's editor once it's on the page, e.g. after navigating to the scene. Returns a cancel
  * function for effect cleanups.

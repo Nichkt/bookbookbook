@@ -1,11 +1,9 @@
 import { useEditorState, type Editor } from "@tiptap/react"
 import {
   BoldIcon,
-  BookOpenTextIcon,
   BookPlusIcon,
   BookUserIcon,
   EllipsisIcon,
-  FileTextIcon,
   FocusIcon,
   HistoryIcon,
   ItalicIcon,
@@ -13,7 +11,6 @@ import {
   Minimize2Icon,
   NotebookTextIcon,
   PanelLeftIcon,
-  ScrollTextIcon,
   SearchIcon,
   SeparatorHorizontalIcon,
   SparklesIcon,
@@ -43,9 +40,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAfterMenu } from "@/components/useAfterMenu"
 import { activeEditor, useActiveEditor, type MountedEditor } from "@/editor/activeEditor"
-import { centerCaret } from "@/editor/extensions/Typewriter"
 import { DictateButton } from "@/features/dictation/DictateButton"
-import { type Plan } from "@/features/plan/planData"
 import { actLabel, chapterTitle } from "@/features/plan/status"
 import { focusSoon } from "@/lib/focus"
 import { ariaShortcut, shortcutLabel } from "@/lib/keys"
@@ -59,30 +54,22 @@ import { FIND_KEYS } from "./findActions"
 import { FOCUS_KEYS, setFocusMode, useFocusMode } from "./focusMode"
 import { openGoals } from "./goals"
 import { GoalsAnchor, GoalsPopover, SprintChip, TodayButton } from "./GoalsPopover"
-import { openHistory } from "./history"
+import { SNAPSHOT_KEYS } from "./history"
 import { NAVIGATOR_ID } from "./Navigator"
 import { DICTATE_KEYS, PROSE_TARGET } from "./proseDictation"
 import { canReadAloud, READ_ALOUD_PLAY, startReading, stopReading, useReadAloud } from "./readAloud"
 import { useGoalCelebration, useToday } from "./today"
 import {
   isWriteUnit,
-  sceneNameIn,
   UNIT_LABELS,
   useWrite,
+  WIDE_WRITE_QUERY,
   WRITE_UNITS,
   writePath,
   type PanelPage,
-  type WriteUnit,
 } from "./writeContext"
-
-const UNIT_ICONS: Record<WriteUnit, LucideIcon> = {
-  scene: FileTextIcon,
-  chapter: BookOpenTextIcon,
-  manuscript: ScrollTextIcon,
-}
-
-/** From here up the toolbar has room for every tool; below it, the phone bar puts most in a menu. */
-const WIDE_QUERY = "(min-width: 48rem)"
+import { showHistory, switchTypewriter } from "./writeActions"
+import { UNIT_ICONS, useWriteCommands } from "./writeCommands"
 
 const BAR_CLASS =
   "sticky top-14 z-20 flex h-12 items-center gap-1.5 overflow-x-auto border-b bg-background/95 px-4 backdrop-blur pointer-coarse:h-14"
@@ -90,11 +77,13 @@ const BAR_CLASS =
 /** The Write screen's toolbar (DESIGN.md §8). Formatting acts on the scene the writer is in, or was last in. */
 export function WriteToolbar() {
   const { book, bookId } = useWrite()
-  const wide = useMediaQuery(WIDE_QUERY)
+  const wide = useMediaQuery(WIDE_WRITE_QUERY)
   const active = useActiveEditor()
   const format = useFormatState(active?.editor ?? null)
   const focusMode = useFocusMode((state) => state.on)
   useGoalCelebration(bookId, book.daily_goal)
+  // Its tools are in the command palette too.
+  useWriteCommands(wide)
   return (
     <GoalsPopover>
       {focusMode ? (
@@ -196,22 +185,6 @@ function useFormatState(editor: Editor | null): FormatState {
 const command = (run: (editor: Editor) => void) => {
   const editor = activeEditor()?.editor
   if (editor && !editor.isDestroyed) run(editor)
-}
-
-/** Turning typewriter scrolling on puts the writer back in the text, with the caret's line brought to the middle. */
-const switchTypewriter = (on: boolean, setTypewriter: (on: boolean) => void) => {
-  setTypewriter(on)
-  const editor = activeEditor()?.editor
-  if (!on || !editor || editor.isDestroyed) return
-  editor.commands.focus(null, { scrollIntoView: false })
-  // Once the room below the last line is there.
-  requestAnimationFrame(() => centerCaret(editor.view))
-}
-
-/** Opens the History dialog of the scene the writer is in. */
-const showHistory = (plan: Plan, returnFocus: HTMLElement | null) => {
-  const target = activeEditor()
-  if (target) openHistory(target.sceneId, sceneNameIn(plan, target.sceneId), returnFocus)
 }
 
 const toggleBold = (editor: Editor) => editor.chain().focus().toggleBold().run()
@@ -350,7 +323,7 @@ function WideToolbar({ active, format }: ToolbarProps) {
             <HistoryIcon />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>History · Snapshot {shortcutLabel("Mod+Alt+S")}</TooltipContent>
+        <TooltipContent>History · Snapshot {shortcutLabel(SNAPSHOT_KEYS)}</TooltipContent>
       </Tooltip>
       <PanelButton page="plan" label="Chapter plan" icon={NotebookTextIcon} tour="write-plan-panel" />
       <PanelButton page="codex" label="World" icon={BookUserIcon} tour="write-world-panel" />

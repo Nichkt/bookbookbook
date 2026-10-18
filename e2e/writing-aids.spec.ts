@@ -8,6 +8,12 @@ const panelHeading = (page: Page, name: string) =>
 const selectedText = (page: Page) => page.evaluate(() => window.getSelection()?.toString())
 /** Longer than the bubble waits after a selection, to show it hasn't come. */
 const BUBBLE_WAIT = 500
+/**
+ * A device pref as saved. A read waits for the saves asked for before it, so once it shows a choice, every save
+ * before it has landed, and a reload keeps them.
+ */
+const savedPref = async (page: Page, id: string) =>
+  (await queryDb<{ value: string }>(page, "SELECT value FROM ui_prefs WHERE id = ?", [id]))[0]?.value ?? null
 
 test.describe("Add to World", () => {
   const bubble = (page: Page) => page.locator("[data-add-to-world]").getByRole("button", { name: "Add to World" })
@@ -451,6 +457,7 @@ test.describe("Focus mode", () => {
     }
     await expect.poll(() => caretOffMiddle(page)).toBeLessThan(8)
 
+    await expect.poll(() => savedPref(page, "write.typewriter")).toBe("on")
     await page.reload()
     await page.getByRole("button", { name: "More writing tools" }).click()
     await expect(page.getByRole("menuitemcheckbox", { name: "Typewriter scrolling" })).toBeChecked()
@@ -726,7 +733,7 @@ test.describe("Find and replace", () => {
     await button.click()
     await expect(button).toHaveAttribute("aria-expanded", "true")
     // Saving each press takes a moment; the first saves landing mustn't close it again.
-    await page.waitForTimeout(500)
+    await expect.poll(() => savedPref(page, "write.panel")).toBe("find")
     await expect(panel(page)).toBeVisible()
     await page.reload()
     await expect(panel(page)).toBeVisible()

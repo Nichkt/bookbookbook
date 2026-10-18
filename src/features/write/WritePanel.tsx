@@ -5,14 +5,13 @@ import { ChapterDrawer } from "@/features/plan/ChapterDrawer"
 import { ChapterDetailsContext, type ChapterDetailsValue } from "@/features/plan/planContext"
 import { chapterTitle } from "@/features/plan/status"
 import { useBookStructures } from "@/features/plan/useStructures"
-import { byData, focusPending, focusSoon } from "@/lib/focus"
+import { focusPending, focusSoon } from "@/lib/focus"
 import { isComposing } from "@/lib/keys"
 import { AiPanel } from "./ai/AiPanel"
-import { AI_PANEL_HEADING } from "./ai/aiState"
 import { CodexPanel } from "./CodexPanel"
-import { CODEX_PANEL_HEADING } from "./codexPanelData"
-import { FIND_INPUT, matchToReturnTo } from "./findActions"
+import { matchToReturnTo } from "./findActions"
 import { FindPanel } from "./FindPanel"
+import { panelHeading } from "./writeActions"
 import { useWrite, type PanelPage } from "./writeContext"
 
 /** The toolbar controls that open the panel, which focus goes back to when it closes. */
@@ -25,13 +24,6 @@ const LABELS: Record<PanelPage, string> = {
   codex: "World",
   find: "Find and replace",
   ai: "AI tools",
-}
-
-/** Where focus goes as a page opens: its heading, or for Find and replace its search. */
-function headingOf(page: PanelPage, chapterId: string) {
-  if (page === "plan") return byData("drawer-heading", chapterId)
-  if (page === "ai") return AI_PANEL_HEADING
-  return page === "codex" ? CODEX_PANEL_HEADING : FIND_INPUT
 }
 
 /** Puts focus back where the panel was opened from: the scene a name was in, or the toolbar. */
@@ -76,7 +68,7 @@ function DockedPanel({ page, chapterId, onClose }: { page: PanelPage; chapterId:
 
   // Opened from the toolbar: start in it. Open since the last visit, or from a name in the text: leave focus be.
   useEffect(() => {
-    if (document.activeElement?.closest(OPENER)) focusSoon(headingOf(page, chapterId))
+    if (document.activeElement?.closest(OPENER)) focusSoon(panelHeading(page, chapterId))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps -- on opening only
 
   const close = () => {
@@ -142,7 +134,7 @@ function PanelSheet({ page, chapterId, onClose }: PanelSheetProps) {
           className="fixed inset-y-0 right-0 z-50 flex w-full flex-col overflow-y-auto bg-surface shadow-xl outline-none duration-200 data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:animate-in data-[state=open]:slide-in-from-right md:w-[440px] md:border-l"
           onOpenAutoFocus={(event) => {
             event.preventDefault()
-            if (shown.page && shown.chapterId) focusSoon(headingOf(shown.page, shown.chapterId))
+            if (shown.page && shown.chapterId) focusSoon(panelHeading(shown.page, shown.chapterId))
           }}
           onCloseAutoFocus={(event) => {
             event.preventDefault()

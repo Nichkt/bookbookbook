@@ -104,13 +104,13 @@ App
 ├─ World ────── Types │ Entries │ Entry page (fields, notes, aliases, appears-in, relationships, progressions)
 ├─ Inbox ────── Quick notes + voice notes → clean up, turn into moments / summary / World entry, file to chapter
 ├─ Help ─────── How to use this (a tour of the page) · Glossary (every term in plain English)
-├─ Command palette (Ctrl/Cmd+K) — navigate, switch views, run any AI tool, toggle modes, settings
+├─ Search ───── The command palette (Ctrl/Cmd+K): chapters, scenes, entries, pages, views, tools, modes, settings
 └─ Settings ─── AI & models · Writing style · Speech · Appearance · Backups · Account & plan · Privacy
 ```
 
 **Global elements:** the bookbookbook logo (home), book menu, How to use this and Glossary, today's word goal ring,
-Quick note (an idea for the Inbox, typed or dictated), theme switch, command palette, sync / "Saved locally" status,
-account chip ("Guest · Local only" before sign-up).
+Quick note (an idea for the Inbox, typed or dictated), theme switch, Search (the command palette), sync / "Saved
+locally" status, account chip ("Guest · Local only" before sign-up).
 
 **Navigation rules**
 - The app opens on the home screen. A book opens on the screen it was last open on (Plan, Write or World, per
@@ -134,6 +134,43 @@ account chip ("Guest · Local only" before sign-up).
 - Inside a book the header shows the book menu, which starts with **All books**; on the home screen it doesn't, since
   there's no book open. Backups from home covers folder backups and the browser's storage, with no "This book".
 - An address that isn't a page says so and links to your books.
+
+### Built in M8: Command palette (Search)
+- **Search** in the header (a magnifier, named from 1280 px), or **Ctrl+K** (⌘K on a Mac) anywhere, opens the
+  command palette, and the shortcut closes it again. The page has Ctrl+K before the browser's own search, but in
+  another dialog or a menu it's left to them. The palette notes where focus was, the caret say, for its commands to
+  act on and to go back to.
+- **It finds** the book's chapters (by title or "Chapter 3"), its scenes with titles, its World entries by name or
+  other name, the Plan's views, the other books and the glossary's terms, once something's typed: there can be
+  hundreds. Before that it lists the page's actions, the other pages, the book menu's items, help and the themes.
+- **It does** what the page's toolbars and menus do. On Write: the views, the chapters list, the side panel's pages,
+  focus mode, typewriter scrolling, find and replace, History and a snapshot, goals and sprints, read aloud,
+  dictation and its settings, Add to World, scene breaks, block quotes, centering, and every AI tool, the writer's
+  own too, with AI settings. On the Plan: a new chapter or act, the structure ribbon, your structures and planning
+  step by step. On World: a new entry or type. In a book, Quick note; and everywhere, the book menu's items, the
+  page's tour, the glossary and the themes. Shortcuts show beside their commands, except on touch screens. The view
+  and theme in use are ticked, and typewriter scrolling and the structure ribbon when they're on.
+- **AI tools.** Continue runs at once from the caret, as Ctrl+J does. The others open in the AI panel ready to run,
+  as most want a selection or a word on what to do.
+- **Ranking.** Every word typed has to match, ignoring case and accents. A label counts for more than its keywords
+  (other names, "Chapter 3", old words like "codex"), and a word's start for more than letters inside it. A glossary
+  term counts a step lower, as it explains rather than does, so "outline" finds Plan: Outline before the term. The
+  section with the best match comes first, and the best match is selected, for Enter.
+- **Each page opens things its own way.** A chapter pops out on the Plan, even one chosen as the Plan loads, through
+  `?chapter=`; Write goes to its heading; elsewhere it opens on Write. A scene opens on Write with the caret at its
+  start. An entry opens in Write's World panel, or else on World. Another book opens on the same page, or from home
+  where it was left.
+- **Focus.** A command runs once the palette has closed and focus is back where it was, caret and all, so a dialog it
+  opens gives focus back there too. One that goes somewhere takes focus with it, to the heading or entry. Escape goes
+  back having done nothing. The browser's Back and Forward close it, but the app's own redirects, as from the Plan to
+  its last view, don't. Opened again as it fades away, it starts afresh and still goes back where it came from.
+- **On phones** it opens at the top of the screen, and on touch screens its rows are 44 px tall.
+- The glossary explains **Search**, and the home tour has a step on it, "Find anything".
+- `e2e/palette.spec.ts` covers Ctrl+K over the text and back with the caret where it was, opening it again as it
+  fades, a chapter and an entry on Write, the Plan's pop-out, views and a scene, an entry on World and Back, focus
+  mode, a theme and Book settings, Ctrl+K left to the glossary, an AI tool picked and Continue run, a book and a term
+  from home, and a phone; `touch.spec.ts` checks its targets. Unit tests cover the ranking and how a page's commands
+  take the place of the app's.
 
 ## 5. Domain model
 
@@ -518,10 +555,11 @@ changes; comments, read-through, prose checks, grammar and a session goal are st
   content question).
 
 ### Keyboard
-Ctrl+J Continue · Ctrl/Cmd+K palette · Ctrl+Shift+F find & replace · Ctrl+. focus mode · Ctrl+Alt+S snapshot ·
-Ctrl+Shift+M dictate · `/` slash menu at the start of an empty line · Esc closes overlays.
-All shortcuts can be remapped later. Built so far: Ctrl+J, Ctrl+Shift+F, Ctrl+., Ctrl+Alt+S, Ctrl+Shift+M (M11),
-the formatting keys and Esc. Ctrl+Shift+M is also Chrome's and Edge's profile menu, but the page has it first.
+Ctrl+J Continue · Ctrl/Cmd+K Search (the palette) · Ctrl+Shift+F find & replace · Ctrl+. focus mode · Ctrl+Alt+S
+snapshot · Ctrl+Shift+M dictate · `/` slash menu at the start of an empty line · Esc closes overlays.
+All shortcuts can be remapped later. Built so far: Ctrl+J, Ctrl/Cmd+K (M8), Ctrl+Shift+F, Ctrl+., Ctrl+Alt+S,
+Ctrl+Shift+M (M11), the formatting keys and Esc. Ctrl+Shift+M is also Chrome's and Edge's profile menu, and Ctrl+K
+the browsers' web search, but the page has them first.
 
 ### Built in M2
 M2 built the Write screen: the three views, the navigator, formatting, word counts, History and the chapter plan
@@ -800,8 +838,9 @@ wait for accounts (M10). Details it settled:
 - **Help.** The glossary gained an AI tools group (AI tools, model, API key, local model, token, context, AI-written,
   your own tools, style guide) plus Tense and Show, don't tell; the Write tour gained a step on AI tools; and "?"
   buttons sit beside AI settings' fields and What the AI sees.
-- **Not yet:** hosted AI and credits (M10); the selection bubble, right-click menu, slash commands and palette as
-  ways in; thumbs up and down; cost estimates and a model picker in the panel; per-tool default models; a real
+- **Not yet:** hosted AI and credits (M10); the selection bubble, right-click menu and slash commands as ways in
+  (Search, the palette, runs them since M8); thumbs up and down; cost estimates and a model picker in the panel;
+  per-tool default models; a real
   tokenizer; pinning World entries in the preview; entries "as of" a chapter (progressions, v1.x); Draft from
   moments' preview, Replace scene and Insert as new scene; feedback attached as comments (no comments yet); the
   AI-usage report; and keys encrypted at rest with a WebCrypto key (§18). AI cards and your own tools stay out of
@@ -1337,16 +1376,16 @@ menu. Labels say what a thing is for in the first place (§6, "Plain labels"), a
 words as "also called".
 
 **Glossary**
-- 70 terms in five groups: *Story basics* (act, chapter, scene, moment, structure moment, story structure, premise,
+- 71 terms in five groups: *Story basics* (act, chapter, scene, moment, structure moment, story structure, premise,
   synopsis, flashback, point of view, tense, story point, theme, show don't tell, draft, manuscript), *Planning a
   chapter* (each field of a chapter's details), *Your world* (World, entries, entry types, aliases, mentions, AI
-  context, and the kinds of entry that need explaining), *Pages and tools* (home, Plan, Board, Corkboard, Outline,
-  Matrix, Timeline, structure ribbon, Write and its writing aids, Inbox, filing a note, dictation, versions, backups,
-  export, import, Trash) and *AI tools* (AI tools, model, API key, local model, token, context, AI-written, your own
-  tools, style guide). M5 added the eight about structures and its views, M6 the nine about writing aids (focus
-  mode, typewriter scrolling, daily goal, streak, sprint, find and replace, pattern, read aloud and Add to World), M4
-  the eleven about the AI tools and a book's style, and M11 the four about dictation and the Inbox (filing a note,
-  dictation, voice commands, and on this device or online).
+  context, and the kinds of entry that need explaining), *Pages and tools* (home, Search, Plan, Board, Corkboard,
+  Outline, Matrix, Timeline, structure ribbon, Write and its writing aids, Inbox, filing a note, dictation, versions,
+  backups, export, import, Trash) and *AI tools* (AI tools, model, API key, local model, token, context, AI-written,
+  your own tools, style guide). M5 added the eight about structures and its views, M6 the nine about writing aids
+  (focus mode, typewriter scrolling, daily goal, streak, sprint, find and replace, pattern, read aloud and Add to
+  World), M4 the eleven about the AI tools and a book's style, M11 the four about dictation and the Inbox (filing a
+  note, dictation, voice commands, and on this device or online), and M8 Search (the command palette).
 - Each is a few sentences of plain English, an example from the sample book where one helps, and "See also" links.
   **Scene** says what starts a new one: a jump in place, time or point of view. **Moment** explains beats: one thing
   that happens, the smallest piece of a story; a few make a scene, and a few scenes a chapter.
@@ -1359,7 +1398,7 @@ words as "also called".
   the glossary, and focus goes back to the button that opened it.
 
 **Tours**
-- One per page: Home (9 steps), Plan (13 on the Board), Write (15), World (7) and Inbox (7).
+- One per page: Home (10 steps), Plan (13 on the Board), Write (15), World (7) and Inbox (7).
   A step can belong to some views only, so each Plan view skips the steps about what it doesn't show: the ribbon,
   acts and chapter cards, the Display menu, the Matrix or the Timeline. The Matrix and Timeline have 10.
 - **The card** is a modal dialog with "Step N of M", Back, Next (Done on the last) and an X. ← and → move between
@@ -1451,7 +1490,8 @@ words as "also called".
    model on their computer, as hosted AI waits for M10 (§9, "Built in M4"), M6 without comments, prose checks,
    Harper, read-through and @-mentions (§8, "Built in M6"), and M11 on the browser's own speech recognition, without
    voice memos, the in-browser models, cloud transcription and the AI helpers (§10, "Built in M11"). So are the home
-   screen, the chapter pop-out, plain labels, World, the glossary and the page tours (§4, §6, §7, §17a).
+   screen, the chapter pop-out, plain labels, World, the glossary and the page tours (§4, §6, §7, §17a), and from
+   M8, Search, the command palette (§4).
 
 ---
 
@@ -1524,3 +1564,4 @@ words as "also called".
 | 27 | M6 writing aids | Focus mode for the Write screen's visit only, dimming all but the caret's paragraph; typewriter scrolling per device; a daily goal per book in net words, with a streak that can be hidden; sprints kept in localStorage that survive a reload; Add to World from a bubble over a selected name or the ⋯ menus; read aloud with the device's voices, a sentence at a time; find and replace across the whole book as a side panel page, searching scene text (live or stored) a paragraph at a time, Replace all editing the Yjs text directly after saving versions, with one Undo; navigations that pair with urgent state or quick keys use `flushSync`; comments, prose checks, Harper, read-through and @-mentions deferred | Details in §8, "Built in M6" |
 | 28 | M4 AI tools | The writer's own key (OpenAI, Anthropic, OpenRouter) or a model on their computer (Ollama, LM Studio), one at a time, set per device, keys never synced or backed up; 11 tools in Write, Revise and Plan groups plus the writer's own (placeholders, three kinds of answer), in a side panel page from 1280 px and a sheet below, run from the toolbar, the ⋯ menu or Ctrl+J; prompts built from labeled parts the writer can untick and read whole, trimmed least-needed first by a four-characters-a-token estimate; cards per book (100 kept), streamed, stoppable and run again, Replace finding the text where it was; AI text marked and tinted until the writer types in it, its share shown per chapter and book, and Today counting only the writer's words; the book's point of view, tense, audience, style guide and samples in Book settings; AI cards and own tools left out of backups; hosted AI, other triggers and key encryption deferred | Details in §9, "Built in M4" |
 | 29 | M11 dictation and Inbox | Live dictation on the browser's own speech recognition, set up per device on first use: on this device (Chrome's language packs, private, offline) or online with the browser's maker, named; one session at a time, restarted through a browser's silences, its words shown in a Listening pill until they settle; English voice commands, "scratch that" and "literal", and "new moment" in notes; dictation into the text at the caret as the writer's own words, by the toolbar or Ctrl+Shift+M (Ctrl+Shift+S is the editor's strikethrough), stopping Read aloud and stopped by it; an Inbox of notes typed or dictated, To sort and Filed, filed into a chapter's notes, moments or summary, or an entry's notes, or made into an entry, each with Undo; Quick note in every book page's header, its unsaved note kept for the visit; Inbox notes in backups, still version 1; dictation and the Inbox moved into the Beta, as they cost nothing to run; voice memos, in-browser models, cloud transcription and the AI helpers deferred | Details in §10, "Built in M11" |
+| 30 | M8 command palette | Search in every page's header and Ctrl/Cmd+K, the page's before the browser's but left to other dialogs and menus; finds chapters, titled scenes, World entries, views, books and glossary terms once something's typed, and does what each page's toolbars and menus do, the AI tools included (Continue at once, the rest in the panel); every word typed must match, the label over keywords and a word's start over letters inside, glossary terms a step lower; a command runs after the palette closes, with focus back where it was, so dialogs return there; each page opens a chapter, scene or entry its own way, the Plan through `?chapter=` even while loading; Back closes it, the app's redirects don't; opened again as it fades, it starts afresh | Details in ?4, "Built in M8" |

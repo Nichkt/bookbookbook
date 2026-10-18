@@ -1,12 +1,11 @@
 import {
-  ChartNoAxesGanttIcon,
   FilterIcon,
-  Grid3x3Icon,
-  LayoutGridIcon,
-  ListTreeIcon,
+  FolderPlusIcon,
+  MilestoneIcon,
+  PencilRulerIcon,
   PlusIcon,
   SlidersHorizontalIcon,
-  StickyNoteIcon,
+  WandSparklesIcon,
 } from "lucide-react"
 import { useId } from "react"
 import { Link, useLocation } from "react-router"
@@ -32,6 +31,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import type { PaletteCommand } from "@/features/palette/commands"
+import { usePaletteSource } from "@/features/palette/paletteStore"
 import { byData, focusSoon } from "@/lib/focus"
 import { formatCount } from "@/lib/numbers"
 import { cn } from "@/lib/utils"
@@ -41,22 +42,16 @@ import {
   PLAN_VIEWS,
   PRESET_NAMES,
   VIEW_LABELS,
-  type PlanView,
   type PresetName,
 } from "./display"
 import { activeFilterCount } from "./filters"
 import { createAct, createChapter } from "./mutations"
-import { usePlanContext } from "./planContext"
+import { usePlanContext, type PlanContextValue } from "./planContext"
+import { openPlanDialog } from "./planDialogs"
 import { STATUS_OPTIONS } from "./status"
 import { StructureMenu } from "./StructureMenu"
+import { VIEW_ICONS } from "./viewIcons"
 
-const VIEW_ICONS: Record<PlanView, typeof LayoutGridIcon> = {
-  board: LayoutGridIcon,
-  outline: ListTreeIcon,
-  corkboard: StickyNoteIcon,
-  matrix: Grid3x3Icon,
-  timeline: ChartNoAxesGanttIcon,
-}
 const PRESET_LABELS: Record<PresetName, string> = { compact: "Compact", standard: "Standard", detailed: "Detailed" }
 const isPreset = (value: string): value is PresetName => PRESET_NAMES.includes(value as PresetName)
 
@@ -64,7 +59,8 @@ const isPreset = (value: string): value is PresetName => PRESET_NAMES.includes(v
 const ANY = "__any"
 
 export function PlanToolbar() {
-  const { db, bookId, book, plan, view, focusItem, showChapter } = usePlanContext()
+  const context = usePlanContext()
+  const { db, bookId, book, plan, view, focusItem, showChapter } = context
   const location = useLocation()
 
   const addAct = async () => {
@@ -82,6 +78,11 @@ export function PlanToolbar() {
     else if (view === "corkboard") focusSoon(byData("index-title", id))
     else showChapter(id, "title")
   }
+
+  usePaletteSource("plan", {
+    commands: () => planCommands(context, { addAct: () => void addAct(), addChapter: () => void addChapter() }),
+    openChapter: (id) => showChapter(id),
+  })
 
   return (
     // Taller on touch screens, to fit 44px targets. The Outline's scroll margins sit below it.
@@ -130,6 +131,66 @@ export function PlanToolbar() {
       </div>
     </div>
   )
+}
+
+/** The Plan's part of the command palette (DESIGN.md ?4): adding, and the Structure menu's choices. */
+function planCommands(
+  { structures, ribbonShown, setRibbonShown }: PlanContextValue,
+  add: { addAct: () => void; addChapter: () => void },
+): PaletteCommand[] {
+  const commands: PaletteCommand[] = [
+    {
+      id: "plan:add-chapter",
+      label: "Add a chapter",
+      group: "Actions",
+      icon: PlusIcon,
+      keywords: ["new chapter", "create"],
+      movesFocus: true,
+      run: add.addChapter,
+    },
+    {
+      id: "plan:add-act",
+      label: "Add an act",
+      group: "Actions",
+      icon: FolderPlusIcon,
+      keywords: ["new act", "part", "create"],
+      movesFocus: true,
+      run: add.addAct,
+    },
+  ]
+  if (structures.current) {
+    commands.push({
+      id: "plan:ribbon",
+      label: "Show the structure ribbon",
+      group: "Actions",
+      icon: MilestoneIcon,
+      checked: ribbonShown,
+      keywords: ["story structure", "moments", "beats", "board", "corkboard"],
+      run: () => {
+        setRibbonShown(!ribbonShown)
+        announce(ribbonShown ? "Structure ribbon hidden" : "Structure ribbon shown")
+      },
+    })
+  }
+  commands.push(
+    {
+      id: "plan:structures",
+      label: "Your story structures?",
+      group: "Actions",
+      icon: PencilRulerIcon,
+      keywords: ["story structure", "template", "make your own", "moments", "beats"],
+      run: (from) => openPlanDialog("structures", from),
+    },
+    {
+      id: "plan:wizard",
+      label: "Plan step by step?",
+      group: "Actions",
+      icon: WandSparklesIcon,
+      keywords: ["wizard", "questions", "guided", "help me plan"],
+      run: (from) => openPlanDialog("wizard", from),
+    },
+  )
+  return commands
 }
 
 function DisplayMenu() {

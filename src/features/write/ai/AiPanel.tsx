@@ -40,6 +40,7 @@ import { AiCard } from "./AiCard"
 import { clearResults, retryCard, runTool, stopAndDismiss, type AiPage, type RunSource } from "./aiActions"
 import {
   AI_SETUP_BUTTON,
+  AI_TOOL_PICKER,
   CONTINUE_KEYS,
   openAiSettings,
   openCustomTools,
@@ -151,16 +152,21 @@ export function AiPanel({ onClose }: { onClose: () => void }) {
     void start(tool, fields)
   }
 
-  // Ctrl+J asked for a run: it goes once the panel has what it needs, just after the effect, as a click would.
+  // Ctrl+J asked for a run: it goes once the panel has what it needs, just after the effect, as a click would. The
+  // command palette can instead pick a tool, for the writer to fill in and run.
   const pending = usePendingRun((state) => state.pending)
   useEffect(() => {
     if (!pending || !ready) return
     const timer = setTimeout(() => {
       const taken = takePendingRun()
       const wanted = taken && Date.now() - taken.at < PENDING_MS ? toolById(taken.tool, custom.tools) : undefined
-      if (!wanted) return
-      if (wanted.id !== tool.id) setTool(wanted.id)
-      void start(wanted, fieldsFor(wanted))
+      if (!taken || !wanted) return
+      if (wanted.id !== tool.id) {
+        setProblem(null)
+        setTool(wanted.id)
+      }
+      if (taken.run) void start(wanted, fieldsFor(wanted))
+      else focusSoon(AI_TOOL_PICKER)
     })
     return () => clearTimeout(timer)
   }, [pending, ready]) // eslint-disable-line react-hooks/exhaustive-deps -- once per request, with the panel as it is

@@ -99,6 +99,15 @@ const HOME: TourDefinition = {
       term: "trash",
     },
     {
+      target: "search",
+      title: "Find anything",
+      body: (context) =>
+        context.coarse
+          ? "Tap Search to find any chapter, scene or World entry by its name, or to do something, like turning on the dark theme."
+          : `Click Search, or press ${shortcutLabel("Mod+K")} on any page, to find any chapter, scene or World entry by its name, or to do something, like turning on the dark theme.`,
+      term: "search",
+    },
+    {
       target: "help-glossary",
       title: "Not sure what a word means?",
       body: "The Glossary explains every term in plain English: scenes, moments, point of view, and the rest. Look for a small ? beside a label, too.",

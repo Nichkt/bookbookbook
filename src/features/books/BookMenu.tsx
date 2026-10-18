@@ -40,6 +40,7 @@ export function BookMenu({ book, books }: { book: BookListRow | undefined; books
   // Set when an item opens a dialog, so the closing menu doesn't pull focus back to its trigger.
   const openingDialog = useRef(false)
   const screen = SCREEN_RE.exec(pathname)?.[1] ?? "write"
+  const title = book ? book.title || "Untitled book" : "Books"
 
   const open = (dialog: BookDialog) => {
     openingDialog.current = true
@@ -53,10 +54,12 @@ export function BookMenu({ book, books }: { book: BookListRow | undefined; books
           ref={trigger}
           variant="ghost"
           size="sm"
-          className="max-w-[min(16rem,40vw)] min-w-0 gap-1 px-2 font-normal text-muted-foreground hover:text-ink"
-          aria-label={book ? `Book: ${book.title || "Untitled book"}` : "Books"}
+          // Gives way to the header's other controls on a narrow screen, so a long title shortens instead.
+          className="max-w-[min(16rem,40vw)] min-w-0 shrink gap-1 px-2 font-normal text-muted-foreground hover:text-ink"
+          aria-label={book ? `Book: ${title}` : "Books"}
+          title={title}
         >
-          <span className="truncate">{book ? book.title || "Untitled book" : "Books"}</span>
+          <span className="truncate">{title}</span>
           <ChevronDownIcon />
         </Button>
       </DropdownMenuTrigger>
