@@ -45,7 +45,7 @@ export function useSpeechSettings(): SpeechSettings & { isLoading: boolean } {
   return { ...parseSpeechSettings(new Map(data.map((row) => [row.id, row.value]))), isLoading }
 }
 
-/** The settings as they are now: for a keyboard shortcut, which has no query to wait on. */
+/** The settings as they are now: for a keyboard shortcut, which has no query to wait on, or a press before it loads. */
 export async function readSpeechSettings(db: Db): Promise<SpeechSettings> {
   const rows = await db.getAll<PrefRow>(SETTINGS_SQL, SETTINGS_PARAMS)
   return parseSpeechSettings(new Map(rows.map((row) => [row.id, row.value])))

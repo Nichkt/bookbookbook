@@ -237,6 +237,7 @@ function DisplayMenu() {
 
 function FilterMenu() {
   const { plan, filters, setFilter, clearFilters, filtering, matchCount } = usePlanContext()
+  const titleId = useId()
   const count = activeFilterCount(filters)
   const entryOptions = (typeKey: string) =>
     (plan.entriesByType.get(typeKey) ?? []).map((entry) => ({ value: entry.id, label: entry.name, color: entry.color }))
@@ -259,9 +260,9 @@ function FilterMenu() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-72">
+      <PopoverContent align="start" aria-labelledby={titleId} className="w-72">
         <PopoverHeader>
-          <PopoverTitle>Filter chapters</PopoverTitle>
+          <PopoverTitle id={titleId}>Filter chapters</PopoverTitle>
           <PopoverDescription>Chapters that don't match are dimmed.</PopoverDescription>
         </PopoverHeader>
         <div className="mt-1 grid gap-3">

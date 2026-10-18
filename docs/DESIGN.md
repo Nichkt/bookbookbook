@@ -1318,7 +1318,7 @@ soft layered shadows, nothing loud while writing.
 | `--page` | #FFFDF9 | #FAF2E0 | #1E2128 |
 | `--ink` | #26241F | #3A2E1F | #E7E2D8 |
 | `--ink-2` | #4A463E | #574833 | #CFC8BA |
-| `--muted` | #7A7366 | #7C6A50 | #9A9488 |
+| `--muted` | #6E675B | #726047 | #A8A296 |
 | `--border` | #E3DACA | #E0D0B0 | #2C313A |
 | `--accent` | #2E4A7D | #2E4A7D | #8EA8DC |
 | `--accent-soft` | #E4EAF5 | #E6E3DA | rgba(142,168,220,.14) |
@@ -1328,6 +1328,11 @@ soft layered shadows, nothing loud while writing.
   `--accent-ink`, because shadcn/ui uses those names for its own roles. shadcn's variables are derived from these
   tokens. One token is added: `--danger` (light #B23A2B, sepia #A8402C, dark #E07A6A) for errors and destructive
   actions.
+- **Muted text** *(changed in M8)*: `--muted` was #7A7366, #7C6A50 and #9A9488, under 4.5:1 on the darker surfaces
+  and on a selected row's `--accent-soft` in every theme, 3.9:1 at worst. It's now at least 4.6:1 on each theme's
+  surfaces and `--accent-soft` (§17, "Built in M8").
+- **Text on an entry's color**, such as a portrait's initials, is black or white, whichever contrasts more (`textOn`
+  in `src/lib/palette.ts`), rather than always white, which fell under 4.5:1 on 6 of the 10 colors (2.9:1 on amber).
 - **Status colors:** idea #9A9488 · outlined #6B7FA6 · drafting #C98A2B · revising #8A63B8 · done #3F7D58. Status
   pills always show text too.
 - **Thread palette:** 10 distinguishable hues (teal #2A8C8C, rose #C2557A, amber #C98A2B, …), checked in all themes.
@@ -1447,6 +1452,41 @@ LanguageTool or the browser spellchecker. RTL later.
 | Manuscript scroll | 60 fps (virtualized editors) |
 | Speech models | Downloaded only on demand, cached |
 
+### Built in M8: the accessibility audit
+- **Where.** `e2e/a11y.spec.ts` walks the app and runs axe-core (`@axe-core/playwright`) at 73 stops:
+  - the home screen with its install notice, New book, Backups, the glossary, Search, a tour, and a page that doesn't
+    exist;
+  - the Plan's five views, the Display menu, Filter, the chapter pop-out with its pickers and menu, an undo toast, a
+    Matrix cell's menu, the book menu and the Trash;
+  - Write in its three views, with the scene menu, History, the chapter plan, the World panel and an entry in it, a
+    hover card, Find, Goals and sprints, a sprint running, Add to World, read aloud and focus mode;
+  - the AI tools before and after they're set up, AI settings, the tool list, a run's cards and your own tools;
+  - World with its tag filter, New type, an entry and its color picker;
+  - Quick note, the Inbox, filing a note, and dictation;
+  - the backup reminder, Backups, Export, Book settings, and Import with its preview;
+  - on a phone, Write with its menu, World panel and the tools above the keyboard, the Board, the pop-out and World.
+- **Held to.** In the light theme, WCAG 2.2 A and AA as far as axe can tell, and axe's best practices, which catch
+  the likes of a dialog without a name. In sepia and dark, the two rules that look at colors run again: contrast, and
+  links told apart from the text around them. The themes change nothing else. Reduced motion is on, so axe sees each
+  screen at rest, never a toast or a theme halfway through a fade. A test fails on anything found, listing it all.
+- **What it found, now fixed:**
+  - Muted text under 4.5:1 in every theme (§15).
+  - White text on an entry's color, under 4.5:1 on most of the palette; it's black or white now, whichever
+    contrasts more (§15).
+  - Names that didn't start with the words shown (WCAG 2.5.3): the chapter rows in Write's navigator, World's type
+    rows and the links in an entry's Appears in, where axe read the words as run together for want of a space; the
+    sprint buttons, now "Start a 15 min sprint"; and "Ch 3" on the Board's cards and the Timeline, now "Chapter 3".
+    The color button no longer wraps the portrait's initials.
+  - Popovers without names: Filter, Story time, the chapter pop-out's pickers (point of view, location, story points,
+    characters present) and the color picker are named by their titles or labels.
+  - Rows under 24 px tall in What the AI sees (WCAG 2.5.8).
+  - Dictate grayed out until its settings loaded, caught by axe as it faded in; it's ready at once now, and reads
+    them first if pressed sooner.
+- **Left out:** focus mode's faded paragraphs are not held to contrast, as the writer asked for the fade; the
+  paragraph being written is.
+- **Still to do:** axe can't tell whether a screen reader's account of a page makes sense, so a pass with NVDA and
+  VoiceOver remains.
+
 ## 17a. Glossary and tours
 
 *Built after M7.* A new writer shouldn't need the trade's words, or a manual, to use the app. Every page has two
@@ -1558,21 +1598,23 @@ words as "also called".
 - Tested on Chrome, Edge, Safari and Firefox (desktop), iOS Safari, and Android Chrome with Gboard and Samsung
   Keyboard.
 - A 150k-word sample book meets the performance budgets.
-- Keyboard + axe audit passes.
+- Keyboard + axe audit passes. *(The axe audit is built and passes, §17.)*
 - The project format is versioned, with migrations guaranteed from Beta onward.
 
 **Immediate next steps:**
 1. Name clearance for "bookbookbook" (trademark, domain, app stores).
 2. The phone keyboard tests on real devices ([ime-smoke-test.md](ime-smoke-test.md)): Gboard and Samsung Keyboard,
    left over from M0, and the tools above the keyboard from M8.
-3. M2, Editor core, M3, Codex core, M4, AI core, M5, Planner II, M6, Writing aids, M7, Import / export /
+3. A pass with screen readers, NVDA on Windows and VoiceOver on a Mac and an iPhone, which the axe audit can't stand
+   in for (§17, "Built in M8").
+4. M2, Editor core, M3, Codex core, M4, AI core, M5, Planner II, M6, Writing aids, M7, Import / export /
    backups, and M11, Speech-to-text, are built and tested ([README](../README.md)): M4 with the writer's own key or a
    model on their computer, as hosted AI waits for M10 (§9, "Built in M4"), M6 without comments, prose checks,
    Harper, read-through and @-mentions (§8, "Built in M6"), and M11 on the browser's own speech recognition, without
    voice memos, the in-browser models, cloud transcription and the AI helpers (§10, "Built in M11"). So are the home
    screen, the chapter pop-out, plain labels, World, the glossary and the page tours (§4, §6, §7, §17a), and from
-   M8, Search, the command palette (§4), the app opening offline, installing and asking to be installed (§11), and
-   the tools above the keyboard and bottom sheets (§16).
+   M8, Search, the command palette (§4), the app opening offline, installing and asking to be installed (§11),
+   the tools above the keyboard and bottom sheets (§16), and the accessibility audit (§17).
 
 ---
 
@@ -1649,3 +1691,4 @@ words as "also called".
 | 31 | M8 offline and installing | Production builds keep a copy of the app in a service worker (vite-plugin-pwa): the app, its fonts and icons and the one SQLite build it loads, 60 files and 6.8 MB, not PowerSync's encrypted and OPFS builds; every address falls back to the app's page, so any opens offline; a new version downloads in the background and waits for the writer, a toast offering Reload or Later, rather than reloading under them mid-sentence, and starts by itself once every tab has closed; Reload saves pending edits first and every open tab reloads into the new version, the tab clicked watching for it itself when no version controlled it as it opened; hourly checks on long visits; the startup and error screens update too; the title bar takes the header's color in each theme; icons drawn from the favicon by a script; tested on a production build, each test publishing its own new version through a cookie | Details in §11, "Built in M8" |
 | 32 | M8 install prompts | A notice on the home screen alone, above the books, saying why: Chrome's and Edge's offer held for Install, which opens the browser's own dialog, and Safari's steps where no offer comes, on an iPhone or iPad in any browser and in Safari 17 or later on a Mac, as Safari may clear a website's data after a week away but not an installed app's; an app added from Safari keeps its own books, so the notice says to back up and restore those begun in the browser; Not now and Got it are for good on the device, a dismissed browser dialog only for the visit; Search and the glossary keep a way to install, and the Backups dialog offers it when the browser won't promise to keep the books; nothing's offered in the installed app; no tour step, as the notice comes and goes | Details in §11, "Built in M8" |
 | 33 | M8 tools above the keyboard and bottom sheets | On a touch screen, with a scene's text in focus and an on-screen keyboard up, a bar on the keyboard's top edge: Add to World for a new name, at the start, then Undo, Redo, Bold, Italic, Dictate and Done; taps leave focus in the text; the keyboard found by the visual viewport shrinking 150 px or more from the window's tallest at that width, never while pinched; the tab bar goes and toasts rise above the bar; the bar's height is ProseMirror's scroll threshold and margin at the bottom, so the caret stays above it; focus mode hides it; on phones Write's panel rises from the bottom below the header, with a handle that closes it dragged a quarter down or flicked; not yet tried on a real device | Details in §16, "Built in M8" |
+| 34 | M8 accessibility audit | axe-core at 73 stops on walks through every page, panel, menu and dialog, on a computer and a phone; WCAG 2.2 A and AA and axe's best practices in the light theme, and the color rules alone in sepia and dark, as the themes change only colors; reduced motion, so nothing's caught mid-fade, and legacy mode, which runs axe in the page without opening a blank page each time, as the app has no frames; any finding fails; fixed: muted text darker (lighter in dark), black or white text on an entry's color, accessible names that start with the words shown, names for every popover, 24 px rows in What the AI sees, and Dictate ready before its settings load; focus mode's faded paragraphs left out of contrast, the paragraph being written held to it; a screen reader pass still to do | Details in §17, "Built in M8" |

@@ -95,6 +95,9 @@ function checker(page: Page) {
   }
 }
 
+// Each walk measures every control at each stop on its way, which takes a while.
+test.describe.configure({ timeout: 90_000 })
+
 for (const [device, viewport] of [
   ["phone", { width: 412, height: 915 }],
   ["tablet", { width: 900, height: 1200 }],
@@ -215,7 +218,7 @@ for (const [device, viewport] of [
       await goals.getByRole("textbox", { name: "Daily goal" }).fill("300")
       await goals.getByRole("checkbox", { name: "Show my streak" }).waitFor()
       await check("Goals and sprints", "[data-slot=popover-content]")
-      await goals.getByRole("button", { name: "Start a 15-minute sprint" }).click()
+      await goals.getByRole("button", { name: "Start a 15 min sprint" }).click()
       const clock = page.getByRole("button", { name: /^Sprint:/ })
       await clock.waitFor()
       await check("Write, with a sprint running")

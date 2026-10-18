@@ -411,7 +411,7 @@ function SprintSection() {
                 variant="outline"
                 size="sm"
                 data-sprint-start={minutes}
-                aria-label={`Start a ${minutes}-minute sprint`}
+                aria-label={`Start a ${minutes} min sprint`}
                 onClick={() => start(minutes)}
               >
                 {minutes} min

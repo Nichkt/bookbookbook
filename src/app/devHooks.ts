@@ -1,3 +1,4 @@
+import { useTheme, type Theme } from "@/app/theme"
 import { backUpNow, type FolderOutcome } from "@/backup/scheduler"
 import { db } from "@/db/powersync"
 import { flushSceneDocs, openSceneDocs, settleSceneDocs } from "@/editor/sceneDocs"
@@ -15,6 +16,8 @@ export interface DevHooks {
   settleAll(): Promise<void>
   /** Runs a backup pass now, rather than waiting for the next: checks every book, and writes to the folder. */
   backUpNow(): Promise<FolderOutcome>
+  /** Switches the theme as the header's Theme control does, leaving open whatever's open. */
+  setTheme(theme: Theme): void
 }
 
 declare global {
@@ -33,5 +36,6 @@ export function installDevHooks() {
     },
     settleAll: settleSceneDocs,
     backUpNow: () => backUpNow(db),
+    setTheme: (theme) => useTheme.getState().setTheme(theme),
   }
 }

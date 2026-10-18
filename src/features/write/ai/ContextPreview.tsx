@@ -113,7 +113,7 @@ export function ContextPreview({ source, tool, fields, slotsOff, setSlot, contex
                   return (
                     <li
                       key={slot.id}
-                      className="flex items-center gap-2 pointer-coarse:min-h-11"
+                      className="flex min-h-6 items-center gap-2 pointer-coarse:min-h-11"
                       data-ai-slot={slot.id}
                     >
                       <Checkbox

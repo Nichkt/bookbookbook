@@ -1,6 +1,6 @@
 import { usePowerSync } from "@powersync/react"
 import { CheckIcon, ChevronLeftIcon, EllipsisIcon, PlusIcon, Trash2Icon, TriangleAlertIcon, XIcon } from "lucide-react"
-import { useId, useMemo, useState, type FormEvent, type ReactNode } from "react"
+import { Fragment, useId, useMemo, useState, type FormEvent, type ReactNode } from "react"
 import { Link } from "react-router"
 import { toast } from "sonner"
 import { attempt, offerUndo } from "@/app/feedback"
@@ -24,7 +24,7 @@ import { chapterTitle } from "@/features/plan/status"
 import { writePath, type WriteNavState } from "@/features/write/writeContext"
 import { byData, focusSoon } from "@/lib/focus"
 import { formatCount } from "@/lib/numbers"
-import { colorName, PALETTE } from "@/lib/palette"
+import { colorName, PALETTE, textOn } from "@/lib/palette"
 import { cn } from "@/lib/utils"
 import { PLAN_ROLES, type Appearance } from "./appearances"
 import {
@@ -287,16 +287,18 @@ function ColorButton({ entry, onPick }: { entry: CodexEntry; onPick: (color: str
   const name = colorName(entry.color)
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          aria-label={name ? `Color: ${name}` : "Color"}
-          className="shrink-0 rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <Portrait entry={entry} className="size-14 font-heading text-lg" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-auto">
+      {/* Over the portrait rather than around it, so the initials aren't read as the button's label. */}
+      <div className="relative shrink-0">
+        <Portrait entry={entry} className="size-14 font-heading text-lg" />
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-label={name ? `Color: ${name}` : "Color"}
+            className="absolute inset-0 rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          />
+        </PopoverTrigger>
+      </div>
+      <PopoverContent align="start" aria-labelledby={labelId} className="w-auto">
         <p id={labelId} className="text-xs font-medium text-ink-2">
           Color
         </p>
@@ -316,8 +318,8 @@ function ColorButton({ entry, onPick }: { entry: CodexEntry; onPick: (color: str
               key={color}
               value={color}
               aria-label={colorName(color) ?? color}
-              className="size-8 rounded-full p-0 text-white data-[state=on]:ring-2 data-[state=on]:ring-ink data-[state=on]:ring-offset-2 data-[state=on]:ring-offset-popover"
-              style={{ background: color }}
+              className="size-8 rounded-full p-0 data-[state=on]:ring-2 data-[state=on]:ring-ink data-[state=on]:ring-offset-2 data-[state=on]:ring-offset-popover"
+              style={{ background: color, color: textOn(color) }}
             >
               {color === current && <CheckIcon />}
             </ToggleGroupItem>
@@ -531,19 +533,24 @@ function AppearsIn({
                 >
                   <span className="w-6 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
                     {appearance.number}
-                  </span>
+                  </span>{" "}
                   <span className={cn("min-w-0 flex-1 truncate", !appearance.title && "text-muted-foreground italic")}>
                     {title}
                   </span>
                   {roles.map((role) => (
-                    <span
-                      key={role}
-                      className="shrink-0 rounded-full bg-muted px-1.5 py-px text-[0.6875rem] font-medium text-ink-2"
-                    >
-                      {role}
-                    </span>
+                    <Fragment key={role}>
+                      {" "}
+                      <span className="shrink-0 rounded-full bg-muted px-1.5 py-px text-[0.6875rem] font-medium text-ink-2">
+                        {role}
+                      </span>
+                    </Fragment>
                   ))}
-                  {mentions && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{mentions}</span>}
+                  {mentions && (
+                    <>
+                      {" "}
+                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{mentions}</span>
+                    </>
+                  )}
                 </Link>
               </li>
             )

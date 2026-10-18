@@ -1,4 +1,5 @@
 import { createElement } from "react"
+import { textOn } from "@/lib/palette"
 import { cn } from "@/lib/utils"
 import { initials, type CodexEntry } from "./codexData"
 import { typeIconOf } from "./typeIcons"
@@ -14,8 +15,8 @@ export function Portrait({
   return (
     <span
       aria-hidden="true"
-      className={cn("grid shrink-0 place-items-center rounded-full font-semibold text-white select-none", className)}
-      style={{ background: entry.color }}
+      className={cn("grid shrink-0 place-items-center rounded-full font-semibold select-none", className)}
+      style={{ background: entry.color, color: textOn(entry.color) }}
     >
       {entry.named ? initials(entry.name) : "?"}
     </span>

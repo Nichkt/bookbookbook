@@ -116,10 +116,10 @@ export function StoryTimeEditor({ labelId, value, onSave }: StoryTimeEditorProps
           {text ? <span className="truncate">{text}</span> : <span className="text-muted-foreground">Not set</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-80">
+      <PopoverContent align="start" aria-labelledby={`${id}-title`} className="w-80">
         <form onSubmit={onSubmit} className="grid gap-3">
           <PopoverHeader>
-            <PopoverTitle>Story time</PopoverTitle>
+            <PopoverTitle id={`${id}-title`}>Story time</PopoverTitle>
             <PopoverDescription>When this chapter happens in the story.</PopoverDescription>
           </PopoverHeader>
           <ToggleGroup

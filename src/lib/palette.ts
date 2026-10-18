@@ -52,3 +52,29 @@ export function nextColor(used: readonly (string | null | undefined)[]): string 
   }
   return [...counts.entries()].reduce((best, entry) => (entry[1] < best[1] ? entry : best))[0]
 }
+
+/** WCAG relative luminance of a "#rrggbb" color, or null for anything else. */
+export function luminance(color: string): number | null {
+  const match = /^#([0-9a-f]{6})$/i.exec(color.trim())
+  if (!match) return null
+  const [r, g, b] = [0, 2, 4].map((at) => {
+    const channel = parseInt(match[1].slice(at, at + 2), 16) / 255
+    return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+/** WCAG contrast ratio between two "#rrggbb" colors, from 1 to 21. */
+export function contrast(a: string, b: string): number {
+  const [light, dark] = [luminance(a) ?? 1, luminance(b) ?? 1].sort((x, y) => y - x)
+  return (light + 0.05) / (dark + 0.05)
+}
+
+/**
+ * Black or white, whichever reads better on `color`: at least 4.58:1, the ratio where the two do equally well. A color
+ * that isn't "#rrggbb" gets white.
+ */
+export function textOn(color: string | null | undefined): "#000000" | "#ffffff" {
+  if (!color || luminance(color) === null) return "#ffffff"
+  return contrast(color, "#000000") > contrast(color, "#ffffff") ? "#000000" : "#ffffff"
+}

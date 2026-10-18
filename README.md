@@ -42,6 +42,13 @@ a folder as it changes (Chrome and Edge).
 - **Not yet tried on a real phone:** the tests stand in for the keyboard. See [Phone keyboards](#phone-keyboards)
   for what to check on one.
 
+**M8, Accessibility** (DESIGN.md §17, "Built in M8"):
+- **Checked page by page:** every page, panel, menu and dialog is checked with axe against WCAG 2.2 AA, in the
+  light, sepia and dark themes, on a computer and on a phone.
+- **What changed:** gray text is darker (lighter in the dark theme) so it's easier to read, text on an entry's
+  color is black or white, whichever stands out more, and what a screen reader calls a button or link now starts
+  with the words on it.
+
 **M11, Inbox and dictation** (DESIGN.md §10, "Built in M11"):
 - **Inbox:** the Inbox tab catches ideas as they come, typed or dictated, to sort into the book later. **File…** adds
   a note to a chapter's notes, moments or summary, or to a World entry's notes, and **Add to World** makes it an
@@ -297,6 +304,7 @@ in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). 
   paragraphs), splitting into acts, chapters and scenes, the title and author, the preview's edits and Undo, and the
   book it writes;
 - the home screen's order, links and "Opened …" labels, and the visits it remembers;
+- colors: the contrast between two, and black or white text, whichever reads better, on any color;
 - installing: which devices and browsers are given Safari's steps to add the app;
 - the on-screen keyboard: finding its top edge from the visual viewport, whether or not it shrinks the window too,
   as the page scrolls under it, and not mistaking the browser's own bars or a pinch for one;
@@ -387,6 +395,10 @@ They cover:
   the text has focus, the tab bar making way and toasts rising, Done, Undo, Redo and Bold leaving the text in focus,
   Add to World first in line, the cursor kept above the bar as the keyboard comes up and while typing, focus mode,
   and Write's panel on a phone and a tablet, its handle closing it, and a short drag springing back;
+- accessibility (`a11y.spec.ts`): axe at each page, panel, menu and dialog on walks through the home screen, help and
+  Search, the Plan's views and pop-out, Write and its writing aids, the AI tools, World, the Inbox and dictation, the
+  book's dialogs, and a phone, holding them to WCAG 2.2 A and AA and axe's best practices, with the color rules run
+  again in the sepia and dark themes;
 - touch targets (`touch.spec.ts`): on a phone and a tablet, every control on the Board, its menus, the chapter
   pop-out, a toast, the Outline, the Write screen with its menus, History, chapter plan and World panel, World, the
   writing aids (Goals and sprints, Find and replace, Add to World, the tools above the keyboard, the reading bar and
@@ -464,3 +476,4 @@ Development builds expose `window.__bbb` for the console and the end-to-end test
 - `settleAll()`: saves pending word counts and versions now, instead of after their delays.
 - `backUpNow()`: runs a backup check now, writing to the backup folder if there is one. Resolves to `"up-to-date"`,
   `"failed"` or `"skipped"` (no folder it can write to).
+- `setTheme(theme)`: switches to the `"light"`, `"sepia"` or `"dark"` theme, as the header's Theme control does.

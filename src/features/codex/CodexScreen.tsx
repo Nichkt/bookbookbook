@@ -417,7 +417,7 @@ function TypeNav({
           className={cn(ROW, "w-full text-left", current && ACTIVE_ROW)}
         >
           <TypeIcon icon={icon} className="size-4 shrink-0 text-muted-foreground" />
-          <span className="min-w-0 flex-1 truncate">{name}</span>
+          <span className="min-w-0 flex-1 truncate">{name}</span>{" "}
           <span className="shrink-0 text-xs font-normal text-muted-foreground tabular-nums">{formatCount(count)}</span>
         </button>
       </li>

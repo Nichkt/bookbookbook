@@ -83,7 +83,7 @@ function CardTop({
   const label = (
     <>
       <GripVerticalIcon aria-hidden="true" className="size-3.5" />
-      Ch <span className="tabular-nums">{chapter.number}</span>
+      Chapter <span className="tabular-nums">{chapter.number}</span>
     </>
   )
 

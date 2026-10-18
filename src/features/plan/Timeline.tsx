@@ -327,8 +327,8 @@ function ChapterItem({ chapter }: { chapter: PlanChapter }) {
     >
       <span className="flex items-center gap-1.5 text-[0.65rem] font-semibold tracking-wide text-muted-foreground uppercase">
         <span aria-hidden="true" className={cn("size-1.5 rounded-full", status.dot)} />
-        Ch <span className="tabular-nums">{chapter.number}</span>
-      </span>
+        Chapter <span className="tabular-nums">{chapter.number}</span>
+      </span>{" "}
       <span className={cn("line-clamp-2 text-xs font-medium text-ink", !chapter.title?.trim() && "italic")}>
         {title}
       </span>

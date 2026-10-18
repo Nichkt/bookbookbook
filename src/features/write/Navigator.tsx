@@ -59,7 +59,7 @@ export function Navigator() {
                       <Link
                         to={writePath(bookId, chapter.id)}
                         aria-current={open ? "page" : undefined}
-                        aria-label={`Chapter ${chapter.number}: ${title}, ${status.label}, ${formatCount(chapter.words)} words`}
+                        aria-label={`Chapter ${chapter.number}: ${title}, ${formatCount(chapter.words)} words, ${status.label}`}
                         className={cn(
                           "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm text-ink-2 hover:bg-accent hover:text-ink pointer-coarse:min-h-11",
                           "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
@@ -69,7 +69,7 @@ export function Navigator() {
                         <span className={cn("size-2 shrink-0 rounded-full", status.dot)} title={status.label} />
                         <span className="w-5 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
                           {chapter.number}
-                        </span>
+                        </span>{" "}
                         <span
                           className={cn(
                             "min-w-0 flex-1 truncate",
@@ -77,7 +77,7 @@ export function Navigator() {
                           )}
                         >
                           {title}
-                        </span>
+                        </span>{" "}
                         <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
                           {formatCount(chapter.words)}
                         </span>
@@ -111,7 +111,7 @@ export function Navigator() {
                                     )}
                                   >
                                     {name}
-                                  </span>
+                                  </span>{" "}
                                   <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{words}</span>
                                 </Link>
                               </li>

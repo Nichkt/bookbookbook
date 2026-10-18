@@ -11,6 +11,7 @@ export interface DevHooks {
   compactAll(): Promise<void>
   settleAll(): Promise<void>
   backUpNow(): Promise<"up-to-date" | "failed" | "skipped">
+  setTheme(theme: "light" | "sepia" | "dark"): void
 }
 
 declare global {

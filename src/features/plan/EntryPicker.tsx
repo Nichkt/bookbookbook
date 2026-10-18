@@ -100,7 +100,7 @@ export function EntryPicker({ labelId, typeKey, noun, multiple, value, onChange,
           <ChevronsUpDownIcon aria-hidden="true" className="text-muted-foreground" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-(--radix-popover-trigger-width) min-w-64 p-0">
+      <PopoverContent align="start" aria-labelledby={labelId} className="w-(--radix-popover-trigger-width) min-w-64 p-0">
         <Command filter={filterByName}>
           <CommandInput value={query} onValueChange={setQuery} placeholder={`Find or create a ${noun}…`} />
           <CommandList>

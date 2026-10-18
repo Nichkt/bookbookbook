@@ -1,3 +1,4 @@
+import { usePowerSync } from "@powersync/react"
 import { MicIcon } from "lucide-react"
 import type { ComponentProps } from "react"
 import { Button } from "@/components/ui/button"
@@ -6,7 +7,7 @@ import { ariaShortcut, shortcutLabel } from "@/lib/keys"
 import { cn } from "@/lib/utils"
 import { toggleDictation } from "@/speech/dictate"
 import { useDictatingInto, type DictationTarget } from "@/speech/dictation"
-import { useSpeechSettings } from "@/speech/settings"
+import { readSpeechSettings, useSpeechSettings } from "@/speech/settings"
 
 interface DictateButtonProps extends Omit<ComponentProps<typeof Button>, "onClick" | "children"> {
   target: DictationTarget
@@ -33,6 +34,7 @@ export function DictateButton({
   size = "sm",
   ...props
 }: DictateButtonProps) {
+  const db = usePowerSync()
   const settings = useSpeechSettings()
   const on = useDictatingInto(target.id)
   return (
@@ -42,8 +44,7 @@ export function DictateButton({
           type="button"
           variant={variant}
           size={size}
-          // Until the settings load, a press couldn't tell whether dictation needs setting up first.
-          disabled={settings.isLoading || (disabled && !on)}
+          disabled={disabled && !on}
           aria-pressed={on}
           aria-keyshortcuts={keys && ariaShortcut(keys)}
           data-dictate={target.id}
@@ -55,7 +56,9 @@ export function DictateButton({
             // Once it's set up, focus goes back where it was: in the text, with a mouse, so the words go there.
             const active = document.activeElement
             const from = active instanceof HTMLElement && active !== document.body ? active : event.currentTarget
-            void toggleDictation(target, settings, from)
+            // Pressed before its settings load, it reads them, as the shortcut does, rather than fading in disabled.
+            if (settings.isLoading) void readSpeechSettings(db).then((loaded) => toggleDictation(target, loaded, from))
+            else void toggleDictation(target, settings, from)
           }}
           className={cn(
             "aria-pressed:border-destructive/40 aria-pressed:bg-destructive/10 aria-pressed:text-destructive",
