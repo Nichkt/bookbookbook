@@ -2,6 +2,7 @@ import { announce, attempt, offerUndo } from "@/app/feedback"
 import type { Db } from "@/db/tx"
 import {
   deleteAct,
+  discardNewChapter,
   mergeActIntoPrevious,
   mergeChapterIntoPrevious,
   moveAct,
@@ -274,6 +275,24 @@ export async function trashChapterWithUndo(db: Db, plan: Plan, chapterId: string
   if (!changes) return
   if (neighbor) focus("chapter", neighbor.id)
   offerUndo(db, `Moved ${chapterName(chapter)} to the Trash`, changes, () => focus("chapter", chapterId))
+}
+
+/**
+ * Back to planning from a chapter just added, without saving it (DESIGN.md §6): it's left out of the plan. Anything
+ * typed in it goes to the Trash, with an Undo; an untouched one is simply gone.
+ */
+export async function leaveOutNewChapter(db: Db, plan: Plan, chapterId: string, focus: FocusItem) {
+  const number = plan.chapterById.get(chapterId)?.number ?? plan.chapters.length
+  const result = await attempt("leave out new chapter", discardNewChapter(db, chapterId))
+  if (!result || result.outcome === "none") return
+  if (result.outcome === "deleted") {
+    announce("No chapter added")
+    return
+  }
+  const name = chapterName({ title: result.chapter.title, number })
+  offerUndo(db, `Didn't add ${name} to the plan. It's in the Trash.`, result.changes, () =>
+    focus("chapter", chapterId),
+  )
 }
 
 export async function trashSceneWithUndo(db: Db, plan: Plan, chapterId: string, sceneId: string, focus: FocusItem) {

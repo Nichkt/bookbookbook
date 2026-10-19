@@ -131,6 +131,12 @@ test("the Plan passes axe", async ({ page }) => {
   await closeWith(page, "Escape", "[role=listbox]")
   await closeWith(page, "Escape", "[data-slot=popover-content]")
 
+  // Left blank, the new chapter goes again as it closes.
+  await page.getByRole("button", { name: "Add a chapter to ACT I — Arrival", exact: true }).click()
+  await page.getByRole("dialog", { name: /^Chapter 5: / }).getByRole("button", { name: "Save" }).waitFor()
+  await audit("New chapter pop-out", "[role=dialog]")
+  await closeWith(page, "Escape", "[role=dialog]")
+
   await card.click()
   const popout = page.getByRole("dialog", { name: "Chapter 2: The Keeper's Room" })
   await popout.waitFor()

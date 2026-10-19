@@ -84,7 +84,7 @@ test.describe("Glossary", () => {
 test.describe("How to use this", () => {
   const TOURS = [
     { name: "home screen", title: "How to use the home screen", steps: 10, open: openHome },
-    { name: "Plan", title: "How to use the Plan", steps: 13, open: (page: Page) => openScreen(page, "Plan") },
+    { name: "Plan", title: "How to use the Plan", steps: 14, open: (page: Page) => openScreen(page, "Plan") },
     { name: "Write", title: "How to use Write", steps: 15, open: openFirstChapter },
     { name: "World", title: "How to use World", steps: 7, open: (page: Page) => openScreen(page, "World") },
     { name: "Inbox", title: "How to use the Inbox", steps: 7, open: (page: Page) => openScreen(page, "Inbox") },
@@ -113,7 +113,7 @@ test.describe("How to use this", () => {
     const opener = howToUse(page)
     await opener.click()
     const card = tourCard(page)
-    const at = (step: number) => expect(card).toContainText(`How to use the Plan · Step ${step} of 13`)
+    const at = (step: number) => expect(card).toContainText(`How to use the Plan · Step ${step} of 14`)
     const back = card.getByRole("button", { name: "Back" })
     const next = card.getByRole("button", { name: "Next" })
 
@@ -144,6 +144,7 @@ test.describe("How to use this", () => {
     await expect(popout(page)).toBeVisible()
     await next.click()
     await at(10)
+    await expect(page.getByRole("dialog", { name: "Add a chapter" })).toBeVisible()
     await expect(popout(page)).toBeHidden()
     await expect(next).toBeFocused()
 

@@ -38,6 +38,11 @@ export interface PlanContextValue {
   /** The chapter open in the drawer. */
   openId: string | null
   showChapter: (id: string, focus?: DrawerFocus) => void
+  /**
+   * Pops out a chapter just added, to fill in. It stays in the plan only if it's saved or opened to write; going back
+   * leaves it out, and focus returns to `opener`, the button that added it.
+   */
+  showNewChapter: (id: string, opener?: HTMLElement | null) => void
   focusItem: FocusItem
 }
 

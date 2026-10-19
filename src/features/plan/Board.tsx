@@ -24,7 +24,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } fr
 import { createPortal } from "react-dom"
 import { attempt } from "@/app/feedback"
 import { DraftInput } from "@/components/DraftField"
-import { Button } from "@/components/ui/button"
 import { byData, focusSoon } from "@/lib/focus"
 import { formatCount } from "@/lib/numbers"
 import { cn } from "@/lib/utils"
@@ -258,19 +257,20 @@ function BoardGroup({
   ids: string[]
   highlighted: boolean
 }) {
-  const { db, bookId, plan, showChapter } = usePlanContext()
+  const { db, bookId, plan, showNewChapter } = usePlanContext()
   const stray = !group.act && plan.hasActs
   const { setNodeRef } = useDroppable({ id: group.key, disabled: stray })
   const label = actLabel(group, plan.hasActs)
   const headingId = `board-group-${group.key}`
   const act = group.act
 
-  const addChapter = async () => {
+  const addChapter = async (event: MouseEvent<HTMLButtonElement>) => {
+    const tile = event.currentTarget
     const id = await attempt("add chapter", createChapter(db, bookId, { actId: act?.id ?? null }))
     if (!id) return
     // An index card's title is written on the card.
     if (cards === "index") focusSoon(byData("index-title", id))
-    else showChapter(id, "title")
+    else showNewChapter(id, tile)
   }
 
   return (
@@ -307,38 +307,76 @@ function BoardGroup({
           {group.target > 0 && ` / ${formatCount(group.target)}`} words
         </span>
         <div className="ml-auto flex shrink-0 items-center gap-0.5">
-          {!stray && (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label={`Add chapter to ${label}`}
-              title="Add chapter"
-              className="text-muted-foreground"
-              onClick={() => void addChapter()}
-            >
-              <PlusIcon />
-            </Button>
-          )}
           <ActMenu group={group} />
         </div>
       </header>
       <SortableContext items={ids} strategy={rectSortingStrategy}>
-        {ids.length > 0 ? (
-          <ul aria-labelledby={headingId} className={cn("flex flex-wrap", cards === "index" ? "gap-4" : "items-start gap-3")}>
-            {ids.map((id) =>
-              cards === "index" ? (
-                <SortableIndexCard key={id} chapter={plan.chapterById.get(id)!} />
-              ) : (
-                <SortableChapterCard key={id} chapter={plan.chapterById.get(id)!} />
-              ),
-            )}
-          </ul>
-        ) : (
-          <div className="flex min-h-24 items-center justify-center rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-            {act ? "No chapters in this act yet. Drag one here, or add one." : "No chapters yet. Add one to start planning."}
-          </div>
-        )}
+        <div className={cn("flex flex-wrap", cards === "index" ? "gap-4" : "items-start gap-3")}>
+          {ids.length > 0 && (
+            // The list's box steps aside, so the add tile flows on after the last card.
+            <ul aria-labelledby={headingId} className="contents">
+              {ids.map((id) =>
+                cards === "index" ? (
+                  <SortableIndexCard key={id} chapter={plan.chapterById.get(id)!} />
+                ) : (
+                  <SortableChapterCard key={id} chapter={plan.chapterById.get(id)!} />
+                ),
+              )}
+            </ul>
+          )}
+          {!stray && (
+            <AddChapterTile
+              cards={cards}
+              groupKey={group.key}
+              label={plan.hasActs ? label : null}
+              onClick={(event) => void addChapter(event)}
+            />
+          )}
+          {ids.length === 0 && (
+            <p className="self-center px-1 text-sm text-muted-foreground">
+              {act ? "No chapters in this act yet. Add one, or drag one here." : "No chapters yet. Add one to start planning."}
+            </p>
+          )}
+        </div>
       </SortableContext>
     </section>
+  )
+}
+
+/** The big button after an act's last card, or a book's when it has no acts, that adds a chapter there. */
+function AddChapterTile({
+  cards,
+  groupKey,
+  label,
+  onClick,
+}: {
+  cards: BoardCards
+  groupKey: string
+  /** The act, for a screen reader; null in a book without acts. */
+  label: string | null
+  onClick: (event: MouseEvent<HTMLButtonElement>) => void
+}) {
+  return (
+    <button
+      type="button"
+      data-add-chapter={groupKey}
+      data-tour="plan-add-chapter"
+      onClick={onClick}
+      className={cn(
+        "group/add flex min-h-24 w-full flex-col items-center justify-center gap-2 self-stretch border-2 border-dashed border-border px-4 py-5 text-sm font-medium text-ink-2 transition-colors outline-none hover:border-primary/50 hover:bg-primary/5 hover:text-primary focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+        cards === "index" ? "rounded-sm sm:w-[280px]" : "rounded-xl sm:w-[268px]",
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className="flex size-10 items-center justify-center rounded-full bg-surface-2 text-muted-foreground transition-colors group-hover/add:bg-primary/10 group-hover/add:text-primary"
+      >
+        <PlusIcon className="size-5" />
+      </span>
+      <span>
+        Add a chapter
+        {label && <span className="sr-only"> to {label}</span>}
+      </span>
+    </button>
   )
 }

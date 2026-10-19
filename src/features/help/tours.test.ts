@@ -71,17 +71,20 @@ describe("stepsFor", () => {
       "popout-moments",
       "popout-details",
       "popout-write",
+      "plan-add-chapter",
       "plan-add",
       "plan-display",
       "plan-filter",
       undefined,
     ])
-    expect(planTargets("corkboard")).toContain("plan-ribbon")
+    expect(planTargets("corkboard")).toEqual(expect.arrayContaining(["plan-ribbon", "plan-add-chapter"]))
     expect(planTargets("corkboard")).not.toContain("plan-display")
     expect(planTargets("outline")).not.toContain("plan-ribbon")
-    expect(planTargets("outline")).toEqual(expect.arrayContaining(["plan-act", "plan-chapter", "plan-display"]))
+    expect(planTargets("outline")).toEqual(
+      expect.arrayContaining(["plan-act", "plan-chapter", "plan-add-chapter", "plan-display"]),
+    )
     for (const view of ["matrix", "timeline"]) {
-      for (const target of ["plan-ribbon", "plan-act", "plan-chapter", "plan-display"]) {
+      for (const target of ["plan-ribbon", "plan-act", "plan-chapter", "plan-add-chapter", "plan-display"]) {
         expect(planTargets(view), `${view}: ${target}`).not.toContain(target)
       }
     }
@@ -95,6 +98,14 @@ describe("stepsFor", () => {
         expect.arrayContaining(["plan-views", "plan-structure", "popout-moments", "popout-write", "plan-filter"]),
       )
     }
+  })
+
+  it("tells the Board what Save and Back to planning do with a new chapter", () => {
+    const step = TOURS.plan.steps.find((each) => each.target === "plan-add-chapter")!
+    const on = (view: string) => textOf(step.body, { narrow: false, coarse: false, pathname: `/b/b1/plan/${view}` })
+    expect(on("board")).toMatch(/Save to put it in your plan, or go Back to planning to leave it out\.$/)
+    expect(on("outline")).toContain("adds a line there")
+    expect(on("corkboard")).toContain("adds an index card there")
   })
 
   it("takes every step of tours that don't depend on the screen", () => {

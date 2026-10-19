@@ -1,4 +1,6 @@
 import {
+  ArrowLeftIcon,
+  CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   EllipsisIcon,
@@ -50,18 +52,28 @@ export type ChapterStepDirection = "previous" | "next"
 /** Moves the details to another chapter: the pop-out's previous and next buttons. */
 export type ChapterStep = (chapterId: string, direction: ChapterStepDirection) => void
 
+/** What the pop-out does with a chapter just added, until it's saved or left out (DESIGN.md §6). */
+export interface NewChapterActions {
+  /** Keeps it in the plan and goes back there. Gets the title as typed, which the plan may not show yet. */
+  save: (title: string) => void
+  /** Keeps it in the plan without going back: it's being opened to write, or moved to the Trash. */
+  keep: () => void
+}
+
 interface ChapterDrawerProps {
   chapterId: string
   onClose: () => void
   /** Given in the Plan's pop-out, which steps through the chapters. */
   onStep?: ChapterStep
+  /** Given while the chapter is one just added in the pop-out. */
+  newChapter?: NewChapterActions
 }
 
 /**
  * A chapter's details (DESIGN.md §6): everything the plan holds about it, popped out over the Plan or beside the text
  * in Write. Two columns when there's room. Changes save as you type.
  */
-export function ChapterDrawer({ chapterId, onClose, onStep }: ChapterDrawerProps) {
+export function ChapterDrawer({ chapterId, onClose, onStep, newChapter }: ChapterDrawerProps) {
   const { plan } = useChapterDetails()
   const chapter = plan.chapterById.get(chapterId)
   const [missing, setMissing] = useState(false)
@@ -72,7 +84,9 @@ export function ChapterDrawer({ chapterId, onClose, onStep }: ChapterDrawerProps
     return () => clearTimeout(timer)
   }, [chapter])
 
-  if (chapter) return <ChapterForm key={chapter.id} chapter={chapter} onClose={onClose} onStep={onStep} />
+  if (chapter) {
+    return <ChapterForm key={chapter.id} chapter={chapter} onClose={onClose} onStep={onStep} newChapter={newChapter} />
+  }
   if (!missing) return null
   return (
     <div className="grid gap-3 p-5">
@@ -87,16 +101,28 @@ export function ChapterDrawer({ chapterId, onClose, onStep }: ChapterDrawerProps
   )
 }
 
-function ChapterForm({ chapter, onClose, onStep }: { chapter: PlanChapter; onClose: () => void; onStep?: ChapterStep }) {
+function ChapterForm({
+  chapter,
+  onClose,
+  onStep,
+  newChapter,
+}: {
+  chapter: PlanChapter
+  onClose: () => void
+  onStep?: ChapterStep
+  newChapter?: NewChapterActions
+}) {
   const { db, bookId, plan, structures, focusItem, place } = useChapterDetails()
   const id = useId()
   const fieldId = (name: string) => `${id}-${name}`
   const menuRan = useRef(false)
+  const titleRef = useRef<HTMLInputElement>(null)
 
   const save = (patch: Parameters<typeof updateChapter>[2]) => updateChapter(db, chapter.id, patch)
 
   const trash = () => {
     menuRan.current = true
+    newChapter?.keep()
     // Close first: a closing sheet stops holding focus, so focus can move to the next card.
     onClose()
     void trashChapterWithUndo(db, plan, chapter.id, focusItem)
@@ -110,9 +136,9 @@ function ChapterForm({ chapter, onClose, onStep }: { chapter: PlanChapter; onClo
           data-drawer-heading={chapter.id}
           className="rounded-sm text-xs font-semibold tracking-widest text-muted-foreground uppercase outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
-          Chapter {chapter.number}
+          {newChapter ? "New chapter" : "Chapter"} {chapter.number}
         </h2>
-        {onStep && <ChapterSteps chapter={chapter} onStep={onStep} />}
+        {onStep && !newChapter && <ChapterSteps chapter={chapter} onStep={onStep} />}
         <div className="ml-auto flex shrink-0 items-center gap-1">
           {place === "write" && (
             <Link
@@ -159,6 +185,7 @@ function ChapterForm({ chapter, onClose, onStep }: { chapter: PlanChapter; onClo
 
       <div className="@container px-4 pt-3 pb-8 sm:px-5">
         <DraftInput
+          ref={titleRef}
           data-drawer-title={chapter.id}
           aria-label="Chapter title"
           placeholder={UNTITLED_CHAPTER}
@@ -167,22 +194,12 @@ function ChapterForm({ chapter, onClose, onStep }: { chapter: PlanChapter; onClo
           className="-mx-2 h-auto w-[calc(100%+1rem)] border-transparent bg-transparent px-2 py-1 font-heading text-2xl leading-tight font-semibold shadow-none hover:border-input md:text-2xl dark:bg-transparent"
         />
         {place === "plan" && (
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
-            <Link
-              to={writePath(bookId, chapter.id)}
-              state={WRITE_STATE}
-              data-tour="popout-write"
-              className={cn(buttonVariants({ size: "sm" }), "pointer-coarse:h-11")}
-            >
-              <PenLineIcon />
-              Write this chapter
-            </Link>
-            <WordProgress
-              words={chapter.words}
-              target={chapter.word_target}
-              label={`Chapter ${chapter.number} word count target`}
-            />
-          </div>
+          <WordProgress
+            words={chapter.words}
+            target={chapter.word_target}
+            label={`Chapter ${chapter.number} word count target`}
+            className="mt-1.5"
+          />
         )}
 
         <div className="mt-5 grid gap-x-8 gap-y-7 @2xl:grid-cols-[minmax(0,1fr)_17rem]">
@@ -320,6 +337,42 @@ function ChapterForm({ chapter, onClose, onStep }: { chapter: PlanChapter; onClo
           </section>
         </div>
       </div>
+
+      {place === "plan" && (
+        <footer
+          data-popout-footer=""
+          className="sticky bottom-0 z-10 mt-auto flex flex-wrap items-center gap-2 border-t bg-surface/95 px-4 py-2.5 backdrop-blur sm:px-5"
+        >
+          <Button variant="ghost" size="lg" data-back-to-plan="" onClick={onClose} className="-ml-1 text-ink-2">
+            <ArrowLeftIcon />
+            Back to planning
+          </Button>
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+            {!newChapter && <span className="text-xs text-muted-foreground max-sm:hidden">Changes save as you type.</span>}
+            <Link
+              to={writePath(bookId, chapter.id)}
+              state={WRITE_STATE}
+              data-tour="popout-write"
+              onClick={newChapter?.keep}
+              className={buttonVariants({ variant: newChapter ? "outline" : "default", size: "lg" })}
+            >
+              <PenLineIcon />
+              Write this chapter
+            </Link>
+            {newChapter && (
+              <Button
+                size="lg"
+                data-save-chapter=""
+                onClick={() => newChapter.save(titleRef.current?.value ?? chapter.title ?? "")}
+                className="px-4"
+              >
+                <CheckIcon />
+                Save
+              </Button>
+            )}
+          </div>
+        </footer>
+      )}
     </div>
   )
 }

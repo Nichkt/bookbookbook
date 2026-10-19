@@ -172,6 +172,12 @@ for (const [device, viewport] of [
       await check("Act menu", "[role=menu]")
       await closeWith("Escape", "[role=menu]")
 
+      // Left blank, the new chapter goes again as it closes.
+      await page.getByRole("button", { name: "Add a chapter to ACT I — Arrival", exact: true }).click()
+      await page.getByRole("dialog", { name: /^Chapter 5: / }).getByRole("button", { name: "Save" }).waitFor()
+      await check("New chapter", "[role=dialog]")
+      await closeWith("Escape", "[role=dialog]")
+
       await card.click()
       const sheet = page.getByRole("dialog", { name: "Chapter 2: The Keeper's Room" })
       await sheet.waitFor()

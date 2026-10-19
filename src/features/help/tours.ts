@@ -202,7 +202,21 @@ const PLAN: TourDefinition = {
       target: "popout-write",
       stage: "chapter-popout",
       title: "Write this chapter",
-      body: "When you're ready to write, this takes you straight to the chapter's page, with its plan a click away.",
+      body: "When you're ready to write, this takes you straight to the chapter's page, with its plan a click away. Back to planning, at the other end of the bar, takes you back to all your chapters.",
+    },
+    {
+      target: "plan-add-chapter",
+      when: inViews("board", "corkboard", "outline"),
+      title: "Add a chapter",
+      body: (context) => {
+        const view = planView(context)
+        const what = view === "board" ? "a chapter" : view === "outline" ? "a line" : "an index card"
+        const then =
+          view === "board"
+            ? "Fill in what you know so far, then Save to put it in your plan, or go Back to planning to leave it out."
+            : "Type the chapter's title right on it."
+        return `The Add a chapter button at the end of each act adds ${what} there. ${then}`
+      },
     },
     {
       target: "plan-add",

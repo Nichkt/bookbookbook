@@ -240,8 +240,8 @@ client in a worker. Prose is never stored as an HTML blob, so offline edits from
 ### Views
 | View | Shows | Interactions |
 |---|---|---|
-| **Board** | Acts as rows, chapter cards left → right | Drag to reorder or move between acts; click → chapter pop-out; "+ Chapter" per act |
-| **Outline** | Tree: Act › Chapter › Scene with summaries and beats inline | Keyboard-first: Enter = new item, Tab = fold into the item above, Shift+Tab = split off; inline editing |
+| **Board** | Acts as rows, chapter cards left → right | Drag to reorder or move between acts; click → chapter pop-out; a big "Add a chapter" after each act's last card |
+| **Outline** | Tree: Act › Chapter › Scene with summaries and beats inline | Keyboard-first: Enter = new item, Tab = fold into the item above, Shift+Tab = split off; inline editing; "Add a chapter" at the end of each act |
 | **Matrix** | Rows = characters and plot threads; columns = chapters (grouped by act) | ★ POV · ● present · blank = absent; click to toggle; warns when a thread goes quiet for ≥ 3 chapters |
 | **Timeline** | Chapters placed by **in-story** time in POV lanes; codex Events as markers | Toggle story order vs reading order; flashbacks visibly out of sequence |
 | **Corkboard** | Index cards (title + summary) | Fast reorder; print/export as cards later |
@@ -262,7 +262,8 @@ points) and *Detailed* (all fields), plus per-field toggles. Saved in local `ui_
 **Chapter pop-out:** clicking a chapter on the Board or Outline pops its details out over the Plan: centered on
 wider screens, the whole screen on phones. It has every field, moments (check / add / reorder / dictate), the scenes
 list, notes, linked World entries, **Summarize with AI** (writes a proposed summary for you to accept) and **Write
-this chapter ▸**.
+this chapter ▸**. A bar along its bottom holds **Back to planning** and **Write this chapter**, and **Save** for a
+chapter just added, which only Save or Write this chapter keeps (see "Built after M12" below).
 
 **What characters are present** combines manual links with auto-detected mentions. Auto links show a subtle "auto"
 style and can be confirmed or removed.
@@ -309,6 +310,7 @@ The Matrix, Timeline, Corkboard and templates followed in M5 (below). Details it
   and fields are saved per book and per view in `ui_prefs`.
 - **Quick create:** "+ Act" and "+ Chapter" in the toolbar, "+" on each act of the Board, Enter in the Outline. The
   drawer's pickers can create a codex entry from what you typed.
+  *After M12 the Board's "+" became a big Add a chapter after each act's last card; see "Built after M12" below.*
 - **Trash.** Chapters, scenes and books go to the Trash with an Undo toast and stay for 30 days (§12). The book menu's
   Trash restores them or deletes them for good. Deleting an act can keep its chapters (they join a neighbouring act)
   or send them to the Trash.
@@ -326,7 +328,7 @@ The docked drawer read as a sidebar, so a chapter's details now pop out over the
   location, story time, story points, what characters are present, labels, structure moment) in a column beside the
   summary, moments, scenes and notes.
 - **Write this chapter** sits under the title, beside the chapter's words against its word count target, and opens
-  Write at the chapter's heading.
+  Write at the chapter's heading. *After M12 it moved to a bar along the pop-out's bottom; see "Built after M12".*
 - **Previous chapter / Next chapter** in its header step through the book in reading order without closing it.
   The ⋯ menu moves the chapter to the Trash.
 - **The address.** `?chapter=` still opens it, so it survives a reload with focus on its heading, and Back closes it.
@@ -334,6 +336,34 @@ The docked drawer read as a sidebar, so a chapter's details now pop out over the
   the one shown last, if Previous or Next moved on.
 - **"?" buttons** beside each label open the glossary at that term (§17a).
 - `e2e/plan.spec.ts` covers the pop-out's fields, stepping, the address and focus; `e2e/touch.spec.ts` its targets.
+
+### Built after M12: adding a chapter
+The Board's "+" sat in each act's header, small and away from where the chapter lands, so adding one moved to the
+end of the act, and the pop-out learned to take in a new chapter:
+- **Add a chapter.** A dashed button the size of a card follows each act's last card on the Board (268 px wide, the
+  full width on phones, at least 96 px tall), or the last chapter in a book without acts; chapters outside any act,
+  in a book with acts, get none. Screen readers hear "Add a chapter to" and the act. On the Corkboard it's the shape
+  of an index card, and in the Outline a row as wide as the act; both add the chapter there at once, its title ready
+  to type in place.
+- **A new chapter pops out.** The Board's Add a chapter, the act menu's Add chapter at the end, and the toolbar's
+  Chapter or Search's Add a chapter on the Board, Matrix or Timeline (at the end of the book) add a chapter, then pop
+  it out headed "New chapter N", with focus in its title. Previous and Next stay hidden while it's new.
+- **The bar along the bottom.** Every pop-out on the Plan ends in a bar that stays in view: **Back to planning** at
+  the start and **Write this chapter**, moved down from under the title, at the end. A chapter already in the plan
+  has "Changes save as you type." beside it. A new one has **Save** as the main button, with Write this chapter
+  beside it. On a phone the bar wraps onto two rows, and the pop-out scrolls a focused field clear of it.
+- **Kept or left out.** A new chapter's fields save as they're typed in, as any chapter's do, so it's in the
+  database from the start; only **Save** and **Write this chapter** keep it in the plan. Save says "Saved “Title”",
+  closes the pop-out and puts focus on the chapter's card. Going back any other way (Back to planning, the X,
+  Escape, a click outside or the browser's Back) leaves it out. Still blank, with nothing typed, picked or changed,
+  it's deleted for good, and screen readers hear "No chapter added"; otherwise it goes to the Trash, with "Didn't
+  add “Title” to the plan. It's in the Trash." and Undo. Either way focus goes back to the button that added it. A
+  reload keeps it, as a chapter like any other, and the ⋯ menu's Move to Trash works as it does for any chapter.
+- **Tour.** The Plan tour has a step on Add a chapter on the Board, Corkboard and Outline, and its step on Write
+  this chapter points out Back to planning: 14 steps on the Board.
+- `mutations.test.ts` covers when a new chapter is blank and what leaving it out does; `e2e/plan.spec.ts` covers
+  the buttons, Save, Back to planning, Escape and Undo, Write this chapter and a book without acts;
+  `e2e/a11y.spec.ts` and `e2e/touch.spec.ts` check the new chapter's pop-out.
 
 ### Built in M5
 M5 built the Matrix, the Timeline, the Corkboard, story structures and planning step by step. Details it settled:
@@ -1622,7 +1652,7 @@ words as "also called".
   the glossary, and focus goes back to the button that opened it.
 
 **Tours**
-- One per page: Home (10 steps), Plan (13 on the Board), Write (15), World (7) and Inbox (7).
+- One per page: Home (10 steps), Plan (14 on the Board), Write (15), World (7) and Inbox (7).
   A step can belong to some views only, so each Plan view skips the steps about what it doesn't show: the ribbon,
   acts and chapter cards, the Display menu, the Matrix or the Timeline. The Matrix and Timeline have 10.
 - **The card** is a modal dialog with "Step N of M", Back, Next (Done on the last) and an X. ← and → move between
@@ -1808,3 +1838,4 @@ words as "also called".
 | 37 | No sample book in a real install | A real install, on the web or the desktop, starts with no books, on "No books yet"; the sample book, *The Salt Ledger*, fills an empty library only on the dev server and in the end-to-end tests' build (`--mode e2e`, to `dist-e2e/`), and other builds leave it out; the glossary keeps its examples from it and says where they come from; the home tour's Your books step points at the empty library too | Set by the project's owner after M8; §4, §17a |
 | 38 | The Windows app | Tauri 2 around the web app, built in Vite's `desktop` mode and shown in WebView2: one window; its books apart from a browser's, under the identifier `io.github.nichkt.bookbookbook`, which never changes; links out of it open in the browser; the microphone and the backup folder allowed by the app, without WebView2's prompts; the folder's permission, which WebView2 forgets on closing, asked for again at the first click or key press; minimizing and closing count as leaving, and closing waits up to ten seconds for a last backup; an NSIS installer for the user running it, unsigned for now; the OS keychain, native backups, updates and signing left for later | Set by the project's owner after M8; §11, "Built in M12" |
 | 39 | Publishing | The code is public on GitHub, at github.com/Nichkt/bookbookbook; each version of the Windows app is a release there, its installer attached, and the README's Download for Windows links to the newest; no license is chosen yet (§21) | Set by the project's owner after M12; §11, "Built in M12" |
+| 40 | Adding a chapter | A big Add a chapter after each act's last chapter, or the book's when it has no acts, on the Board, Corkboard and Outline, replacing the Board's small "+" per act; on the Board it pops the new chapter out, headed "New chapter N"; every pop-out on the Plan has a bar along its bottom with Back to planning and Write this chapter, and Save for a new chapter; only Save and Write this chapter keep a new chapter, and any other way back leaves it out, deleted if still blank, else moved to the Trash with Undo | Asked for by the project's owner after M12, who wanted Save and Back to planning; what's left out, and how, settled in building it; §6, "Built after M12" |

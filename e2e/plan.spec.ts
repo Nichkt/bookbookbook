@@ -240,6 +240,141 @@ test.describe("Chapter pop-out", () => {
   })
 })
 
+test.describe("Adding a chapter", () => {
+  /** What an act holds on the Board, in order: its cards, then the Add a chapter tile. */
+  const actOrder = (page: Page, act: string) =>
+    page
+      .getByRole("region", { name: act, exact: true })
+      .evaluate((section) =>
+        [...section.querySelectorAll("[data-chapter-card], [data-add-chapter]")].map((element) =>
+          element.hasAttribute("data-add-chapter") ? "add" : "card",
+        ),
+      )
+  const chapterCount = async (page: Page) =>
+    (await queryDb<{ n: number }>(page, "SELECT count(*) AS n FROM chapters"))[0]?.n
+
+  test("a big Add a chapter after an act's last card pops out a new one, and Save puts it in", async ({ page }) => {
+    await openPlan(page)
+    const add = page.getByRole("button", { name: `Add a chapter to ${ACT_I}`, exact: true })
+    expect(await actOrder(page, ACT_I)).toEqual(["card", "card", "card", "card", "add"])
+    const tile = await add.boundingBox()
+    expect(tile?.width).toBeGreaterThanOrEqual(260)
+    expect(tile?.height).toBeGreaterThanOrEqual(96)
+
+    await add.click()
+    const popout = page.getByRole("dialog", { name: /^Chapter 5: / })
+    await expect(popout.getByRole("heading", { name: "New chapter 5", exact: true })).toBeVisible()
+    const title = popout.getByRole("textbox", { name: "Chapter title" })
+    await expect(title).toBeFocused()
+    await expect(popout.getByRole("button", { name: "Back to planning" })).toBeVisible()
+    await expect(popout.getByRole("link", { name: "Write this chapter" })).toBeVisible()
+    await expect(popout.getByRole("button", { name: "Next chapter" })).toHaveCount(0)
+
+    await title.fill("The Lamp Room")
+    await popout.getByRole("textbox", { name: "Summary" }).fill("Mara climbs to the lamp.")
+    await popout.getByRole("button", { name: "Save", exact: true }).click()
+    await expect(popout).toBeHidden()
+    await expect(page).not.toHaveURL(/chapter=/)
+    await expect(toast(page, "Saved “The Lamp Room”")).toBeVisible()
+    await expect(page.getByRole("button", { name: "Chapter 5: The Lamp Room" })).toBeFocused()
+    await expect(card(page, "The Lamp Room")).toContainText("Mara climbs to the lamp.")
+    expect(await actOrder(page, ACT_I)).toEqual(["card", "card", "card", "card", "card", "add"])
+
+    await page.reload()
+    await expect(boardCards(page, ACT_I)).toHaveCount(5)
+    await expect(boardCards(page, ACT_I).last()).toHaveAccessibleName("Chapter 5: The Lamp Room")
+  })
+
+  test("Back to planning leaves a blank new chapter out, and focus goes back to Add a chapter", async ({ page }) => {
+    await openPlan(page)
+    const before = await chapterCount(page)
+    const add = page.getByRole("button", { name: `Add a chapter to ${ACT_II}`, exact: true })
+    await add.click()
+    const popout = page.getByRole("dialog", { name: /^Chapter 10: / })
+    await expect(popout.getByRole("textbox", { name: "Chapter title" })).toBeFocused()
+    await expect.poll(() => chapterCount(page)).toBe((before ?? 0) + 1)
+
+    await popout.getByRole("button", { name: "Back to planning" }).click()
+    await expect(popout).toBeHidden()
+    await expect(add).toBeFocused()
+    await expect(announcer(page)).toHaveText("No chapter added")
+    await expect(boardCards(page, ACT_II)).toHaveCount(5)
+    await expect.poll(() => chapterCount(page)).toBe(before)
+  })
+
+  test("a new chapter closed with something typed goes to the Trash, and Undo brings it back", async ({ page }) => {
+    await openPlan(page)
+    const add = page.getByRole("button", { name: `Add a chapter to ${ACT_I}`, exact: true })
+    await add.click()
+    const popout = page.getByRole("dialog", { name: /^Chapter 5: / })
+    await popout.getByRole("textbox", { name: "Chapter title" }).fill("Second Thoughts")
+    await page.keyboard.press("Escape")
+
+    await expect(popout).toBeHidden()
+    const left = toast(page, "Didn't add “Second Thoughts” to the plan. It's in the Trash.")
+    await expect(left).toBeVisible()
+    await expect(add).toBeFocused()
+    await expect(boardCards(page, ACT_I)).toHaveCount(4)
+    const trashed = async () =>
+      (
+        await queryDb<{ gone: number }>(page, "SELECT deleted_at IS NOT NULL AS gone FROM chapters WHERE title = ?", [
+          "Second Thoughts",
+        ])
+      )[0]?.gone
+    await expect.poll(trashed).toBe(1)
+
+    await left.getByRole("button", { name: "Undo" }).click()
+    await expect(boardCards(page, ACT_I)).toHaveCount(5)
+    await expect(page.getByRole("button", { name: "Chapter 5: Second Thoughts" })).toBeFocused()
+  })
+
+  test("Write this chapter keeps a chapter the toolbar added, and opens it in Write", async ({ page }) => {
+    await openPlan(page)
+    await page.getByRole("button", { name: "Chapter", exact: true }).click()
+    const popout = page.getByRole("dialog", { name: /^Chapter 13: / })
+    await expect(popout.getByRole("heading", { name: "New chapter 13", exact: true })).toBeVisible()
+    await popout.getByRole("textbox", { name: "Chapter title" }).fill("Low Water")
+    await popout.getByRole("link", { name: "Write this chapter" }).click()
+
+    await expect(page).toHaveURL(/\/write\/[^/?]+$/)
+    await expect(page.getByRole("heading", { level: 1, name: "Low Water" })).toBeFocused()
+    await page.getByRole("navigation", { name: "Screens" }).getByRole("link", { name: "Plan" }).click()
+    await expect(page.getByRole("button", { name: "Chapter 13: Low Water" })).toBeVisible()
+    await expect
+      .poll(async () => (await queryDb(page, "SELECT deleted_at FROM chapters WHERE title = ?", ["Low Water"]))[0])
+      .toEqual({ deleted_at: null })
+  })
+
+  test("a book without acts has Add a chapter after its last chapter", async ({ page }) => {
+    await openFirstChapter(page)
+    await page.getByRole("button", { name: "Book: The Salt Ledger" }).click()
+    await page.getByRole("menuitem", { name: "New book…" }).click()
+    const dialog = page.getByRole("dialog", { name: "New book" })
+    await dialog.getByRole("textbox", { name: "Title", exact: true }).fill("Harbor Lights")
+    await dialog.getByRole("button", { name: "Create book" }).click()
+    await expect(page.getByRole("button", { name: "Chapter 1: Untitled chapter" })).toBeVisible()
+    expect(await actOrder(page, "Chapters")).toEqual(["card", "add"])
+
+    await page.getByRole("button", { name: "Add a chapter", exact: true }).click()
+    const popout = page.getByRole("dialog", { name: /^Chapter 2: / })
+    await expect(popout.getByRole("heading", { name: "New chapter 2", exact: true })).toBeVisible()
+    await popout.getByRole("textbox", { name: "Chapter title" }).fill("The Quay")
+    await popout.getByRole("button", { name: "Save", exact: true }).click()
+    await expect(page.getByRole("button", { name: "Chapter 2: The Quay" })).toBeFocused()
+    expect(await actOrder(page, "Chapters")).toEqual(["card", "card", "add"])
+  })
+
+  test("the Outline's Add a chapter adds a line at the end of the act, to title in place", async ({ page }) => {
+    await openPlan(page, "Outline")
+    await page.getByRole("button", { name: `Add a chapter to ${ACT_I}`, exact: true }).click()
+    const title = page.getByRole("textbox", { name: "Title of chapter 5" })
+    await expect(title).toBeFocused()
+    await expect(title).toHaveValue("")
+    await expect(outlineChapters(page, ACT_I)).toHaveCount(5)
+    await expect(page.getByRole("dialog")).toHaveCount(0)
+  })
+})
+
 test.describe("Outline", () => {
   test("Tab folds a chapter into the one above, and Undo puts it back", async ({ page }) => {
     await openPlan(page, "Outline")

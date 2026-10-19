@@ -324,7 +324,12 @@ function OutlineAct({ group, act }: { group: PlanGroup; act: Readonly<PlanActRow
           />
         </div>
       </OutlineRow>
-      {count > 0 ? <ChapterList group={group} label={label} /> : <EmptyAct act={act} />}
+      {count > 0 ? (
+        <ChapterList group={group} label={label} />
+      ) : (
+        <p className="mt-1 ml-9.5 px-1 text-sm text-muted-foreground">No chapters in this act yet.</p>
+      )}
+      <AddChapterRow group={group} label={label} />
     </section>
   )
 }
@@ -348,6 +353,7 @@ function LooseChapters({ group }: { group: PlanGroup }) {
         </p>
       )}
       <ChapterList group={group} label={label} />
+      {!plan.hasActs && <AddChapterRow group={group} label={label} />}
     </section>
   )
 }
@@ -362,20 +368,31 @@ function ChapterList({ group, label }: { group: PlanGroup; label: string }) {
   )
 }
 
-function EmptyAct({ act }: { act: Readonly<PlanActRow> }) {
-  const { db, bookId, focusItem } = usePlanContext()
+/**
+ * The row after an act's last chapter, or a book's when it has no acts, that adds a chapter there. Out of the Tab
+ * order, like the rest of the outline's buttons: from the keyboard, Enter on a title adds the next one.
+ */
+function AddChapterRow({ group, label }: { group: PlanGroup; label: string }) {
+  const { db, bookId, plan, focusItem } = usePlanContext()
   const add = async () => {
-    const id = await attempt("add chapter", createChapter(db, bookId, { actId: act.id }))
+    const id = await attempt("add chapter", createChapter(db, bookId, { actId: group.act?.id ?? null }))
     if (id) focusItem("chapter", id)
   }
   return (
-    <div className="mt-1 ml-9.5 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-dashed py-1.5 pr-1.5 pl-3 text-sm text-muted-foreground">
-      No chapters in this act yet.
-      <Button variant="ghost" size="sm" tabIndex={-1} onClick={() => void add()}>
-        <PlusIcon />
-        Add chapter
-      </Button>
-    </div>
+    <button
+      type="button"
+      tabIndex={-1}
+      data-add-chapter={group.key}
+      data-tour="plan-add-chapter"
+      onClick={() => void add()}
+      className="mt-1.5 ml-9.5 flex w-[calc(100%-2.375rem)] items-center gap-2 rounded-lg border-2 border-dashed border-border px-3 py-2 text-left text-sm font-medium text-ink-2 transition-colors outline-none hover:border-primary/50 hover:bg-primary/5 hover:text-primary focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:min-h-11"
+    >
+      <PlusIcon className="size-4 shrink-0" />
+      <span>
+        Add a chapter
+        {plan.hasActs && <span className="sr-only"> to {label}</span>}
+      </span>
+    </button>
   )
 }
 

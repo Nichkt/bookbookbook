@@ -32,6 +32,15 @@ your voice when you dictate online, which goes to the browser's maker (Microsoft
 There are no accounts or sync yet, so keep backups: Backups… in the book menu downloads one, or backs every book up to
 a folder as it changes (Chrome, Edge and the Windows app).
 
+**After M12, adding a chapter** (DESIGN.md §6, "Built after M12"):
+- **Add a chapter:** a big button after the last chapter of each act on the Board, or of the book when it has no
+  acts, pops out a new chapter to fill in. The toolbar's Chapter button does the same at the end of the book. In the
+  Outline and on the Corkboard, Add a chapter puts a line or an index card at the end of the act, to title in place.
+- **Save or go back:** a bar along the bottom of the pop-out has Back to planning and Write this chapter, and Save
+  for a new chapter. Save puts the chapter in your plan and takes you back to it, and Write this chapter keeps it
+  too. Going back any other way (Back to planning, the X or Esc) leaves a new chapter out: a blank one is simply
+  gone, and one you've typed in goes to the Trash, with Undo.
+
 **M12, The Windows app** (DESIGN.md §11, "Built in M12"; see [The Windows app](#the-windows-app)):
 - **An app of its own:** an [installer](#download-for-windows) for Windows 10 and 11 puts bookbookbook in the Start
   menu and on the desktop, for you alone, with no administrator needed. It opens in its own window, where and as large
@@ -438,7 +447,9 @@ They cover:
 - a phone-style keyboard composition, replayed through the Chrome DevTools Protocol;
 - the planner (`plan.spec.ts`): dragging and keyboard moves on the Board, display presets, filters, the chapter
   pop-out (its fields, Previous and Next, Write this chapter, deleting a moment and Undo) and its URL, the Trash,
-  folding and splitting in the Outline, and the links between Plan and Write;
+  adding a chapter (Add a chapter on the Board, in the Outline and in a book without acts, then Save, Back to
+  planning, Esc and Undo, or Write this chapter), folding and splitting in the Outline, and the links between Plan
+  and Write;
 - the planner's other views and structures (`plan-views.spec.ts`): the Matrix's cells, quiet story points and keys,
   both Timeline orders and a story time changed, writing on and moving Corkboard cards, the structure ribbon and
   Structure menu, a new book from a structure, planning step by step (and its Undo) in a new book and the sample,

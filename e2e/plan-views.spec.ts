@@ -169,7 +169,7 @@ test.describe("Corkboard", () => {
     await expect(page.getByRole("button", { name: "Chapter 2: The Ferry Home" })).toBeFocused()
 
     // An index card's title is written on the card.
-    await page.getByRole("button", { name: "Add chapter to ACT I — Arrival", exact: true }).click()
+    await page.getByRole("button", { name: "Add a chapter to ACT I — Arrival", exact: true }).click()
     const title = page.getByRole("textbox", { name: "Title of chapter 5" })
     await expect(title).toBeFocused()
     await expect(title).toHaveValue("")

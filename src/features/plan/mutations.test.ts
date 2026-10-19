@@ -11,6 +11,7 @@ import {
   createScene,
   deleteAct,
   deleteBeat,
+  discardNewChapter,
   mergeActIntoPrevious,
   mergeChapterIntoPrevious,
   moveAct,
@@ -28,6 +29,7 @@ import {
   splitTarget,
   trashChapter,
   trashScene,
+  updateChapter,
 } from "./mutations"
 
 let db: ReturnType<typeof createTestDb>
@@ -106,6 +108,58 @@ describe("chapters", () => {
     await db.execute("DELETE FROM acts WHERE id = 'act-Two'")
     await restoreChapter(db, "ch-C")
     expect(await outline(db)).toEqual(["# One", "A", "B", "# Three", "D", "E", "C"])
+  })
+})
+
+describe("leaving out a new chapter", () => {
+  const exists = async (id: string) => Boolean(await db.getOptional("SELECT id FROM chapters WHERE id = ?", [id]))
+
+  test("an untouched chapter is deleted outright, with its empty moments", async () => {
+    await buildBook(db, threeActs)
+    const id = await createChapter(db, "book", { actId: "act-Two" })
+    await addBeat(db, id)
+    expect(await discardNewChapter(db, id)).toEqual({ outcome: "deleted" })
+    expect(await exists(id)).toBe(false)
+    expect(await db.getAll("SELECT id FROM beats WHERE parent_id = ?", [id])).toEqual([])
+    expect(await outline(db)).toEqual(threeActOutline)
+  })
+
+  test("a typed-in chapter goes to the Trash, and Undo brings it back", async () => {
+    await buildBook(db, threeActs)
+    const id = await createChapter(db, "book", { actId: "act-Two" }, { title: "Storm" })
+    const result = await discardNewChapter(db, id)
+    expect(result).toMatchObject({ outcome: "trashed", chapter: { id, title: "Storm" } })
+    expect(await chapterRow(db, id)).toMatchObject({ deleted_at: expect.any(String) })
+    expect(await outline(db)).toEqual(threeActOutline)
+    if (result.outcome === "trashed") await undo(result.changes)
+    expect(await outline(db)).toEqual(["# One", "A", "B", "# Two", "C", "Storm", "# Three", "D", "E"])
+  })
+
+  const edits: [string, (id: string) => Promise<unknown>][] = [
+    ["a summary", (id) => updateChapter(db, id, { summary: "Rain" })],
+    ["notes", (id) => updateChapter(db, id, { notes: "Check the map" })],
+    ["a status", (id) => updateChapter(db, id, { status: "outlined" })],
+    ["a word count target", (id) => updateChapter(db, id, { word_target: 5000 })],
+    ["a label", (id) => updateChapter(db, id, { labels: '["Flashback"]' })],
+    ["a moment", (id) => addBeat(db, id, undefined, "She leaves")],
+    ["a story point", (id) => setChapterLink(db, id, "thread", "entry-ledger", true)],
+    ["a scene", (id) => createScene(db, id)],
+  ]
+  test.each(edits)("%s is kept in the Trash", async (_, edit) => {
+    await buildBook(db, threeActs)
+    const id = await createChapter(db, "book", { actId: "act-Two" })
+    await edit(id)
+    expect(await discardNewChapter(db, id)).toMatchObject({ outcome: "trashed" })
+    expect(await chapterRow(db, id)).toMatchObject({ deleted_at: expect.any(String) })
+  })
+
+  test("a chapter already in the Trash, or gone, is left alone", async () => {
+    await buildBook(db, threeActs)
+    await trashChapter(db, "ch-C")
+    const before = await chapterRow(db, "ch-C")
+    expect(await discardNewChapter(db, "ch-C")).toEqual({ outcome: "none" })
+    expect(await chapterRow(db, "ch-C")).toEqual(before)
+    expect(await discardNewChapter(db, "ch-missing")).toEqual({ outcome: "none" })
   })
 })
 

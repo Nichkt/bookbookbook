@@ -2,6 +2,7 @@ import { generateKeyBetween } from "fractional-indexing"
 import { ChangeSet } from "@/db/changes"
 import { groupChapters, keysForInsert, sortByPosition, type ChapterGroup } from "@/db/order"
 import type { ActRow, BeatRow, ChapterRow, EntityLinkRow, LinkRole, SceneRow } from "@/db/schema"
+import { purgeChapters } from "@/db/trash"
 import { insertRow, updateRow, type Db, type SqlValue, type Tx } from "@/db/tx"
 import { newId } from "@/lib/id"
 import { parseStringList, uniqueStrings } from "@/lib/json"
@@ -217,6 +218,47 @@ async function restoreChapterIn(tx: Tx, id: string) {
     values.position = keys[0]
   }
   await updateRow(tx, "chapters", id, values)
+}
+
+/** True while the chapter is as `createChapter` left it: nothing planned or written in it. */
+async function isUntouched(tx: Tx, chapter: ChapterRow) {
+  const texts = [chapter.title, chapter.summary, chapter.notes, chapter.story_time]
+  if (texts.some((text) => text?.trim())) return false
+  if ((chapter.status ?? "idea") !== "idea" || chapter.word_target !== DEFAULT_CHAPTER_TARGET) return false
+  if (chapter.pov_entry_id || chapter.location_entry_id || chapter.template_beat_key) return false
+  if (parseStringList(chapter.labels).length > 0) return false
+  const used = await tx.getOptional(
+    `SELECT 1 AS used WHERE
+       EXISTS (SELECT 1 FROM beats WHERE parent_kind = 'chapter' AND parent_id = ? AND trim(coalesce(text, '')) != '')
+       OR EXISTS (SELECT 1 FROM scenes WHERE chapter_id = ?)
+       OR EXISTS (SELECT 1 FROM entity_links WHERE chapter_id = ?)`,
+    [chapter.id, chapter.id, chapter.id],
+  )
+  return !used
+}
+
+export type DiscardedChapter =
+  | { outcome: "none" }
+  | { outcome: "deleted" }
+  | { outcome: "trashed"; changes: ChangeSet; chapter: ChapterRow }
+
+/**
+ * Leaves a just-added chapter out of the plan when the writer goes back without saving it (DESIGN.md §6). Untouched,
+ * it's deleted outright; anything typed in it goes to the Trash, so Undo or the Trash can bring it back.
+ */
+export async function discardNewChapter(db: Db, id: string): Promise<DiscardedChapter> {
+  return db.writeTransaction(async (tx) => {
+    const chapter = await getChapter(tx, id)
+    if (!chapter || chapter.deleted_at) return { outcome: "none" }
+    if (await isUntouched(tx, chapter)) {
+      await purgeChapters(tx, [id])
+      return { outcome: "deleted" }
+    }
+    const changes = new ChangeSet()
+    await changes.captureIds(tx, "chapters", [id])
+    await updateRow(tx, "chapters", id, { deleted_at: timestamp() })
+    return { outcome: "trashed", changes, chapter }
+  })
 }
 
 // ── Scenes ──────────────────────────────────────────────────────────────────

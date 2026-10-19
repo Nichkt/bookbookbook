@@ -60,7 +60,7 @@ const ANY = "__any"
 
 export function PlanToolbar() {
   const context = usePlanContext()
-  const { db, bookId, book, plan, view, focusItem, showChapter } = context
+  const { db, bookId, book, plan, view, focusItem, showChapter, showNewChapter } = context
   const location = useLocation()
 
   const addAct = async () => {
@@ -70,13 +70,13 @@ export function PlanToolbar() {
     announce(plan.hasActs ? "Act added at the end" : "Act added. It holds every chapter for now.")
   }
 
-  const addChapter = async () => {
+  const addChapter = async (opener: HTMLElement | null = null) => {
     const id = await attempt("add chapter", createChapter(db, bookId, { actId: null }))
     if (!id) return
-    // Titled where the view shows titles: in the Outline's row, on the index card, else in the details.
+    // Titled where the view shows titles: in the Outline's row, on the index card, else in the pop-out.
     if (view === "outline") focusItem("chapter", id)
     else if (view === "corkboard") focusSoon(byData("index-title", id))
-    else showChapter(id, "title")
+    else showNewChapter(id, opener)
   }
 
   usePaletteSource("plan", {
@@ -124,7 +124,7 @@ export function PlanToolbar() {
           <PlusIcon />
           Act
         </Button>
-        <Button size="sm" onClick={() => void addChapter()}>
+        <Button size="sm" onClick={(event) => void addChapter(event.currentTarget)}>
           <PlusIcon />
           Chapter
         </Button>

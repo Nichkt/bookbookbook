@@ -18,6 +18,7 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { byData } from "@/lib/focus"
 import { deleteActWithUndo, foldAct, moveActBy } from "./commands"
 import { createChapter } from "./mutations"
 import { usePlanContext } from "./planContext"
@@ -38,7 +39,7 @@ interface ActMenuProps {
 
 /** The ⋯ menu on an act, on the Board and in the Outline. */
 export function ActMenu({ group, shortcuts, open, onOpenChange, returnFocus, triggerTabIndex, triggerRef }: ActMenuProps) {
-  const { db, bookId, plan, focusItem, view, showChapter } = usePlanContext()
+  const { db, bookId, plan, focusItem, view, showNewChapter } = usePlanContext()
   // Commands place focus themselves; the menu then mustn't pull it back to its button.
   const commandRan = useRef(false)
   const act = group.act
@@ -55,7 +56,8 @@ export function ActMenu({ group, shortcuts, open, onOpenChange, returnFocus, tri
   const addChapter = async () => {
     const id = await attempt("add chapter", createChapter(db, bookId, { actId: act.id }))
     if (!id) return
-    if (view === "board") showChapter(id, "title")
+    // Left out, it gives focus to the act's add tile: the menu that added it is gone.
+    if (view === "board") showNewChapter(id, document.querySelector<HTMLElement>(byData("add-chapter", group.key)))
     else focusItem("chapter", id)
   }
 
