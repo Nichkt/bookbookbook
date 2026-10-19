@@ -1484,8 +1484,8 @@ LanguageTool or the browser spellchecker. RTL later.
     them first if pressed sooner.
 - **Left out:** focus mode's faded paragraphs are not held to contrast, as the writer asked for the fade; the
   paragraph being written is.
-- **Still to do:** axe can't tell whether a screen reader's account of a page makes sense, so a pass with NVDA and
-  VoiceOver remains.
+- **Still to do:** axe can't tell whether a screen reader's account of a page makes sense, so a pass with NVDA on
+  Windows and TalkBack on Android remains.
 
 ### Built in M8: performance on a long book
 - **How it's measured.** `npm run perf` (`e2e/perf.ts`) builds the app for production, serves the build, and in Chrome
@@ -1649,8 +1649,8 @@ words as "also called".
 **Beta exit criteria:**
 - No open data-loss bugs.
 - Installable PWA.
-- Tested on Chrome, Edge, Safari and Firefox (desktop), iOS Safari, and Android Chrome with Gboard and Samsung
-  Keyboard.
+- Tested on Chrome, Edge and Firefox on Windows, and Android Chrome with Gboard and Samsung Keyboard. *(Safari,
+  on Macs, iPhones and iPads, is set aside for now, decision 36.)*
 - A 150k-word sample book meets the performance budgets. *(Measured with `npm run perf`, §17: met on a desktop
   computer, but for the shell's size, decision 35.)*
 - Keyboard + axe audit passes. *(The axe audit is built and passes, §17.)*
@@ -1663,8 +1663,8 @@ words as "also called".
 1. Name clearance for "bookbookbook" (trademark, domain, app stores).
 2. The phone keyboard tests on real devices ([ime-smoke-test.md](ime-smoke-test.md)): Gboard and Samsung Keyboard,
    left over from M0, and the tools above the keyboard from M8.
-3. A pass with screen readers, NVDA on Windows and VoiceOver on a Mac and an iPhone, which the axe audit can't stand
-   in for (§17, "Built in M8").
+3. A pass with screen readers, NVDA on Windows and TalkBack on Android, which the axe audit can't stand in for
+   (§17, "Built in M8").
 4. M2, Editor core, M3, Codex core, M4, AI core, M5, Planner II, M6, Writing aids, M7, Import / export /
    backups, and M11, Speech-to-text, are built and tested ([README](../README.md)): M4 with the writer's own key or a
    model on their computer, as hosted AI waits for M10 (§9, "Built in M4"), M6 without comments, prose checks,
@@ -1752,3 +1752,4 @@ words as "also called".
 | 33 | M8 tools above the keyboard and bottom sheets | On a touch screen, with a scene's text in focus and an on-screen keyboard up, a bar on the keyboard's top edge: Add to World for a new name, at the start, then Undo, Redo, Bold, Italic, Dictate and Done; taps leave focus in the text; the keyboard found by the visual viewport shrinking 150 px or more from the window's tallest at that width, never while pinched; the tab bar goes and toasts rise above the bar; the bar's height is ProseMirror's scroll threshold and margin at the bottom, so the caret stays above it; focus mode hides it; on phones Write's panel rises from the bottom below the header, with a handle that closes it dragged a quarter down or flicked; not yet tried on a real device | Details in §16, "Built in M8" |
 | 34 | M8 accessibility audit | axe-core at 73 stops on walks through every page, panel, menu and dialog, on a computer and a phone; WCAG 2.2 A and AA and axe's best practices in the light theme, and the color rules alone in sepia and dark, as the themes change only colors; reduced motion, so nothing's caught mid-fade, and legacy mode, which runs axe in the page without opening a blank page each time, as the app has no frames; any finding fails; fixed: muted text darker (lighter in dark), black or white text on an entry's color, accessible names that start with the words shown, names for every popover, 24 px rows in What the AI sees, and Dictate ready before its settings load; focus mode's faded paragraphs left out of contrast, the paragraph being written held to it; a screen reader pass still to do | Details in §17, "Built in M8" |
 | 35 | M8 performance on a long book | `npm run perf` builds the app, imports a made-up book of 161,741 words in Chrome, and times typing, opening chapters, scrolling and typing in the Manuscript, a drag on the Board and opening the home screen; the budgets are held on a desktop computer, met there but for the shell's size, and a run on a CPU slowed fourfold shows what a slower one feels; unchanged chapters keep their objects as the plan updates, Write's state is split three ways, numbers share a formatter, the Manuscript's far chapters skip layout and paint, menus in long lists mount when first opened, and each of a book's pages is its own download, the one opened on fetched with the shell and the rest when idle; the shell's 250 KB is missed at 366 KB, as PowerSync and React DOM take 173 KB of it and nothing shows without them, and it stays the target, the service worker making it a cost of the first visit alone; slowed fourfold, opening a chapter and typing in the Manuscript miss, and picking up a card stalls, left for later | Details in §17, "Built in M8" |
+| 36 | Platforms for now | Windows and Android: Chrome, Edge and Firefox on Windows, the desktop app on Windows (M12), and Chrome on Android with Gboard and Samsung Keyboard; Macs, iPhones and iPads are set aside, neither tested nor designed for, though what's built for Safari stays: its install steps, Apple's speech recognition and the handling of its keyboard | Set by the project's owner after M8; §19 |

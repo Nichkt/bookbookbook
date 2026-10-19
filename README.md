@@ -8,8 +8,9 @@ takes after NovelCrafter, the writing side after Sudowrite.
 
 ## Status: home, Plan, World, Write, writing aids, AI, Inbox, dictation, search, help, import, export, backups, offline
 
-Milestones 0 to 7 and 11 from DESIGN.md §19 are built, and M8 is under way, plus a home screen, a glossary and a tour
-of every page.
+Milestones 0 to 8 and 11 from DESIGN.md §19 are built, plus a home screen, a glossary and a tour of every page. M8
+still wants tests on real Android phones and a pass with screen readers, which take a person. Macs, iPhones and
+iPads are set aside for now.
 Everything stays on the device, except what an AI tool reads when you run it, which goes only to the AI you chose, and
 your voice when you dictate online, which goes to the browser's maker.
 There are no accounts or sync yet, so keep backups: Backups… in the book menu downloads one, or backs every book up to

@@ -119,10 +119,9 @@ For any failure, describe what you typed and what you saw, then tap **Copy log**
 On a touch screen, Write puts a bar on the on-screen keyboard's top edge (DESIGN.md §16, "Built in M8").
 `e2e/mobile.spec.ts` stands in for the keyboard by shrinking the visual viewport as Chrome on Android does, which
 can't show how real keyboards and browsers behave. Set up as above, open `http://localhost:5173/`, then the sample
-book's first chapter in Write. An iPhone or iPad needs the app on an `https://` address, which that setup doesn't
-give.
+book's first chapter in Write.
 
-Test on an Android phone in Chrome and, when you can, an iPhone in Safari:
+Test on an Android phone in Chrome. iPhones and iPads are set aside for now (DESIGN.md §22, decision 36).
 
 | # | Do this | Expect |
 |---|---|---|
