@@ -2,6 +2,7 @@ import { usePowerSync } from "@powersync/react"
 import { DownloadIcon } from "lucide-react"
 import { useId, useState, type FormEvent } from "react"
 import { toast } from "sonner"
+import { desktop } from "@/app/desktop"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DialogClose, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -116,7 +117,8 @@ function ExportFields({ book, stored, saveChoices }: ExportFieldsProps) {
       {format === "backup" ? (
         <p className="text-sm text-muted-foreground">
           One zip with everything in this book: plan, world, prose, named versions and writing stats, plus a Markdown
-          copy to read anywhere. Restore it from the book menu, in this browser or another.
+          copy to read anywhere. Restore it from the book menu,{" "}
+          {desktop ? "here or in bookbookbook on another computer" : "in this browser or another"}.
         </p>
       ) : (
         <div className="grid gap-2">

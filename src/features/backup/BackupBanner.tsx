@@ -1,6 +1,7 @@
 import { usePowerSync } from "@powersync/react"
 import { ArchiveIcon, FolderClockIcon, FolderXIcon } from "lucide-react"
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react"
+import { desktop } from "@/app/desktop"
 import type { Reminder } from "@/backup/record"
 import { Button } from "@/components/ui/button"
 import type { BookListRow } from "@/db/queries"
@@ -15,11 +16,14 @@ function message(reminder: Reminder, title: string, folder: Folder): string {
   const name = folder.pref?.name ?? "the folder"
   switch (reminder.kind) {
     case "never":
-      return `“${title}” has never been backed up. Its only copy is in this browser.`
+      return `“${title}” has never been backed up. Its only copy is ${desktop ? "on this computer" : "in this browser"}.`
     case "stale":
       return `“${title}” was last backed up ${ago(reminder.days)}, and has changed since.`
     case "paused":
-      return `Backups to “${name}” are paused: the browser needs your permission to write there again.`
+      return (
+        `Backups to “${name}” are paused: ${desktop ? "bookbookbook" : "the browser"} needs your permission to ` +
+        "write there again."
+      )
     case "stopped":
       return `Backups to “${name}” have stopped: ${whyStopped(folder)}.`
   }

@@ -10,6 +10,7 @@ import {
   type FocusEvent,
   type ReactNode,
 } from "react"
+import { desktop } from "@/app/desktop"
 import { promptInstall, useInstallWay } from "@/app/install"
 import { KEEP_PER_BOOK } from "@/backup/folder"
 import { daysBetween, lastBackupLabel, lastBackupSentence, parseRecord, recordKey } from "@/backup/record"
@@ -22,7 +23,7 @@ import { useFolder, whyStopped } from "./useFolder"
 
 /*
  * Backups, from the book menu (DESIGN.md §12): the open book's last backup, folder backups, and whether the browser
- * has agreed to keep the app's data.
+ * has agreed to keep the app's data. The desktop app keeps its books on the computer, so says so instead.
  */
 
 const HEADING = "text-xs font-semibold tracking-wider text-muted-foreground uppercase"
@@ -93,14 +94,17 @@ export function BackupsDialog({ book }: { book: BookListRow | undefined }) {
       <DialogHeader>
         <DialogTitle>Backups</DialogTitle>
         <DialogDescription>
-          Your books are kept in this browser. A backup is a copy kept somewhere else, to bring back with Restore from
-          backup if the browser ever loses them.
+          {desktop
+            ? "Your books are kept on this computer. A backup is a copy kept somewhere else, to bring back with " +
+              "Restore from backup if the computer ever loses them."
+            : "Your books are kept in this browser. A backup is a copy kept somewhere else, to bring back with " +
+              "Restore from backup if the browser ever loses them."}
         </DialogDescription>
       </DialogHeader>
       <div className="grid gap-5">
         {book && <BookBackup book={book} />}
         <FolderBackups />
-        <BrowserStorage />
+        {desktop ? <ComputerStorage /> : <BrowserStorage />}
       </div>
       <DialogFooter>
         <DialogClose asChild>
@@ -209,11 +213,16 @@ function FolderBackups() {
     case "paused":
       about = (
         <p>
-          Backups to {name} are paused: the browser needs your permission to write there again.
-          <br />
-          <span className="text-muted-foreground">
-            If the browser offers “Allow on every visit”, choose it to keep them from pausing.
-          </span>
+          Backups to {name} are paused: {desktop ? "bookbookbook" : "the browser"} needs your permission to write
+          there again.
+          {!desktop && (
+            <>
+              <br />
+              <span className="text-muted-foreground">
+                If the browser offers “Allow on every visit”, choose it to keep them from pausing.
+              </span>
+            </>
+          )}
         </p>
       )
       actions = [allow("Allow"), choose("Change folder…"), stop]
@@ -226,7 +235,9 @@ function FolderBackups() {
           {message && (
             <>
               <br />
-              <span className="text-muted-foreground">The browser said: {message}</span>
+              <span className="text-muted-foreground">
+                {desktop ? "The error was" : "The browser said"}: {message}
+              </span>
             </>
           )}
         </p>
@@ -325,6 +336,47 @@ function BrowserStorage() {
               </Button>
             )}
           </Actions>
+        </>
+      )}
+    </Section>
+  )
+}
+
+/**
+ * The desktop app's books, which WebView2 keeps on the computer. It doesn't promise to keep them come what may, and
+ * doesn't take asking, so this only says what's so.
+ */
+function ComputerStorage() {
+  const [storage, setStorage] = useState<Omit<StorageState, "refused"> | null>(null)
+
+  useEffect(() => {
+    let current = true
+    void (async () => {
+      const persisted = (await navigator.storage?.persisted?.().catch(() => false)) ?? false
+      const estimate = await navigator.storage?.estimate?.().catch(() => undefined)
+      if (current) setStorage({ persisted, usage: estimate?.usage ?? null })
+    })()
+    return () => {
+      current = false
+    }
+  }, [])
+
+  const usage = storage?.usage == null ? "" : ` Your books and the app take up ${formatSize(storage.usage)}.`
+  return (
+    <Section heading="This computer">
+      {storage && (
+        <>
+          <p className="text-muted-foreground">
+            {storage.persisted
+              ? "Your books stay on this computer until you delete them."
+              : "Your books stay on this computer, unless it runs very short of space, when they could be cleared " +
+                "to make room."}
+            {usage}
+          </p>
+          <p className="text-muted-foreground">
+            Uninstalling bookbookbook keeps them, unless you tick Delete the application data, which deletes them
+            for good.
+          </p>
         </>
       )}
     </Section>

@@ -4,8 +4,8 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vitest/config'
 
-// https://vite.dev/config/. `--mode e2e` builds the end-to-end tests' copy, which has the sample book
-// (src/db/powersync.ts), into dist-e2e/.
+// https://vite.dev/config/. `--mode desktop` builds the desktop app's copy (src/app/desktop.ts) into dist-desktop/, and
+// `--mode e2e` the end-to-end tests' copy, which has the sample book (src/db/powersync.ts), into dist-e2e/.
 export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
@@ -13,6 +13,8 @@ export default defineConfig(({ mode }) => ({
     // The installable app, and a service worker that keeps a copy of it so it opens offline (DESIGN.md §11). Only
     // production builds register it (src/app/pwa.ts); `npm run dev` never does.
     VitePWA({
+      // The desktop app has its files on the computer, and a new version of it comes with a new installer.
+      disable: mode === 'desktop',
       // A new version waits for the writer to reload, rather than reloading under them.
       registerType: 'prompt',
       injectRegister: false,
@@ -62,7 +64,12 @@ export default defineConfig(({ mode }) => ({
     format: 'es',
   },
   build: {
-    outDir: mode === 'e2e' ? 'dist-e2e' : 'dist',
+    outDir: mode === 'desktop' ? 'dist-desktop' : mode === 'e2e' ? 'dist-e2e' : 'dist',
+  },
+  server: {
+    // Nothing the app's pages load: the desktop app's Rust side, with its thousands of build files (Tauri's own
+    // template leaves it out too), and the other modes' builds, as the dev server leaves out only its own.
+    watch: { ignored: ['**/dist-desktop/**', '**/dist-e2e/**', '**/src-tauri/**'] },
   },
   test: {
     include: ['src/**/*.test.ts'],

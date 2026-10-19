@@ -1,3 +1,4 @@
+import { desktop } from "@/app/desktop"
 import { shortcutLabel } from "@/lib/keys"
 import type { TourId } from "./helpStore"
 
@@ -60,7 +61,7 @@ const HOME: TourDefinition = {
   steps: [
     {
       title: "Welcome to bookbookbook",
-      body: "This is your home screen, where every book you're working on lives. Your books are saved in this browser, on this device.",
+      body: `This is your home screen, where every book you're working on lives. Your books are saved ${desktop ? "on this computer" : "in this browser, on this device"}.`,
     },
     {
       target: "home-books",

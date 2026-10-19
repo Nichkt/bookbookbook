@@ -1,5 +1,6 @@
 import { PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon, SquareIcon } from "lucide-react"
 import { useEffect, useId, type KeyboardEvent, type ReactNode } from "react"
+import { desktop } from "@/app/desktop"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -123,7 +124,7 @@ export function ReadAloudBar() {
         </Select>
       )}
       <span id={`${id}-voice`} hidden>
-        Online voices send the text to the browser maker's servers to be spoken.
+        Online voices send the text to {desktop ? "Microsoft's" : "the browser maker's"} servers to be spoken.
       </span>
     </section>
   )

@@ -43,7 +43,7 @@ assistant beside the page. Everything works offline. Your writing stays yours.
 | Area | Decision |
 |---|---|
 | Audience | Public product |
-| Platform | Local-first web app / PWA. Tauri desktop app in v1.0 |
+| Platform | Local-first web app / PWA. Tauri desktop app for Windows (built in M12, §11) |
 | Structure | Book › Acts (optional) › Chapters › Scenes (optional) › Beats. Single book now, series-ready data model |
 | Planner | Board, Outline, Matrix, Timeline, Corkboard. 11 card fields. Display presets (Compact / Standard / Detailed) |
 | Templates | 9 structures (Three-Act … Snowflake wizard, Custom). Scaffold a new book **and** overlay on an existing one |
@@ -993,7 +993,7 @@ flowchart LR
 | Backend | Supabase: Auth, Postgres + Row Level Security, Storage, Edge Functions (AI proxy, credits, Stripe webhooks, email backups) |
 | UI state | Zustand for ephemeral UI; PowerSync live queries for data |
 | Workers | Comlink-wrapped workers for mentions, search, prose checks, Harper, speech models |
-| Desktop | Tauri 2 (v1.0): native file backups, OS keychain for API keys, easier local-model access |
+| Desktop | Tauri 2, on Windows (built in M12, below): the web app in WebView2, with an installer. Native file backups, the OS keychain for API keys and updates to come |
 | Quality | Vitest, Playwright (incl. offline and multi-tab), axe-core, error reporting with content scrubbing |
 
 ### How sync works
@@ -1072,6 +1072,51 @@ flowchart LR
   Mac, Install in the Backups dialog, and nothing offered once installed. `src/app/install.test.ts` checks which
   devices and browsers are given Safari's steps.
 
+### Built in M12: The Windows app
+- **The same app, in a window of its own.** Tauri 2 (`src-tauri/`) shows the app, built with `vite build --mode
+  desktop` into `dist-desktop/`, in WebView2, the browser engine that comes with Windows, at `http://tauri.localhost`.
+  Windows alone, for now (decision 36). `src/app/desktop.ts` tells the app where it is: there it has no service
+  worker, as its files are on the computer, and offers no install. Its books are WebView2's, kept under the app's
+  identifier, `io.github.nichkt.bookbookbook`, which must never change, and apart from any in a browser. A real
+  install starts with no books (decision 37).
+- **One window.** Opening the app again brings its window to the front (Tauri's single-instance plugin), so two
+  windows never work on the same books unaware of each other. PowerSync runs without the shared worker that lets
+  tabs share the database: WebView2 kept it past a reload, which then couldn't reach it and never got past "Opening
+  your library…". The window opens where it was, and as large (the window-state plugin), hidden until it's there.
+- **Out of the app, into the browser.** A link out of the app, or one asking for a new window, opens in the browser
+  and the app stays put, as the window has no Back button. Only web pages and email addresses open, never a file. A
+  file dropped where nothing takes it doesn't replace the app.
+- **No prompts of WebView2's.** It would ask for the microphone and the backup folder itself, from "tauri.localhost",
+  and keep a Block for good, with no settings in the window to undo it. The writer chose both in the app already, so
+  the app allows them (`src-tauri/src/lib.rs`). Windows' microphone privacy setting still applies, and dictation's
+  messages send the writer there.
+- **Folder backups carry on.** WebView2 forgets the permission to write to the folder whenever the app closes, and
+  gives it again only at a click or key press, so not as the app starts. So the app asks again at the writer's first
+  click or key press, which WebView2 grants without a word, and then makes up any pass that went without. Asking
+  doesn't use the click up, so a click that opens the folder picker still does. Until then the folder shows as on,
+  not paused; if asking fails, as paused, with Allow.
+- **Leaving the app is minimizing or closing it.** WebView2 isn't told when its window is minimized, so the app tells
+  it, and the page goes hidden and backs up, as a browser tab does when left. Closing waits for a last backup,
+  however recent the one before: the window asks the page (the `bookbookbook:closing` event), which saves the
+  editor's last words and makes a pass, then says to close (`close_now`). Ten seconds at most; closing again closes
+  at once.
+- **Speech.** Dictation is online only, on Microsoft's speech service, as WebView2 can't recognize speech on the
+  computer (§10). When it can't reach it, Windows' own dictation, Windows key + H, is suggested. Read aloud speaks
+  with Windows' voices.
+- **Its own words.** The Backups dialog, the backup reminder, dictation, read aloud, AI settings, Export, the startup
+  error, the glossary ("The Windows app") and the home tour say "this computer" or "Windows" where the web app says
+  "this browser". The Backups dialog's last part, This computer, says how much room the books take, and that
+  uninstalling keeps them unless Delete the application data is ticked.
+- **The installer**, about 5 MB, is NSIS's, for the user running it, so needs no administrator, and fetches WebView2
+  if it's missing. It's unsigned, so SmartScreen warns about it. `npm run icons` draws the app's icons too.
+- **Tested:** unit tests for asking again for the folder's permission and for closing
+  (`src/backup/scheduler.test.ts`), and for dictation's messages (`src/speech/dictation.desktop.test.ts`). By hand, on
+  Windows: installing, silently too; the empty library; the folder's permission across relaunches; backups on
+  minimizing and closing; closing with the page stuck, and twice; and uninstalling. The end-to-end tests run in
+  Chrome, not in the app.
+- **Not yet:** the OS keychain for AI keys, backups written by the app rather than WebView2, updates from inside the
+  app, a signed installer, and speech recognition on the computer (whisper.cpp, §10).
+
 ---
 
 ## 12. Data safety
@@ -1080,7 +1125,7 @@ flowchart LR
 |---|---|---|
 | 1. Local database | SQLite (WASM), persisted | Every keystroke batch |
 | 2. Snapshots | Per-scene versions, compare & restore (built in M2) | Auto before a sitting's first edit, every ~10 min of editing and on leaving a scene; manual |
-| 3. Folder auto-backup | Each book's backup zip, written into a folder the writer chooses (File System Access API: Chrome and Edge on computers; native in Tauri). Keeps the newest 10 of each book (built in M7) | Within the hour of a change, and on leaving the app |
+| 3. Folder auto-backup | Each book's backup zip, written into a folder the writer chooses (File System Access API: Chrome and Edge on computers, and the Windows app's WebView2, M12). Keeps the newest 10 of each book (built in M7) | Within the hour of a change, and on leaving the app |
 | 4. Export | One-click full `.zip` (built in M7) | Any time |
 | 5. Cloud sync + history *(Studio)* | Server copy + 30+ days of snapshots | Continuous |
 | 6. Weekly email backup *(v1.x, opt-in)* | Email with an **expiring link** to an encrypted zip, never an attachment | Weekly |
@@ -1264,7 +1309,7 @@ M7 has built export, backups, restoring them, import, folder backups and the bac
   - It opens at the first chapter, with "Imported “Title”".
 - **Not yet:** choosing chapters, scene-break style, front matter, act headings, a localized "Chapter", comments
   (M6), importing into an existing book, images in imports, codex images in backups (v1.x; AI cards stay out, §9
-  "Built in M4"), folder backups beyond Chrome and Edge (Tauri, M12), and checks in a worker. The app already asks
+  "Built in M4"), folder backups beyond Chrome, Edge and the Windows app, and checks in a worker. The app already asks
   the browser to keep its storage (`persist()`) at the first edit.
 
 ---
@@ -1536,7 +1581,7 @@ LanguageTool or the browser spellchecker. RTL later.
 - **Missed:**
   - The shell's 250 KB (decision 35). PowerSync's client and React DOM, 173 KB between them, are needed before any
     page can show, and the splash alone is 181 KB. After the first visit the service worker has it all on the device,
-    and the desktop app planned for M12 would read it from disk, so the cost is a first visit on a slow
+    and the Windows app (M12) reads it from disk, so the cost is a first visit on a slow
     connection. The dialogs (help, Search, Import, Export), about 40 KB, are next to load only when opened.
   - On a computer four times slower, opening a chapter takes 220 to 370 ms, and typing in the Manuscript runs just
     over a frame, with a 67 ms frame as it saves. Picking up a card on the Board stalls for up to 184 ms, as dnd-kit
@@ -1647,7 +1692,7 @@ words as "also called".
 | M9 | Accounts & sync | XL | Supabase Auth, sync rules, guest → account migration, compaction, cloud history, multi-device tests |
 | M10 | Hosted AI & billing | L | AI proxy, credit ledger (reserve/settle), Stripe Billing + Tax, usage page, plan gating |
 | M11 | Speech-to-text | M | Engine abstraction, Web Speech on-device, in-browser models, cloud opt-in, Inbox, voice commands |
-| M12 | Desktop + **v1.0 launch** | M | Tauri app, OS keychain, native backups, legal pages, pricing page, docs |
+| M12 | Desktop + **v1.0 launch** | M | Tauri app *(built for Windows, §11 "Built in M12")*, OS keychain, native backups, legal pages, pricing page, docs |
 
 **Beta exit criteria:**
 - No open data-loss bugs.
@@ -1676,7 +1721,8 @@ words as "also called".
    screen, the chapter pop-out, plain labels, World, the glossary and the page tours (§4, §6, §7, §17a), and from
    M8, Search, the command palette (§4), the app opening offline, installing and asking to be installed (§11),
    the tools above the keyboard and bottom sheets (§16), and the accessibility audit and performance on a long
-   book (§17).
+   book (§17). So is M12's Windows app (§11, "Built in M12"), without the OS keychain, native backups and updates.
+5. Signing the Windows app's installer, so SmartScreen stops warning about it, and updates from inside the app.
 
 ---
 
@@ -1757,3 +1803,4 @@ words as "also called".
 | 35 | M8 performance on a long book | `npm run perf` builds the app, imports a made-up book of 161,741 words in Chrome, and times typing, opening chapters, scrolling and typing in the Manuscript, a drag on the Board and opening the home screen; the budgets are held on a desktop computer, met there but for the shell's size, and a run on a CPU slowed fourfold shows what a slower one feels; unchanged chapters keep their objects as the plan updates, Write's state is split three ways, numbers share a formatter, the Manuscript's far chapters skip layout and paint, menus in long lists mount when first opened, and each of a book's pages is its own download, the one opened on fetched with the shell and the rest when idle; the shell's 250 KB is missed at 366 KB, as PowerSync and React DOM take 173 KB of it and nothing shows without them, and it stays the target, the service worker making it a cost of the first visit alone; slowed fourfold, opening a chapter and typing in the Manuscript miss, and picking up a card stalls, left for later | Details in §17, "Built in M8" |
 | 36 | Platforms for now | Windows and Android: Chrome, Edge and Firefox on Windows, the desktop app on Windows (M12), and Chrome on Android with Gboard and Samsung Keyboard; Macs, iPhones and iPads are set aside, neither tested nor designed for, though what's built for Safari stays: its install steps, Apple's speech recognition and the handling of its keyboard | Set by the project's owner after M8; §19 |
 | 37 | No sample book in a real install | A real install, on the web or the desktop, starts with no books, on "No books yet"; the sample book, *The Salt Ledger*, fills an empty library only on the dev server and in the end-to-end tests' build (`--mode e2e`, to `dist-e2e/`), and other builds leave it out; the glossary keeps its examples from it and says where they come from; the home tour's Your books step points at the empty library too | Set by the project's owner after M8; §4, §17a |
+| 38 | The Windows app | Tauri 2 around the web app, built in Vite's `desktop` mode and shown in WebView2: one window; its books apart from a browser's, under the identifier `io.github.nichkt.bookbookbook`, which never changes; links out of it open in the browser; the microphone and the backup folder allowed by the app, without WebView2's prompts; the folder's permission, which WebView2 forgets on closing, asked for again at the first click or key press; minimizing and closing count as leaving, and closing waits up to ten seconds for a last backup; an NSIS installer for the user running it, unsigned for now; the OS keychain, native backups, updates and signing left for later | Set by the project's owner after M8; §11, "Built in M12" |

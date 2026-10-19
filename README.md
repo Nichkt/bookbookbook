@@ -6,15 +6,30 @@ takes after NovelCrafter, the writing side after Sudowrite.
 - **Design:** [docs/DESIGN.md](docs/DESIGN.md) covers every product and technical decision and the milestone plan.
 - **Prototype:** [prototype/](prototype/README.md) is a clickable mock of the whole app. Open `prototype/index.html`.
 
-## Status: home, Plan, World, Write, writing aids, AI, Inbox, dictation, search, help, import, export, backups, offline
+## Status: home, Plan, World, Write, writing aids, AI, Inbox, dictation, search, help, import, export, backups, offline, Windows app
 
-Milestones 0 to 8 and 11 from DESIGN.md §19 are built, plus a home screen, a glossary and a tour of every page. M8
-still wants tests on real Android phones and a pass with screen readers, which take a person. Macs, iPhones and
-iPads are set aside for now.
+Milestones 0 to 8 and 11 from DESIGN.md §19 are built, and M12's Windows app, plus a home screen, a glossary and a
+tour of every page. M8 still wants tests on real Android phones and a pass with screen readers, which take a person.
+Macs, iPhones and iPads are set aside for now.
 Everything stays on the device, except what an AI tool reads when you run it, which goes only to the AI you chose, and
-your voice when you dictate online, which goes to the browser's maker.
+your voice when you dictate online, which goes to the browser's maker (Microsoft's, in the Windows app).
 There are no accounts or sync yet, so keep backups: Backups… in the book menu downloads one, or backs every book up to
-a folder as it changes (Chrome and Edge).
+a folder as it changes (Chrome, Edge and the Windows app).
+
+**M12, The Windows app** (DESIGN.md §11, "Built in M12"; see [The Windows app](#the-windows-app)):
+- **An app of its own:** an installer for Windows 10 and 11 puts bookbookbook in the Start menu, for you alone, with
+  no administrator needed. It opens in its own window, where and as large as it was when last closed, works without
+  the internet, and starts with no books.
+- **One window:** opening it again brings the open window to the front. Links out of the app, like Get a key, open in
+  your browser.
+- **Your books stay on the computer**, apart from any in bookbookbook in a browser; a backup takes a book from one to
+  the other. Uninstalling keeps them, unless you tick Delete the application data.
+- **Folder backups keep going:** the folder you chose stays allowed from one day to the next, without asking, and
+  minimizing or closing the app backs up what changed, closing waiting a moment for it.
+- **Dictation and read aloud** use Microsoft's online speech service and the voices Windows has. The microphone needs
+  only Windows' own permission.
+- **It says "this computer"**, not "this browser", wherever that's what it means: Backups, dictation, AI settings,
+  the glossary and the home tour.
 
 **M8, Offline and installing** (DESIGN.md §11, "Built in M8"):
 - **Works offline:** once bookbookbook has opened, it opens without an internet connection, at any of its pages.
@@ -277,6 +292,54 @@ are kept apart from the dev server's, as it's another address. To see an update 
 again with it open: the browser finds the new version when a page next opens, or within the hour. To be rid of the
 service worker, clear the site's data.
 
+## The Windows app
+
+`src-tauri/` puts the same app in a window of its own with [Tauri 2](https://v2.tauri.app), drawn by WebView2, the
+browser engine that comes with Windows. It's built for Windows alone (DESIGN.md §22, decision 36). Besides Node.js,
+building it needs:
+- Rust 1.90 or newer, from [rustup](https://rustup.rs);
+- Microsoft's C++ build tools: [Build Tools for Visual Studio](https://visualstudio.microsoft.com/visual-cpp-build-tools/),
+  with "Desktop development with C++".
+
+| Command | What it does |
+|---|---|
+| `npm run tauri dev` | The app in its window, on a dev server of its own at <http://localhost:1420> (`npm run dev:desktop`), reloading as you change it |
+| `npm run tauri build` | Builds the app (`npm run build:desktop`, to `dist-desktop/`), then its installer: `src-tauri/target/release/bundle/nsis/bookbookbook_<version>_x64-setup.exe` |
+
+The first build compiles Tauri, which takes several minutes; after that, about one.
+
+- **Installing:** the installer puts bookbookbook in `%LOCALAPPDATA%\bookbookbook`, with a Start menu shortcut, for
+  the user running it, so no administrator is needed; `/S` installs it silently. It isn't signed yet, so Windows
+  SmartScreen warns about it: More info, then Run anyway. If WebView2 is missing, as it can be on Windows 10, the
+  installer fetches it.
+- **Its books** are WebView2's, in `%LOCALAPPDATA%\io.github.nichkt.bookbookbook`, apart from any in a browser. So the
+  identifier in `src-tauri/tauri.conf.json` must never change, or the app would open on an empty library. The
+  window's place and size are kept in `%APPDATA%\io.github.nichkt.bookbookbook`. A real install starts with no books;
+  `npm run tauri dev` has the sample book, as the dev server does, and keeps it apart, as it's another address.
+- **Uninstalling** (Settings → Apps, or `uninstall.exe`, `/S` for silently) keeps the books, unless Delete the
+  application data is ticked.
+- **What the desktop build changes** (`src/app/desktop.ts`, true in Vite's `desktop` mode): no service worker or
+  offers to install; PowerSync without the shared worker that lets tabs share the database, which WebView2 keeps past
+  a reload, so the reload never finished opening the library; and the wording, which says "this computer". There's one
+  window: opening the app again brings it to the front. Links out of the app open in the browser.
+- **Permissions:** WebView2 would ask for the microphone and the backup folder in prompts of its own, with a Block
+  that the window has no settings to undo, so the app (`src-tauri/src/lib.rs`) allows them itself. Windows' own
+  microphone privacy setting still applies. WebView2 forgets the folder's permission whenever the app closes, and
+  gives it back only at a click or key press, so the app asks again, silently, at the writer's first one. Until then,
+  backups show as on.
+- **Leaving:** minimizing tells the page it's hidden, which WebView2 doesn't do by itself, so a backup runs. Closing
+  the window waits for a last backup, ten seconds at most; closing it again closes it at once.
+- **Dictation** is online only, on Microsoft's speech service: WebView2 can't recognize speech on the computer yet.
+- **Ollama** answers only `localhost` pages as it comes, so it needs `OLLAMA_ORIGINS=http://tauri.localhost`, as AI
+  settings says.
+- **Not yet:** the OS keychain for AI keys, backups written by the app rather than WebView2, updates (install a new
+  version over the old one; the books stay) and a signed installer.
+
+To look into the built app with DevTools or Playwright, start it with the environment variable
+`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9333` and connect to that port. While it's connected,
+Playwright keeps the page "visible" even with the window minimized (its focus emulation), so disconnect it to test
+leaving.
+
 ## Setting up the AI tools
 
 The AI tools need a model to talk to: one on your computer, free and private, or an AI company's, with your own key.
@@ -318,6 +381,8 @@ in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). 
 - the home screen's order, links and "Opened …" labels, and the visits it remembers;
 - colors: the contrast between two, and black or white text, whichever reads better, on any color;
 - installing: which devices and browsers are given Safari's steps to add the app;
+- the Windows app: the folder's permission asked for again at the first click or key press, backups shown as on
+  until then and as paused if it fails, closing waiting for a last backup, and dictation's messages for Windows;
 - the on-screen keyboard: finding its top edge from the visual viewport, whether or not it shrinks the window too,
   as the page scrolls under it, and not mistaking the browser's own bars or a pinch for one;
 - writing aids: find and replace (searching a paragraph at a time, whole words, patterns and their replacements,
@@ -461,7 +526,7 @@ one replaces the live doc's prose with a copy in a single edit, so it's saved, a
 src/
   ai/             providers, requests and streamed answers, what a run sends, the tools and your own, cards and runs
   app/            shell, routes and each page's own download, startup and error screens, theme, toasts and
-                  announcements, the service worker and updates, installing, dev hooks
+                  announcements, the service worker and updates, installing, the desktop build, dev hooks
   backup/         backup status, folder backups, and when backups run
   components/     fields that save as you type, menus for long lists; ui/ holds the shadcn components
   db/             PowerSync schema, queries, sample book and seeding, ordering, undo, Trash, prefs, the scene store,
@@ -486,7 +551,8 @@ e2e/              Playwright tests; preview.ts, which builds and serves the app 
 docs/             design doc and the phone keyboard test
 prototype/        the clickable design prototype
 public/           favicon and the app's icons; theme-init.js sets the theme and title bar color before first paint
-scripts/          icons.ts draws the app's icons from the favicon (`npm run icons`)
+scripts/          icons.ts draws the web app's and the Windows app's icons from the favicon (`npm run icons`)
+src-tauri/        the Windows app: its window, installer and icons (tauri.conf.json), and its Rust side (src/lib.rs)
 ```
 
 ## Dev hooks

@@ -1,4 +1,5 @@
 import { PowerSyncDatabase } from "@powersync/web"
+import { desktop } from "@/app/desktop"
 import { makeSchema } from "./schema"
 import { seedIfEmpty } from "./seed"
 import { purgeExpiredTrash } from "./trash"
@@ -9,7 +10,12 @@ import { purgeExpiredTrash } from "./trash"
  */
 export const db = new PowerSyncDatabase({
   schema: makeSchema(false),
-  database: { dbFilename: "bookbookbook.db" },
+  database: {
+    dbFilename: "bookbookbook.db",
+    // The desktop app has the one window, and in WebView2 the shared worker that lets tabs share the database
+    // outlives a reload, which then can't reach it and never gets past "Opening your library…".
+    ...(desktop ? { enableMultiTabs: false } : {}),
+  },
 })
 
 /**

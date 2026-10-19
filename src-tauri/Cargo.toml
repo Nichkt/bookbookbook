@@ -1,0 +1,32 @@
+[package]
+name = "bookbookbook"
+version = "0.1.0"
+description = "Plan your novel chapter by chapter, then write each chapter with your plan beside the page."
+edition = "2024"
+rust-version = "1.90"
+publish = false
+
+[lib]
+name = "bookbookbook_lib"
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7.3", features = [] }
+
+[dependencies]
+tauri = { version = "2.12.4", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-window-state = "2"
+
+# WebView2 itself, to allow the microphone and backup folders without its own prompt (src/lib.rs).
+[target.'cfg(windows)'.dependencies]
+webview2-com = "0.39"
+
+# A smaller app: https://v2.tauri.app/concept/size/
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

@@ -1,19 +1,22 @@
 {
   "name": "bookbookbook",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "dev:lan": "vite --host",
+    "dev:desktop": "vite --mode desktop --port 1420 --strictPort",
     "build": "tsc -b && vite build",
+    "build:desktop": "tsc -b && vite build --mode desktop",
     "typecheck": "tsc -b",
     "lint": "oxlint",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "preview": "vite preview",
     "icons": "node scripts/icons.ts",
-    "perf": "node e2e/perf.ts"
+    "perf": "node e2e/perf.ts",
+    "tauri": "tauri"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -54,6 +57,7 @@
     "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.64.0",
     "@tailwindcss/vite": "^4.3.3",
+    "@tauri-apps/cli": "^2.12.3",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",

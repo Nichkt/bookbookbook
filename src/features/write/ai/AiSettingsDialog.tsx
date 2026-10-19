@@ -1,6 +1,7 @@
 import { ExternalLinkIcon, LoaderCircleIcon } from "lucide-react"
 import { useEffect, useId, useRef, useState, type FormEvent } from "react"
 import { toast } from "sonner"
+import { desktop } from "@/app/desktop"
 import { announce, attempt } from "@/app/feedback"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -294,7 +295,7 @@ function SettingsForm({ ai, tint }: SettingsFormProps) {
                 >
                   Get a key
                   <ExternalLinkIcon className="size-3" aria-hidden="true" />
-                  <span className="sr-only">(opens in a new tab)</span>
+                  <span className="sr-only">{desktop ? "(opens in your browser)" : "(opens in a new tab)"}</span>
                 </a>
                 {savedKey && (
                   <Button
@@ -458,8 +459,8 @@ function SettingsForm({ ai, tint }: SettingsFormProps) {
         {provider?.id === "local"
           ? "Your writing goes only to the model on this computer."
           : provider
-            ? `When you run a tool, what it reads goes straight from this browser to ${provider.name}. ` +
-              "bookbookbook never sees it."
+            ? `When you run a tool, what it reads goes straight from ${desktop ? "this computer" : "this browser"} to ` +
+              `${provider.name}. bookbookbook never sees it.`
             : "Nothing is sent anywhere until you choose where the AI runs and run a tool."}
       </p>
 

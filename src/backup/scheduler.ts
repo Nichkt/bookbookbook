@@ -1,3 +1,4 @@
+import { beforeClosing, desktop } from "@/app/desktop"
 import { readPref, setPref } from "@/db/prefs"
 import type { Db } from "@/db/tx"
 import { flushSceneDocs, saveWordCounts } from "@/editor/sceneDocs"
@@ -18,6 +19,11 @@ import {
  * backup, and writes the backups the folder lacks, if there's a folder to write to. Passes run half a minute after
  * the app opens, hourly, and when the writer leaves the tab, at most every five minutes. Passes, downloads,
  * restores and changes to the folder take turns over every tab, so none undoes what another notes.
+ *
+ * The desktop app's WebView2 forgets the permission to write to the folder as the app closes, and gives it again
+ * only at a click or the like. So there, it's asked for again at the writer's first click or key press, and given
+ * without a word (src-tauri/src/lib.rs): the folder is one they chose for the app. Until then, backups show as on.
+ * And closing the app, the way a writer leaves it there, waits for a pass, however recent the last.
  */
 
 const FIRST_PASS_MS = 30_000
@@ -37,11 +43,21 @@ export interface FolderAccess {
   permission: PermissionState | null
   /** True while a pass runs in this tab. */
   running: boolean
+  /** On the desktop, true once asking for the permission again didn't get it, until it's next given. */
+  regrantFailed: boolean
 }
 
 type Found = Pick<FolderAccess, "pref" | "handle" | "permission">
 
-let access: FolderAccess = { loaded: false, checkedAt: 0, pref: null, handle: null, permission: null, running: false }
+let access: FolderAccess = {
+  loaded: false,
+  checkedAt: 0,
+  pref: null,
+  handle: null,
+  permission: null,
+  running: false,
+  regrantFailed: false,
+}
 const listeners = new Set<() => void>()
 
 function setAccess(patch: Partial<FolderAccess>) {
@@ -58,6 +74,11 @@ export function subscribeFolderAccess(listener: () => void) {
 }
 
 export const folderAccess = () => access
+
+/** The permission to write to the folder, as the writer is shown it. On the desktop, "prompt" is as good as given. */
+export function permissionShown({ permission, regrantFailed }: FolderAccess): PermissionState | null {
+  return desktop && permission === "prompt" && !regrantFailed ? "granted" : permission
+}
 
 let lookups = 0
 
@@ -80,7 +101,10 @@ export async function refreshFolderAccess(db: Db): Promise<Found> {
     if (found.handle) found.permission = await writePermission(found.handle)
   }
   // A later lookup knows better.
-  if (lookup === lookups) setAccess({ loaded: true, checkedAt: Date.now(), ...found })
+  if (lookup === lookups) {
+    const regrantFailed = access.regrantFailed && found.permission !== "granted"
+    setAccess({ loaded: true, checkedAt: Date.now(), ...found, regrantFailed })
+  }
   return found
 }
 
@@ -91,6 +115,8 @@ export async function withBackupLock<T>(work: () => Promise<T>): Promise<Awaited
 }
 
 let lastPass = 0
+/** Whether the last pass left the folder be for want of permission to write there, to make up once it's given. */
+let missedFolder = false
 
 /** What a pass did with the folder: brought it up to date, failed to, or had none it could write to. */
 export type FolderOutcome = "up-to-date" | "failed" | "skipped"
@@ -103,6 +129,7 @@ async function pass(db: Db): Promise<FolderOutcome> {
     const { pref, handle, permission } = await refreshFolderAccess(db)
     // A folder that failed last time is tried again, in case what was wrong has been put right.
     const dir = pref && handle && permission === "granted" ? handle : null
+    missedFolder = pref !== null && handle !== null && !dir
     const now = new Date()
     const result = await backUpBooks(db, storedSceneReader(db), dir, now)
     if (pref && dir) {
@@ -137,6 +164,28 @@ function timedPass(db: Db) {
   run.catch((error: unknown) => console.error("[backups]", error))
 }
 
+/** The events that make a click or key press, which the browser asks of a request for permission. */
+const GESTURES = ["keydown", "mousedown", "pointerup"] as const
+
+let regranting = false
+
+/** On the desktop: asks for the permission to write to the folder again, then makes up a pass that went without. */
+async function regrant(db: Db, handle: FileSystemDirectoryHandle) {
+  regranting = true
+  try {
+    const permission = await askWritePermission(handle).catch((error: unknown) => {
+      console.warn("[backups] Couldn't get permission to write to the folder again", error)
+      return "denied" as const
+    })
+    // First, so backups go from on to paused, not on to paused to on.
+    if (permission !== "granted") setAccess({ regrantFailed: true })
+    await refreshFolderAccess(db)
+    if (permission === "granted") await withBackupLock(async () => (missedFolder ? await pass(db) : null))
+  } finally {
+    regranting = false
+  }
+}
+
 /** Starts the passes. Returns a function that stops them. */
 export function startBackups(db: Db): () => void {
   void refreshFolderAccess(db)
@@ -150,10 +199,23 @@ export function startBackups(db: Db): () => void {
     else if (Date.now() - lastPass >= LEAVING_GAP_MS) timedPass(db)
   }
   document.addEventListener("visibilitychange", onVisibilityChange)
+  const onGesture = () => {
+    const { pref, handle, permission, regrantFailed } = access
+    if (!pref || !handle || permission !== "prompt" || regrantFailed || regranting) return
+    // Escape, say, doesn't count.
+    if (navigator.userActivation && !navigator.userActivation.isActive) return
+    regrant(db, handle).catch((error: unknown) => console.error("[backups]", error))
+  }
+  // On the window, as the event sets out, so nothing of the page's can stop it.
+  if (desktop) for (const type of GESTURES) window.addEventListener(type, onGesture, true)
+  // Closing is how a writer leaves the desktop app: it waits for a last pass.
+  const stopClosing = desktop ? beforeClosing(() => backUpNow(db)) : null
   return () => {
     clearTimeout(first)
     clearInterval(hourly)
     document.removeEventListener("visibilitychange", onVisibilityChange)
+    if (desktop) for (const type of GESTURES) window.removeEventListener(type, onGesture, true)
+    stopClosing?.()
   }
 }
 

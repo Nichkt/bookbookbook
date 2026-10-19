@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import { desktop } from "./desktop"
 import { reloadApp, usePwa } from "./pwa"
 
 export function StartupSplash() {
@@ -18,7 +19,13 @@ export function StartupError({ error }: { error: unknown }) {
     <div className="grid min-h-svh place-items-center bg-background px-6 py-10">
       <section role="alert" className="w-full max-w-md space-y-4">
         <h1 className="font-heading text-2xl font-semibold">Your library couldn't open</h1>
-        {window.isSecureContext ? (
+        {desktop ? (
+          <p className="leading-relaxed text-ink-2">
+            bookbookbook keeps your books on this computer, and couldn't open them just now. Try again, or close
+            bookbookbook and open it again. If that doesn't help, restart the computer, and check that its disk isn't
+            full.
+          </p>
+        ) : window.isSecureContext ? (
           <>
             <p className="leading-relaxed text-ink-2">
               bookbookbook keeps your books in this browser's storage, and the browser wouldn't allow it. Usually

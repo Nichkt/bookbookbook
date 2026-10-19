@@ -1,9 +1,10 @@
 import { create } from "zustand"
+import { desktop } from "./desktop"
 
 /*
  * The service worker (DESIGN.md §11) keeps a copy of the app so it opens offline, and fetches new versions in the
  * background. A new version waits until the writer reloads, rather than reloading under them mid-sentence, or until
- * every bookbookbook tab has closed. Production builds only (vite.config.ts).
+ * every bookbookbook tab has closed. Production builds only (vite.config.ts), and not the desktop app's.
  */
 
 interface PwaState {
@@ -39,7 +40,7 @@ const logRegisterError = (error: unknown) => console.error("[pwa] registering th
 
 /** Registers the service worker, which waits for the page to load first. Early, so even a startup error can update. */
 export async function registerServiceWorker() {
-  if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return
+  if (!import.meta.env.PROD || desktop || !("serviceWorker" in navigator)) return
   try {
     const { registerSW } = await import("virtual:pwa-register")
     startUpdate = registerSW({

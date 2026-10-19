@@ -1,5 +1,6 @@
 import { toast } from "sonner"
 import { create } from "zustand"
+import { desktop } from "@/app/desktop"
 import { announce, reportError } from "@/app/feedback"
 import { parseSpeech, type Step } from "./commands"
 import {
@@ -90,16 +91,21 @@ export function failureMessage(error: string, engine: EngineKind): string {
   switch (error) {
     case "not-allowed":
     case "service-not-allowed":
-      return (
-        "The browser won't let bookbookbook use the microphone. Allow it in the site's settings, by the address " +
-        "bar, then try again."
-      )
+      // The desktop app allows the microphone itself (src-tauri/src/lib.rs), so only Windows says no.
+      return desktop
+        ? "Windows won't let bookbookbook use the microphone. Open Settings, search for “microphone privacy”, and " +
+          "let desktop apps use it. Then try again."
+        : "The browser won't let bookbookbook use the microphone. Allow it in the site's settings, by the address " +
+          "bar, then try again."
     case "audio-capture":
       return "No microphone was found. Check that one is plugged in and not in use by another app."
     case "network":
-      return engine === "online"
-        ? "Online dictation needs the internet. Check your connection, or set dictation up on this device."
-        : "Dictation lost its connection. Try again."
+      if (engine !== "online") return "Dictation lost its connection. Try again."
+      // WebView2 can't recognize speech on the device, so there's no dictating there instead.
+      return desktop
+        ? "Online dictation couldn't reach Microsoft's speech service. Check your connection and try again, or " +
+          "press Windows key + H to dictate with Windows itself."
+        : "Online dictation needs the internet. Check your connection, or set dictation up on this device."
     case "language-not-supported":
       return "Dictation can't do that language here. Choose another in Dictation settings."
     default:

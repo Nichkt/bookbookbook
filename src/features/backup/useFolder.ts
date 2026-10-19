@@ -1,8 +1,9 @@
 import { useSyncExternalStore } from "react"
+import { desktop } from "@/app/desktop"
 import { folderState, type FolderPref } from "@/backup/folder"
 import { folderBackupsSupported } from "@/backup/handles"
 import type { FolderState } from "@/backup/record"
-import { folderAccess, subscribeFolderAccess } from "@/backup/scheduler"
+import { folderAccess, permissionShown, subscribeFolderAccess } from "@/backup/scheduler"
 
 export interface Folder {
   /** Whether this browser can write to a folder at all. */
@@ -28,7 +29,7 @@ export function useFolder(): Folder {
     supported,
     loading: !access.loaded,
     checkedAt: access.checkedAt,
-    state: supported ? folderState(access.pref, hasHandle, access.permission) : "off",
+    state: supported ? folderState(access.pref, hasHandle, permissionShown(access)) : "off",
     pref: supported ? access.pref : null,
     hasHandle,
     running: access.running,
@@ -37,7 +38,7 @@ export function useFolder(): Folder {
 
 /** Why folder backups have stopped, to follow "Backups to “Name” have stopped: ". */
 export function whyStopped(folder: Folder): string {
-  if (!folder.hasHandle) return "this browser has lost track of the folder"
+  if (!folder.hasHandle) return `${desktop ? "bookbookbook" : "this browser"} has lost track of the folder`
   if (folder.pref?.error?.kind === "missing") return "the folder has been moved, renamed or deleted"
   return "something went wrong writing there"
 }

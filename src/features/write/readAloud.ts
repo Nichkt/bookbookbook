@@ -3,6 +3,7 @@ import type { Editor } from "@tiptap/react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { create } from "zustand"
+import { desktop } from "@/app/desktop"
 import { announce } from "@/app/feedback"
 import { activeEditor, editorOf, useEditors, whenEditor, type MountedEditor } from "@/editor/activeEditor"
 import { readingRange, showReading, type ReadingRange } from "@/editor/extensions/ReadAloud"
@@ -441,7 +442,12 @@ function finish() {
 
 function fail() {
   end()
-  toast.error("Read aloud stopped, as the browser couldn't speak. Check that the device has a voice installed.")
+  toast.error(
+    desktop
+      ? "Read aloud stopped, as Windows couldn't speak. Check that it has a voice installed, in Settings, under " +
+        "Time & language, then Speech."
+      : "Read aloud stopped, as the browser couldn't speak. Check that the device has a voice installed.",
+  )
 }
 
 function end() {

@@ -1,7 +1,9 @@
+import { desktop } from "@/app/desktop"
+
 /*
  * The glossary (DESIGN.md §17a): every word the app uses that a new writer might not know, in plain English, with an
  * example from The Salt Ledger, the made-up novel that is also the sample book in development, where one helps. Ids
- * are stable: TermHint buttons and tours link to them.
+ * are stable: TermHint buttons and tours link to them. The desktop app says some things its own way.
  */
 
 export type GlossaryGroup = "story" | "chapter" | "world" | "app" | "ai"
@@ -672,8 +674,12 @@ export const GLOSSARY: GlossaryTerm[] = [
     aka: ["On-device", "Online", "Speech recognition"],
     group: "app",
     body: [
-      "Where your speech is turned into text when you dictate. On this device, the browser does it by itself: your voice never leaves your computer or phone, and it works without the internet. Some languages need a one-time download first.",
-      "Online, the sound of your voice goes to your browser's speech service, such as Google's or Apple's, while the microphone is on, and the text comes back. It needs the internet, but works in more browsers.",
+      desktop
+        ? "Where your speech is turned into text when you dictate. Online, the sound of your voice goes to Microsoft's speech service while the microphone is on, and the text comes back, so it needs the internet."
+        : "Where your speech is turned into text when you dictate. On this device, the browser does it by itself: your voice never leaves your computer or phone, and it works without the internet. Some languages need a one-time download first.",
+      desktop
+        ? "On this device, the computer would do it by itself, and your voice would never leave it, but the Windows app can't do that yet."
+        : "Online, the sound of your voice goes to your browser's speech service, such as Google's or Apple's, while the microphone is on, and the text comes back. It needs the internet, but works in more browsers.",
       "Either way, only the words are kept, never a recording. Change it in Dictation settings, in the ⋯ menu on the Write page or beside Dictate in the Inbox.",
     ],
     related: ["dictation"],
@@ -723,15 +729,23 @@ export const GLOSSARY: GlossaryTerm[] = [
   },
   {
     id: "install",
-    term: "Installing the app",
-    aka: ["Install", "Add to Home Screen", "Add to Dock", "Offline", "PWA"],
+    term: desktop ? "The Windows app" : "Installing the app",
+    aka: desktop
+      ? ["Install", "Installing the app", "Uninstall", "Offline"]
+      : ["Install", "Add to Home Screen", "Add to Dock", "Offline", "PWA"],
     group: "app",
-    body: [
-      "bookbookbook runs in your browser, and once it has opened there, it opens without the internet too. Installed, it's an app like any other: it opens in a window of its own, from your dock, taskbar or Home Screen.",
-      "In Chrome or Edge, choose Install above your books, or the install button at the right end of the address bar. Your books come with it.",
-      "On an iPhone or iPad, open bookbookbook in Safari, tap Share (under More ⋯, if you don't see it), then Add to Home Screen. On a Mac, in Safari, choose File, then Add to Dock.",
-      "Safari can clear a website's data, books and all, after a week without a visit, but not an app's on your Home Screen or in your Dock. The app keeps its own books, apart from Safari's: to take a book you started in Safari, back it up there, then restore the backup in the app.",
-    ],
+    body: desktop
+      ? [
+          "bookbookbook is installed on this computer as a Windows app, and opens from the Start menu. It works without the internet, apart from dictation and the AI tools that run online.",
+          "Its books are its own, apart from any in bookbookbook in a browser: to take a book from one to the other, back it up in one, then restore the backup in the other.",
+          "Uninstall it in Settings, under Apps. Your books stay on the computer, unless you tick Delete the application data, which deletes them for good, so back them up first.",
+        ]
+      : [
+          "bookbookbook runs in your browser, and once it has opened there, it opens without the internet too. Installed, it's an app like any other: it opens in a window of its own, from your dock, taskbar or Home Screen.",
+          "In Chrome or Edge, choose Install above your books, or the install button at the right end of the address bar. Your books come with it.",
+          "On an iPhone or iPad, open bookbookbook in Safari, tap Share (under More ⋯, if you don't see it), then Add to Home Screen. On a Mac, in Safari, choose File, then Add to Dock.",
+          "Safari can clear a website's data, books and all, after a week without a visit, but not an app's on your Home Screen or in your Dock. The app keeps its own books, apart from Safari's: to take a book you started in Safari, back it up there, then restore the backup in the app.",
+        ],
     related: ["backup"],
   },
 
@@ -776,7 +790,9 @@ export const GLOSSARY: GlossaryTerm[] = [
     group: "ai",
     body: [
       "A long, password-like code from an AI company, such as OpenAI, Anthropic or OpenRouter, that lets bookbookbook use its models on your account. You make one on the company's website, and it bills you for what you use, usually a fraction of a cent a run.",
-      "Paste it into AI settings. It's kept in this browser, on this device, and only ever sent to that company. Anyone with the key can spend from your account, so keep it to yourself.",
+      desktop
+        ? "Paste it into AI settings. It's kept on this computer, in bookbookbook, and only ever sent to that company. Anyone with the key can spend from your account, so keep it to yourself."
+        : "Paste it into AI settings. It's kept in this browser, on this device, and only ever sent to that company. Anyone with the key can spend from your account, so keep it to yourself.",
     ],
     related: ["model", "local-model"],
   },

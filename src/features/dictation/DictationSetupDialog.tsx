@@ -1,6 +1,7 @@
 import { usePowerSync } from "@powersync/react"
 import { useEffect, useId, useState, type FormEvent } from "react"
 import { toast } from "sonner"
+import { desktop } from "@/app/desktop"
 import { announce, attempt } from "@/app/feedback"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -111,9 +112,14 @@ function statusLine(status: OnDeviceStatus | null, language: string): string {
     case "downloading":
       return `Downloading what's needed for ${language}…`
     case "unavailable":
-      return `This device can't do ${language} by itself. Choose online, or another language.`
+      // WebView2 can't do any language yet, so the desktop app suggests none.
+      return desktop
+        ? `This computer can't do ${language} by itself. Choose online.`
+        : `This device can't do ${language} by itself. Choose online, or another language.`
     case "unsupported":
-      return "This browser can't do it by itself. Chrome 139 or later can."
+      return desktop
+        ? "This computer can't do it by itself. Choose online."
+        : "This browser can't do it by itself. Chrome 139 or later can."
   }
 }
 

@@ -1,9 +1,10 @@
 import { create } from "zustand"
+import { desktop } from "./desktop"
 
 /*
  * Installing the app (DESIGN.md §11). Chrome and Edge offer to install it, an offer the app holds on to until the
  * writer asks. Safari makes none, so the app gives its steps instead: Add to Home Screen on an iPhone or iPad, and
- * Add to Dock on a Mac.
+ * Add to Dock on a Mac. The desktop app is installed already, so offers none.
  */
 
 /** The browser's offer to install, which TypeScript's DOM types don't have. It can be used once. */
@@ -21,7 +22,7 @@ interface InstallState {
   declined: boolean
 }
 
-export const useInstall = create<InstallState>(() => ({ offer: null, installed: false, declined: false }))
+export const useInstall = create<InstallState>(() => ({ offer: null, installed: desktop, declined: false }))
 
 /** How an installed app opens, as the manifest asks or a browser falls back to. Not fullscreen: a tab can be that. */
 const APP_DISPLAY_MODES = ["standalone", "minimal-ui", "window-controls-overlay"]
@@ -34,6 +35,7 @@ function openAsApp() {
 
 /** Listens for the browser's offer to install, and for the app being installed. Early, as the offer can come soon. */
 export function listenForInstall() {
+  if (desktop) return
   useInstall.setState({ installed: openAsApp() })
   window.addEventListener("beforeinstallprompt", (event) => {
     // The app offers to install where it suits it, rather than the browser with a banner of its own.
