@@ -8,7 +8,7 @@ takes after NovelCrafter, the writing side after Sudowrite.
 
 ## Download for Windows
 
-For Windows 10 and 11, 64-bit: **[download the installer][installer]**, bookbookbook 0.1.0, about 5 MB. Newer
+For Windows 10 and 11, 64-bit: **[download the installer][installer]**, bookbookbook 0.1.1, about 5 MB. Newer
 versions, when there are some, are on the [releases page](https://github.com/Nichkt/bookbookbook/releases/latest).
 1. Your browser may say the file isn't commonly downloaded, as it's new: keep it.
 2. Open it. As the installer isn't signed yet, Windows SmartScreen warns about it: click More info, then Run anyway.
@@ -20,7 +20,7 @@ Your books stay on this computer, so keep backups, with Backups on the home scre
 this one keeps them, and so does uninstalling, in Settings → Apps, unless you tick Delete the application data. To
 build the app yourself, see [The Windows app](#the-windows-app).
 
-[installer]: https://github.com/Nichkt/bookbookbook/releases/download/v0.1.0/bookbookbook_0.1.0_x64-setup.exe
+[installer]: https://github.com/Nichkt/bookbookbook/releases/download/v0.1.1/bookbookbook_0.1.1_x64-setup.exe
 
 ## Status: home, Plan, World, Write, writing aids, AI, Inbox, dictation, search, help, import, export, backups, offline, Windows app
 
