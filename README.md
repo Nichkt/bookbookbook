@@ -6,6 +6,22 @@ takes after NovelCrafter, the writing side after Sudowrite.
 - **Design:** [docs/DESIGN.md](docs/DESIGN.md) covers every product and technical decision and the milestone plan.
 - **Prototype:** [prototype/](prototype/README.md) is a clickable mock of the whole app. Open `prototype/index.html`.
 
+## Download for Windows
+
+For Windows 10 and 11, 64-bit: **[download the installer][installer]**, bookbookbook 0.1.0, about 5 MB. Newer
+versions, when there are some, are on the [releases page](https://github.com/Nichkt/bookbookbook/releases/latest).
+1. Your browser may say the file isn't commonly downloaded, as it's new: keep it.
+2. Open it. As the installer isn't signed yet, Windows SmartScreen warns about it: click More info, then Run anyway.
+3. Click Next on each page, then Finish, with Run bookbookbook ticked. It installs for you alone, so it needs no
+   administrator.
+4. bookbookbook opens, on "No books yet". After that, it's in the Start menu and on the desktop.
+
+Your books stay on this computer, so keep backups, with Backups on the home screen. Installing a newer version over
+this one keeps them, and so does uninstalling, in Settings → Apps, unless you tick Delete the application data. To
+build the app yourself, see [The Windows app](#the-windows-app).
+
+[installer]: https://github.com/Nichkt/bookbookbook/releases/download/v0.1.0/bookbookbook_0.1.0_x64-setup.exe
+
 ## Status: home, Plan, World, Write, writing aids, AI, Inbox, dictation, search, help, import, export, backups, offline, Windows app
 
 Milestones 0 to 8 and 11 from DESIGN.md §19 are built, and M12's Windows app, plus a home screen, a glossary and a
@@ -17,9 +33,9 @@ There are no accounts or sync yet, so keep backups: Backups… in the book menu 
 a folder as it changes (Chrome, Edge and the Windows app).
 
 **M12, The Windows app** (DESIGN.md §11, "Built in M12"; see [The Windows app](#the-windows-app)):
-- **An app of its own:** an installer for Windows 10 and 11 puts bookbookbook in the Start menu, for you alone, with
-  no administrator needed. It opens in its own window, where and as large as it was when last closed, works without
-  the internet, and starts with no books.
+- **An app of its own:** an [installer](#download-for-windows) for Windows 10 and 11 puts bookbookbook in the Start
+  menu and on the desktop, for you alone, with no administrator needed. It opens in its own window, where and as large
+  as it was when last closed, works without the internet, and starts with no books.
 - **One window:** opening it again brings the open window to the front. Links out of the app, like Get a key, open in
   your browser.
 - **Your books stay on the computer**, apart from any in bookbookbook in a browser; a backup takes a book from one to
@@ -309,15 +325,20 @@ building it needs:
 The first build compiles Tauri, which takes several minutes; after that, about one.
 
 - **Installing:** the installer puts bookbookbook in `%LOCALAPPDATA%\bookbookbook`, with a Start menu shortcut, for
-  the user running it, so no administrator is needed; `/S` installs it silently. It isn't signed yet, so Windows
-  SmartScreen warns about it: More info, then Run anyway. If WebView2 is missing, as it can be on Windows 10, the
-  installer fetches it.
+  the user running it, so no administrator is needed. Its last page has Run bookbookbook and Create desktop shortcut,
+  both ticked. `/S` installs it silently, with the desktop shortcut unless `/NS` is added, and `/R` opens it after.
+  It isn't signed yet, so Windows SmartScreen warns about it: More info, then Run anyway. If WebView2 is missing, as
+  it can be on Windows 10, the installer fetches it.
 - **Its books** are WebView2's, in `%LOCALAPPDATA%\io.github.nichkt.bookbookbook`, apart from any in a browser. So the
   identifier in `src-tauri/tauri.conf.json` must never change, or the app would open on an empty library. The
   window's place and size are kept in `%APPDATA%\io.github.nichkt.bookbookbook`. A real install starts with no books;
   `npm run tauri dev` has the sample book, as the dev server does, and keeps it apart, as it's another address.
 - **Uninstalling** (Settings → Apps, or `uninstall.exe`, `/S` for silently) keeps the books, unless Delete the
   application data is ticked.
+- **Releasing:** raise `version` in `package.json`, which the app and its installer take theirs from, and run
+  `npm run tauri build`. Then `gh release create v<version> <the installer>` makes a release on GitHub with the
+  installer attached, and the link in [Download for Windows](#download-for-windows) wants changing to it, as the
+  installer's name has the version in it.
 - **What the desktop build changes** (`src/app/desktop.ts`, true in Vite's `desktop` mode): no service worker or
   offers to install; PowerSync without the shared worker that lets tabs share the database, which WebView2 keeps past
   a reload, so the reload never finished opening the library; and the wording, which says "this computer". There's one

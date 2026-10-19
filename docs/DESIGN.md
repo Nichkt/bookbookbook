@@ -1108,12 +1108,14 @@ flowchart LR
   "this browser". The Backups dialog's last part, This computer, says how much room the books take, and that
   uninstalling keeps them unless Delete the application data is ticked.
 - **The installer**, about 5 MB, is NSIS's, for the user running it, so needs no administrator, and fetches WebView2
-  if it's missing. It's unsigned, so SmartScreen warns about it. `npm run icons` draws the app's icons too.
+  if it's missing. Its last page opens the app and puts it on the desktop, both ticked to begin with. It's unsigned,
+  so SmartScreen warns about it. `npm run icons` draws the app's icons too. Each version's installer is a release on
+  GitHub, which the README's Download for Windows links to (decision 39).
 - **Tested:** unit tests for asking again for the folder's permission and for closing
   (`src/backup/scheduler.test.ts`), and for dictation's messages (`src/speech/dictation.desktop.test.ts`). By hand, on
-  Windows: installing, silently too; the empty library; the folder's permission across relaunches; backups on
-  minimizing and closing; closing with the page stuck, and twice; and uninstalling. The end-to-end tests run in
-  Chrome, not in the app.
+  Windows: installing, from the GitHub release through each of its pages, and silently; the empty library; the
+  folder's permission across relaunches; backups on minimizing and closing; closing with the page stuck, and twice;
+  and uninstalling. The end-to-end tests run in Chrome, not in the app.
 - **Not yet:** the OS keychain for AI keys, backups written by the app rather than WebView2, updates from inside the
   app, a signed installer, and speech recognition on the computer (whisper.cpp, §10).
 
@@ -1759,6 +1761,7 @@ words as "also called".
 7. **Name styling:** always lowercase "bookbookbook"? A short form for the app icon (e.g. "b³" or "bbb")?
 8. **Analytics:** which privacy-friendly tool, and which events (never content)?
 9. **Hosting:** PowerSync Cloud vs self-hosted at scale; Supabase region(s) and an EU option.
+10. **License:** the code is public (decision 39) without one, so others can read it but not reuse it. Which, if any?
 
 ---
 
@@ -1804,3 +1807,4 @@ words as "also called".
 | 36 | Platforms for now | Windows and Android: Chrome, Edge and Firefox on Windows, the desktop app on Windows (M12), and Chrome on Android with Gboard and Samsung Keyboard; Macs, iPhones and iPads are set aside, neither tested nor designed for, though what's built for Safari stays: its install steps, Apple's speech recognition and the handling of its keyboard | Set by the project's owner after M8; §19 |
 | 37 | No sample book in a real install | A real install, on the web or the desktop, starts with no books, on "No books yet"; the sample book, *The Salt Ledger*, fills an empty library only on the dev server and in the end-to-end tests' build (`--mode e2e`, to `dist-e2e/`), and other builds leave it out; the glossary keeps its examples from it and says where they come from; the home tour's Your books step points at the empty library too | Set by the project's owner after M8; §4, §17a |
 | 38 | The Windows app | Tauri 2 around the web app, built in Vite's `desktop` mode and shown in WebView2: one window; its books apart from a browser's, under the identifier `io.github.nichkt.bookbookbook`, which never changes; links out of it open in the browser; the microphone and the backup folder allowed by the app, without WebView2's prompts; the folder's permission, which WebView2 forgets on closing, asked for again at the first click or key press; minimizing and closing count as leaving, and closing waits up to ten seconds for a last backup; an NSIS installer for the user running it, unsigned for now; the OS keychain, native backups, updates and signing left for later | Set by the project's owner after M8; §11, "Built in M12" |
+| 39 | Publishing | The code is public on GitHub, at github.com/Nichkt/bookbookbook; each version of the Windows app is a release there, its installer attached, and the README's Download for Windows links to the newest; no license is chosen yet (§21) | Set by the project's owner after M12; §11, "Built in M12" |
