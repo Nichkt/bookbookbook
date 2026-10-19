@@ -40,7 +40,7 @@ import {
   type FindPage,
 } from "./findActions"
 import { bookResults, findStatus, groupResults, indexOfTarget, LIST_LIMIT, namesScenes, type BookMatch } from "./findData"
-import { sceneLabel, useWrite } from "./writeContext"
+import { sceneLabel, useWrite, useWritePlace } from "./writeContext"
 
 const RESULT =
   "w-full rounded-md px-2 py-1.5 text-left text-sm text-ink-2 hover:bg-accent hover:text-ink pointer-coarse:min-h-11 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
@@ -66,7 +66,8 @@ const matchWord = (count: number) => (count === 1 ? "match" : "matches")
  * by chapter and marked in the text, and replacing them one at a time or all at once.
  */
 export function FindPanel({ onClose }: { onClose: () => void }) {
-  const { db, bookId, plan, unit, chapterId, sceneId, panelDocked, closePanelTo } = useWrite()
+  const { db, bookId, plan, unit, panelDocked, closePanelTo } = useWrite()
+  const { chapterId, sceneId } = useWritePlace()
   const navigate = useNavigate()
   const { query, matchCase, wholeWord, pattern, replacement, current, texts } = useFind()
   const search = searchOf({ query, matchCase, wholeWord, pattern })

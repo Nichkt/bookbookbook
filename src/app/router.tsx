@@ -1,14 +1,10 @@
 import { createBrowserRouter } from "react-router"
-import { CodexScreen } from "@/features/codex/CodexScreen"
 import { HomeScreen } from "@/features/home/HomeScreen"
-import { InboxScreen } from "@/features/inbox/InboxScreen"
-import { ImeLab } from "@/features/lab/ImeLab"
-import { PlanIndex, PlanScreen } from "@/features/plan/PlanScreen"
-import { WriteScreen } from "@/features/write/WriteScreen"
 import { AppShell } from "./AppShell"
 import { NotFoundScreen } from "./PlaceholderScreens"
 import { BookIndex, CodexRedirect, InboxRedirect } from "./redirects"
 import { RouteError } from "./RouteError"
+import { screens } from "./screens"
 
 export const router = createBrowserRouter([
   {
@@ -24,16 +20,19 @@ export const router = createBrowserRouter([
             path: "b/:bookId",
             children: [
               { index: true, element: <BookIndex /> },
-              { path: "plan", element: <PlanIndex /> },
-              { path: "plan/:view", element: <PlanScreen /> },
-              { path: "write/:chapterId?/:sceneId?", element: <WriteScreen /> },
-              { path: "world/:entryId?", element: <CodexScreen /> },
+              { path: "plan", lazy: async () => ({ Component: (await screens.plan()).PlanIndex }) },
+              { path: "plan/:view", lazy: async () => ({ Component: (await screens.plan()).PlanScreen }) },
+              {
+                path: "write/:chapterId?/:sceneId?",
+                lazy: async () => ({ Component: (await screens.write()).WriteScreen }),
+              },
+              { path: "world/:entryId?", lazy: async () => ({ Component: (await screens.world()).CodexScreen }) },
               { path: "codex/:entryId?", element: <CodexRedirect /> },
-              { path: "inbox", element: <InboxScreen /> },
+              { path: "inbox", lazy: async () => ({ Component: (await screens.inbox()).InboxScreen }) },
             ],
           },
           { path: "inbox", element: <InboxRedirect /> },
-          { path: "lab/ime", element: <ImeLab /> },
+          { path: "lab/ime", lazy: async () => ({ Component: (await import("@/features/lab/ImeLab")).ImeLab }) },
           { path: "*", element: <NotFoundScreen /> },
         ],
       },

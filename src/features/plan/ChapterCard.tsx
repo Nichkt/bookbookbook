@@ -1,7 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { PenLineIcon, SquareCheckIcon, SquareIcon } from "lucide-react"
-import type { KeyboardEvent } from "react"
+import { memo, type KeyboardEvent } from "react"
 import { Link } from "react-router"
 import { buttonVariants } from "@/components/ui/button"
 import { formatCount } from "@/lib/numbers"
@@ -54,7 +54,14 @@ export function ChapterCardOverlay({ chapter }: { chapter: PlanChapter }) {
   )
 }
 
-function ChapterCardBody({ chapter, interactive }: { chapter: PlanChapter; interactive: boolean }) {
+/** Memoized, so a drag, which renders every card around it, leaves what's on them be. */
+const ChapterCardBody = memo(function ChapterCardBody({
+  chapter,
+  interactive,
+}: {
+  chapter: PlanChapter
+  interactive: boolean
+}) {
   const { db, bookId, plan, display, showChapter, focusItem } = usePlanContext()
   const has = (field: DisplayField) => display.fields.has(field)
   const title = chapterTitle(chapter.title)
@@ -165,4 +172,4 @@ function ChapterCardBody({ chapter, interactive }: { chapter: PlanChapter; inter
       )}
     </>
   )
-}
+})

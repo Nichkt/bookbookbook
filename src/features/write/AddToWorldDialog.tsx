@@ -38,7 +38,7 @@ import {
   useAddToWorld,
   WORLD_TYPE_PREF,
 } from "./addToWorld"
-import { useWrite } from "./writeContext"
+import { useWriteBasics } from "./writeContext"
 
 interface AddToWorldDialogProps {
   bookId: string
@@ -250,7 +250,7 @@ const coarsePointer = () => window.matchMedia("(pointer: coarse)").matches
  * (DockedTools), or the ⋯ menu's item (DESIGN.md §16).
  */
 export function AddToWorldBubble({ editor }: { editor: Editor }) {
-  const { matcher, matcherLoading } = useWrite()
+  const { matcher, matcherLoading } = useWriteBasics()
   // Null until the World's names load, as until then every name would look new.
   const latestMatcher = useRef(matcherLoading ? null : matcher)
   const [pluginKey] = useState(() => new PluginKey("addToWorld"))

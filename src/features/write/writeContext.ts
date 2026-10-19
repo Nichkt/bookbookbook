@@ -84,9 +84,6 @@ export interface WriteContextValue {
   matcherLoading: boolean
   unit: WriteUnit
   setUnit: (unit: WriteUnit) => void
-  /** The chapter in the URL: the one shown, or in the manuscript the one in view. */
-  chapterId: string
-  sceneId: string | null
   focusItem: FocusItem
   navOpen: boolean
   toggleNav: () => void
@@ -117,5 +114,46 @@ export const WriteContext = createContext<WriteContextValue | null>(null)
 export function useWrite(): WriteContextValue {
   const value = useContext(WriteContext)
   if (!value) throw new Error("useWrite needs a WriteContext provider")
+  return value
+}
+
+/**
+ * Where in the book the Write screen is. Kept apart from the rest, as it changes all the while the manuscript scrolls,
+ * and only what shows it should draw again (the rest of a long book's page doesn't).
+ */
+export interface WritePlace {
+  /** The chapter in the URL: the one shown, or in the manuscript the one in view. */
+  chapterId: string
+  sceneId: string | null
+}
+
+export const WritePlaceContext = createContext<WritePlace | null>(null)
+
+export function useWritePlace(): WritePlace {
+  const value = useContext(WritePlaceContext)
+  if (!value) throw new Error("useWritePlace needs a WritePlaceContext provider")
+  return value
+}
+
+/**
+ * What the parts drawn for each chapter and scene on the page need, which hardly ever changes. Apart from the rest,
+ * which changes with every saved word count: else a long book's whole page would draw again each time the writer
+ * paused.
+ */
+export interface WriteBasics {
+  db: Db
+  bookId: string
+  matcher: MentionMatcher
+  matcherLoading: boolean
+  focusItem: FocusItem
+  /** The plan as it is now, for event handlers. What shows the plan takes it from useWrite, or as a prop. */
+  currentPlan: () => Plan
+}
+
+export const WriteBasicsContext = createContext<WriteBasics | null>(null)
+
+export function useWriteBasics(): WriteBasics {
+  const value = useContext(WriteBasicsContext)
+  if (!value) throw new Error("useWriteBasics needs a WriteBasicsContext provider")
   return value
 }

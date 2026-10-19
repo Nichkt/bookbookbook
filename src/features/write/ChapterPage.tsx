@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils"
 import { revealScene, useEnsureScene } from "./pageHooks"
 import { SceneBlock } from "./SceneBlock"
 import { sceneNeighbors, sceneToShow, stopPath, type SceneStop } from "./sequence"
-import { navState, useWrite, writePath, type WriteNavState } from "./writeContext"
+import { navState, useWrite, useWriteBasics, useWritePlace, writePath, type WriteNavState } from "./writeContext"
 
 /** A chapter's heading block: number, status, title, summary and words, with a way to its plan. */
 export function ChapterHeader({
@@ -26,7 +26,7 @@ export function ChapterHeader({
   /** In the Scene view: which of the chapter's scenes is showing. */
   scene?: { index: number; count: number }
 }) {
-  const { bookId } = useWrite()
+  const { bookId } = useWriteBasics()
   const status = statusOf(chapter.status)
   const Heading = level === 1 ? "h1" : "h2"
   const summary = chapter.summary?.trim()
@@ -85,7 +85,8 @@ export function ChapterHeader({
 
 /** The Chapter view: the chapter's scenes one after another (DESIGN.md §8). */
 export function ChapterUnit({ chapter }: { chapter: PlanChapter }) {
-  const { bookId, plan, sceneId } = useWrite()
+  const { bookId, plan } = useWrite()
+  const { sceneId } = useWritePlace()
   const location = useLocation()
   useEnsureScene(chapter)
 
@@ -146,7 +147,8 @@ function AddScene({ chapter }: { chapter: PlanChapter }) {
 
 /** The Scene view: one scene at a time, paging through the book's scenes in reading order. */
 export function SceneUnit({ chapter }: { chapter: PlanChapter }) {
-  const { bookId, plan, sceneId } = useWrite()
+  const { bookId, plan } = useWrite()
+  const { sceneId } = useWritePlace()
   const location = useLocation()
   const scene = sceneToShow(chapter, sceneId)
   const index = scene ? chapter.scenes.indexOf(scene) : -1

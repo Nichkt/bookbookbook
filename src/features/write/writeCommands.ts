@@ -49,6 +49,7 @@ import {
   sceneNameIn,
   UNIT_LABELS,
   useWrite,
+  useWritePlace,
   WRITE_UNITS,
   type PanelPage,
   type WriteContextValue,
@@ -78,6 +79,7 @@ interface ScreenState {
   wide: boolean
   focusMode: boolean
   customTools: readonly ToolDef[]
+  chapterId: string
 }
 
 /**
@@ -86,10 +88,11 @@ interface ScreenState {
  */
 export function useWriteCommands(wide: boolean) {
   const write = useWrite()
+  const { chapterId } = useWritePlace()
   const focusMode = useFocusMode((state) => state.on)
   const custom = useCustomTools()
   usePaletteSource("write", {
-    commands: () => writeCommands(write, { wide, focusMode, customTools: custom.tools }),
+    commands: () => writeCommands(write, { wide, focusMode, customTools: custom.tools, chapterId }),
     openChapter: (chapterId) => write.focusItem("chapter", chapterId),
     openScene: (sceneId) => write.focusItem("scene", sceneId),
     openEntry: (entryId) => {
@@ -99,8 +102,11 @@ export function useWriteCommands(wide: boolean) {
   })
 }
 
-function writeCommands(write: WriteContextValue, { wide, focusMode, customTools }: ScreenState): PaletteCommand[] {
-  const { db, plan, unit, setUnit, chapterId, navOpen, toggleNav, setPanel, setPanelOpener } = write
+function writeCommands(
+  write: WriteContextValue,
+  { wide, focusMode, customTools, chapterId }: ScreenState,
+): PaletteCommand[] {
+  const { db, plan, unit, setUnit, navOpen, toggleNav, setPanel, setPanelOpener } = write
   const { typewriter, setTypewriter } = write
   const editor = activeEditor()
   const dictating = isDictatingInto(PROSE_TARGET.id)

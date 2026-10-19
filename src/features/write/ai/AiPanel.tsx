@@ -35,7 +35,7 @@ import { TermHint } from "@/features/help/TermHint"
 import { byData, focusSoon } from "@/lib/focus"
 import { ariaShortcut, shortcutLabel } from "@/lib/keys"
 import { cn } from "@/lib/utils"
-import { useWrite } from "../writeContext"
+import { useWrite, useWritePlace } from "../writeContext"
 import { AiCard } from "./AiCard"
 import { clearResults, retryCard, runTool, stopAndDismiss, type AiPage, type RunSource } from "./aiActions"
 import {
@@ -80,7 +80,8 @@ function routeSentence(connection: Connection): string {
  * would send, and the cards its runs come back as, newest first, each with what can be done with it.
  */
 export function AiPanel({ onClose }: { onClose: () => void }) {
-  const { db, bookId, book, plan, unit, chapterId, panelDocked, closePanelTo } = useWrite()
+  const { db, bookId, book, plan, unit, panelDocked, closePanelTo } = useWrite()
+  const { chapterId } = useWritePlace()
   const navigate = useNavigate()
   const codex = useCodex(bookId)
   const ai = useAiSettings()

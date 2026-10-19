@@ -1,15 +1,10 @@
 import { ArrowDownIcon, ArrowUpIcon, EllipsisIcon, HistoryIcon, Trash2Icon } from "lucide-react"
-import { useEffect, useRef, type RefObject } from "react"
+import { useRef } from "react"
+import { DeferredMenu } from "@/components/DeferredMenu"
 import { DraftInput } from "@/components/DraftField"
 import { Button } from "@/components/ui/button"
 import { useAfterMenu } from "@/components/useAfterMenu"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { whenEditor } from "@/editor/activeEditor"
 import { SceneEditor } from "@/editor/SceneEditor"
 import { useSceneDoc, useSceneWords } from "@/editor/useSceneDoc"
@@ -22,9 +17,8 @@ import { formatCount } from "@/lib/numbers"
 import { cn } from "@/lib/utils"
 import { AddToWorldBubble } from "./AddToWorldDialog"
 import { openHistory } from "./history"
-import { useNearViewport } from "./pageHooks"
-import { estimatedHeight } from "./sequence"
-import { sceneLabel, sceneNameIn, useWrite } from "./writeContext"
+import { sceneTextHeight, useNearViewport, useRememberHeight } from "./pageHooks"
+import { sceneLabel, sceneNameIn, useWriteBasics } from "./writeContext"
 
 interface SceneBlockProps {
   chapter: PlanChapter
@@ -41,7 +35,7 @@ interface SceneBlockProps {
 
 /** One scene on the page: a break above it after the first, its header if the writer made it, and its text. */
 export function SceneBlock({ chapter, scene, index, divider, headingLevel, lazy = false }: SceneBlockProps) {
-  const { matcher } = useWrite()
+  const { matcher } = useWriteBasics()
   const section = useRef<HTMLElement>(null)
   const body = useRef<HTMLDivElement>(null)
   const near = useNearViewport(section, lazy)
@@ -72,7 +66,7 @@ export function SceneBlock({ chapter, scene, index, divider, headingLevel, lazy 
           <div
             aria-hidden="true"
             data-scene-loading={near ? "" : undefined}
-            style={{ height: heights.get(scene.id) ?? estimatedHeight(scene.word_count) }}
+            style={{ height: sceneTextHeight(scene) }}
             className={cn("rounded-md", near && "animate-pulse bg-surface-2/60")}
           />
         )}
@@ -90,7 +84,7 @@ interface SceneHeaderProps {
 }
 
 function SceneHeader({ chapter, scene, index, words, headingLevel }: SceneHeaderProps) {
-  const { db, plan, focusItem } = useWrite()
+  const { db, focusItem, currentPlan } = useWriteBasics()
   const trigger = useRef<HTMLButtonElement>(null)
   const { after, onCloseAutoFocus } = useAfterMenu()
   const number = index + 1
@@ -124,8 +118,8 @@ function SceneHeader({ chapter, scene, index, words, headingLevel }: SceneHeader
         className="-ml-2 h-8 min-w-0 flex-1 border-transparent bg-transparent px-2 font-semibold text-ink-2 shadow-none hover:border-input dark:bg-transparent"
       />
       <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{formatCount(words)} words</span>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+      <DeferredMenu
+        trigger={
           <Button
             ref={trigger}
             variant="ghost"
@@ -135,24 +129,25 @@ function SceneHeader({ chapter, scene, index, words, headingLevel }: SceneHeader
           >
             <EllipsisIcon />
           </Button>
-        </DropdownMenuTrigger>
+        }
+      >
         <DropdownMenuContent align="end" className="w-52" onCloseAutoFocus={onCloseAutoFocus}>
           <DropdownMenuItem
             disabled={index === 0}
-            onSelect={() => after(() => void moveSceneBy(db, plan, chapter.id, scene.id, -1, focusItem))}
+            onSelect={() => after(() => void moveSceneBy(db, currentPlan(), chapter.id, scene.id, -1, focusItem))}
           >
             <ArrowUpIcon />
             Move up
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={index === chapter.scenes.length - 1}
-            onSelect={() => after(() => void moveSceneBy(db, plan, chapter.id, scene.id, 1, focusItem))}
+            onSelect={() => after(() => void moveSceneBy(db, currentPlan(), chapter.id, scene.id, 1, focusItem))}
           >
             <ArrowDownIcon />
             Move down
           </DropdownMenuItem>
           <DropdownMenuItem
-            onSelect={() => after(() => openHistory(scene.id, sceneNameIn(plan, scene.id), trigger.current))}
+            onSelect={() => after(() => openHistory(scene.id, sceneNameIn(currentPlan(), scene.id), trigger.current))}
           >
             <HistoryIcon />
             History…
@@ -160,28 +155,13 @@ function SceneHeader({ chapter, scene, index, words, headingLevel }: SceneHeader
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"
-            onSelect={() => after(() => void trashSceneWithUndo(db, plan, chapter.id, scene.id, focusItem))}
+            onSelect={() => after(() => void trashSceneWithUndo(db, currentPlan(), chapter.id, scene.id, focusItem))}
           >
             <Trash2Icon />
             Move to Trash
           </DropdownMenuItem>
         </DropdownMenuContent>
-      </DropdownMenu>
+      </DeferredMenu>
     </header>
   )
-}
-
-/** The measured height of each scene's text, so a scene without its editor holds the space it took. */
-const heights = new Map<string, number>()
-
-function useRememberHeight(ref: RefObject<HTMLElement | null>, sceneId: string, active: boolean) {
-  useEffect(() => {
-    const element = ref.current
-    if (!active || !element) return
-    const observer = new ResizeObserver(() => {
-      if (element.offsetHeight > 0) heights.set(sceneId, element.offsetHeight)
-    })
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [ref, sceneId, active])
 }

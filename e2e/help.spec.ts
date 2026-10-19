@@ -33,7 +33,10 @@ async function openHome(page: Page) {
 
 async function openScreen(page: Page, name: "Plan" | "World" | "Inbox") {
   await openFirstChapter(page)
-  await page.getByRole("navigation", { name: "Screens" }).getByRole("link", { name }).click()
+  const link = page.getByRole("navigation", { name: "Screens" }).getByRole("link", { name })
+  await link.click()
+  // A screen loads as it's first opened, and the helps in the header are the page's that shows.
+  await expect(link).toHaveAttribute("aria-current", "page")
 }
 
 test.describe("Glossary", () => {

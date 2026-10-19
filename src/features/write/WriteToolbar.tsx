@@ -71,6 +71,7 @@ import {
   isWriteUnit,
   UNIT_LABELS,
   useWrite,
+  useWritePlace,
   WIDE_WRITE_QUERY,
   WRITE_UNITS,
   writePath,
@@ -431,7 +432,8 @@ function ReadAloudItem({ after, trigger }: ReadAloudItemProps) {
 }
 
 function PhoneToolbar({ active, format }: ToolbarProps) {
-  const { bookId, plan, chapterId } = useWrite()
+  const { bookId, plan } = useWrite()
+  const { chapterId } = useWritePlace()
   const navigate = useNavigate()
   const editor = active?.editor
   return (

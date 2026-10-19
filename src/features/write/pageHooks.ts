@@ -2,13 +2,14 @@ import { useEffect, useState, type RefObject } from "react"
 import { attempt } from "@/app/feedback"
 import { ensureScene } from "@/db/queries"
 import { whenEditor } from "@/editor/activeEditor"
-import type { PlanChapter } from "@/features/plan/planData"
+import type { PlanChapter, PlanSceneRow } from "@/features/plan/planData"
 import { byData } from "@/lib/focus"
-import { useWrite } from "./writeContext"
+import { estimatedHeight } from "./sequence"
+import { useWriteBasics } from "./writeContext"
 
 /** A chapter gets its one implicit scene the first time it's opened (DESIGN.md §5). */
 export function useEnsureScene(chapter: PlanChapter, enabled = true) {
-  const { db } = useWrite()
+  const { db } = useWriteBasics()
   const empty = chapter.scenes.length === 0
   useEffect(() => {
     if (enabled && empty) void attempt("open chapter", ensureScene(db, chapter.id))
@@ -131,4 +132,24 @@ export function useNearViewport(ref: RefObject<HTMLElement | null>, lazy: boolea
     }
   }, [ref, lazy])
   return near || !lazy
+}
+
+/** The measured height of each scene's text, so a scene without its editor holds the space it took. */
+const heights = new Map<string, number>()
+
+/** How tall a scene's text stands without its editor: as tall as it last measured, or as long as its words suggest. */
+export const sceneTextHeight = (scene: Readonly<PlanSceneRow>) =>
+  heights.get(scene.id) ?? estimatedHeight(scene.word_count)
+
+/** Keeps the height of a scene's text while its editor is there. */
+export function useRememberHeight(ref: RefObject<HTMLElement | null>, sceneId: string, active: boolean) {
+  useEffect(() => {
+    const element = ref.current
+    if (!active || !element) return
+    const observer = new ResizeObserver(() => {
+      if (element.offsetHeight > 0) heights.set(sceneId, element.offsetHeight)
+    })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [ref, sceneId, active])
 }

@@ -1,22 +1,24 @@
-import { Fragment, useEffect, useLayoutEffect, useRef } from "react"
+import { Fragment, memo, useEffect, useLayoutEffect, useRef } from "react"
 import { useLocation, useNavigate } from "react-router"
 import type { PlanChapter } from "@/features/plan/planData"
 import { actLabel } from "@/features/plan/status"
 import { byData, focusSoon } from "@/lib/focus"
 import { formatCount } from "@/lib/numbers"
 import { ChapterHeader } from "./ChapterPage"
-import { holdingView, holdInView, revealScene, useEnsureScene, useNearViewport } from "./pageHooks"
+import { holdingView, holdInView, revealScene, sceneTextHeight, useEnsureScene, useNearViewport } from "./pageHooks"
 import { SceneBlock } from "./SceneBlock"
-import { navState, useWrite, writePath, type WriteNavState } from "./writeContext"
+import { navState, useWrite, useWritePlace, writePath, type WriteNavState } from "./writeContext"
 
 /**
  * The Manuscript view: the whole book as one page (DESIGN.md §8). Scenes get their editors as they come near the
  * viewport, and the URL follows the chapter being read, so the navigator, the chapter plan and a reload keep up.
  */
 export function Manuscript() {
-  const { bookId, book, plan, chapterId, sceneId } = useWrite()
+  const { bookId, book, plan } = useWrite()
+  const { chapterId, sceneId } = useWritePlace()
   const location = useLocation()
   const navigate = useNavigate()
+  const page = useRef<HTMLElement>(null)
 
   // The chapter the URL names. Scrolling past a chapter changes the URL, which needs no scrolling in return.
   const named = useRef(chapterId)
@@ -45,13 +47,14 @@ export function Manuscript() {
         return
       }
       frame = 0
-      // The chapter being read: the last one to start above a line a quarter of the way down the window.
+      // The chapter being read: the last one to start above a line a quarter of the way down the window. Read from
+      // the page's own children, as this runs every frame of a scroll and a long book's document is large.
       const line = Math.max(window.innerHeight * 0.25, 160)
-      const sections = document.querySelectorAll<HTMLElement>("[data-write-chapter]")
-      let reading = sections[0]
-      for (const section of sections) {
-        if (section.getBoundingClientRect().top > line) break
-        reading = section
+      let reading: HTMLElement | undefined
+      for (const child of page.current?.children ?? []) {
+        if (!(child instanceof HTMLElement) || !child.dataset.writeChapter) continue
+        if (reading && child.getBoundingClientRect().top > line) break
+        reading = child
       }
       const id = reading?.dataset.writeChapter
       if (!id || id === named.current) return
@@ -70,7 +73,7 @@ export function Manuscript() {
   }, [bookId, navigate])
 
   return (
-    <article className="prose-page mx-auto px-5 pt-10 pb-[50vh] md:px-8">
+    <article ref={page} className="prose-page mx-auto px-5 pt-10 pb-[50vh] md:px-8">
       <header data-focus-dim="" className="mb-6 font-sans">
         <p className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">Manuscript</p>
         <h1 className="mt-2 font-heading text-4xl leading-tight font-semibold text-ink">
@@ -102,12 +105,27 @@ export function Manuscript() {
   )
 }
 
-function ManuscriptChapter({ chapter }: { chapter: PlanChapter }) {
+/**
+ * Memoized: as the URL follows the scrolling, the page draws again, and a long book's chapters had better not with
+ * it.
+ */
+const ManuscriptChapter = memo(function ManuscriptChapter({ chapter }: { chapter: PlanChapter }) {
   const section = useRef<HTMLElement>(null)
   const near = useNearViewport(section, true)
   useEnsureScene(chapter, near)
   return (
-    <section ref={section} data-write-chapter={chapter.id} className="scroll-mt-32 pt-16">
+    <section
+      ref={section}
+      data-write-chapter={chapter.id}
+      // Far from the viewport, a chapter isn't laid out or painted at all, so each keystroke costs the browser the
+      // chapters near it rather than the whole book. It stands as tall as it last drew, or as its scenes suggest.
+      // Near, it draws as any other element, and flow-root keeps its height the same either way.
+      style={{
+        containIntrinsicBlockSize: `auto ${estimatedChapterHeight(chapter)}px`,
+        contentVisibility: near ? undefined : "auto",
+      }}
+      className="flow-root scroll-mt-32 pt-16"
+    >
       <ChapterHeader chapter={chapter} level={2} />
       {chapter.scenes.map((scene, index) => (
         <SceneBlock
@@ -122,4 +140,20 @@ function ManuscriptChapter({ chapter }: { chapter: PlanChapter }) {
       ))}
     </section>
   )
+})
+
+/** Heights measured from the page: a chapter's header, and a scene's header and the break above it. */
+const CHAPTER_HEADER_PX = 190
+const SCENE_HEADER_PX = 44
+const SCENE_BREAK_PX = 104
+
+/** How tall a chapter will stand, below its top padding, before it has ever drawn. */
+function estimatedChapterHeight(chapter: PlanChapter): number {
+  let height = CHAPTER_HEADER_PX
+  chapter.scenes.forEach((scene, index) => {
+    if (index > 0) height += SCENE_BREAK_PX
+    if (!scene.is_implicit) height += SCENE_HEADER_PX
+    height += sceneTextHeight(scene)
+  })
+  return height
 }

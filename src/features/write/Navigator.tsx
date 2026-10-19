@@ -5,7 +5,7 @@ import { actLabel, chapterTitle, statusOf } from "@/features/plan/status"
 import { formatCount } from "@/lib/numbers"
 import { cn } from "@/lib/utils"
 import { sceneToShow } from "./sequence"
-import { sceneLabel, useWrite, writePath, type WriteNavState } from "./writeContext"
+import { sceneLabel, useWrite, useWritePlace, writePath, type WriteNavState } from "./writeContext"
 
 export const NAVIGATOR_ID = "write-navigator"
 
@@ -13,7 +13,8 @@ const SCENE_STATE: WriteNavState = { focus: "scene" }
 
 /** The book's chapters beside the text, under their acts, with the open chapter's scenes (DESIGN.md §8). */
 export function Navigator() {
-  const { bookId, book, plan, chapterId, sceneId, unit } = useWrite()
+  const { bookId, book, plan, unit } = useWrite()
+  const { chapterId, sceneId } = useWritePlace()
   const nav = useRef<HTMLElement>(null)
   const current = plan.chapterById.get(chapterId)
   const currentScene = current && unit === "scene" ? (sceneToShow(current, sceneId)?.id ?? null) : sceneId

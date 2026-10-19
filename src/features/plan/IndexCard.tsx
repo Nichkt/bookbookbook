@@ -1,7 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { GripVerticalIcon, PenLineIcon } from "lucide-react"
-import type { KeyboardEvent } from "react"
+import { memo, type KeyboardEvent } from "react"
 import { Link } from "react-router"
 import { DraftInput, DraftTextarea } from "@/components/DraftField"
 import { buttonVariants } from "@/components/ui/button"
@@ -70,7 +70,8 @@ export function IndexCardOverlay({ chapter }: { chapter: PlanChapter }) {
   )
 }
 
-function CardTop({
+// The parts are memoized, so a drag, which renders every card around it, leaves what's on them be.
+const CardTop = memo(function CardTop({
   chapter,
   handleRef,
   listeners,
@@ -132,10 +133,10 @@ function CardTop({
       )}
     </div>
   )
-}
+})
 
 /** The title and summary, edited in place. */
-function CardText({ chapter }: { chapter: PlanChapter }) {
+const CardText = memo(function CardText({ chapter }: { chapter: PlanChapter }) {
   const { db } = usePlanContext()
   return (
     <div className="px-2.5 pt-1.5 pb-1">
@@ -157,9 +158,9 @@ function CardText({ chapter }: { chapter: PlanChapter }) {
       />
     </div>
   )
-}
+})
 
-function CardFooter({ chapter }: { chapter: PlanChapter }) {
+const CardFooter = memo(function CardFooter({ chapter }: { chapter: PlanChapter }) {
   const target = chapter.word_target ?? 0
   return (
     <p className="mt-auto border-t border-dashed px-4 py-1.5 text-[0.7rem] text-muted-foreground tabular-nums">
@@ -169,4 +170,4 @@ function CardFooter({ chapter }: { chapter: PlanChapter }) {
         ` · ${chapter.beats.length} ${chapter.beats.length === 1 ? "moment" : "moments"}`}
     </p>
   )
-}
+})

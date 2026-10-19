@@ -1,7 +1,7 @@
 import { useQuery } from "@powersync/react"
 import { useMemo } from "react"
 import { chapterTitle } from "@/features/plan/status"
-import { isCapitalized, looksLikeName, tidyName } from "@/features/write/addToWorld"
+import { isCapitalized, looksLikeName, tidyName } from "@/features/write/names"
 
 /*
  * The Inbox (DESIGN.md §4, §10): quick notes, typed or dictated, kept until they're filed into the book. Filing puts a

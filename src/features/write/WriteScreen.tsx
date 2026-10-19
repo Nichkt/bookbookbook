@@ -49,10 +49,15 @@ import {
   TYPEWRITER_PREF,
   unitPrefKey,
   useWrite,
+  useWritePlace,
+  WriteBasicsContext,
   WriteContext,
   writePath,
+  WritePlaceContext,
   type PanelPage,
+  type WriteBasics,
   type WriteContextValue,
+  type WritePlace,
   type WriteUnit,
 } from "./writeContext"
 import { WritePanel } from "./WritePanel"
@@ -325,8 +330,6 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
       matcherLoading,
       unit,
       setUnit,
-      chapterId,
-      sceneId,
       focusItem,
       navOpen,
       toggleNav,
@@ -351,8 +354,6 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
       matcherLoading,
       unit,
       setUnit,
-      chapterId,
-      sceneId,
       focusItem,
       navOpen,
       toggleNav,
@@ -368,33 +369,44 @@ function WriteWorkspace({ book, plan, chapterId, sceneId, prefs }: WorkspaceProp
       saveTypewriter,
     ],
   )
+  const place = useMemo<WritePlace>(() => ({ chapterId, sceneId }), [chapterId, sceneId])
+  const currentPlan = useCallback(() => latest.current.plan, [])
+  const basics = useMemo<WriteBasics>(
+    () => ({ db, bookId, matcher, matcherLoading, focusItem, currentPlan }),
+    [db, bookId, matcher, matcherLoading, focusItem, currentPlan],
+  )
 
   return (
     <WriteContext.Provider value={context}>
-      <div className="flex flex-1 flex-col" data-ai-tint={tint ? "on" : "off"}>
-        <WriteToolbar />
-        <div className="flex flex-1 items-start">
-          {navOpen && !focusMode && <Navigator />}
-          <MentionLayer className="min-w-0 flex-1 self-stretch">
-            <WriteContent />
-            {/* Room below the last line, so typewriter scrolling can bring it up to the middle too. */}
-            {typewriter && unit !== "manuscript" && <div aria-hidden="true" className="h-[40svh]" />}
-          </MentionLayer>
-          {!(focusMode && panelDocked) && <WritePanel />}
-        </div>
-        <HistoryDialog />
-        <AddToWorldDialog bookId={bookId} showEntry={showWorldEntry} />
-        <AiSettingsDialog />
-        <CustomToolsDialog />
-        <ReadAloudBar />
-        <DockedTools />
-      </div>
+      <WriteBasicsContext.Provider value={basics}>
+        <WritePlaceContext.Provider value={place}>
+          <div className="flex flex-1 flex-col" data-ai-tint={tint ? "on" : "off"}>
+            <WriteToolbar />
+            <div className="flex flex-1 items-start">
+              {navOpen && !focusMode && <Navigator />}
+              <MentionLayer className="min-w-0 flex-1 self-stretch">
+                <WriteContent />
+                {/* Room below the last line, so typewriter scrolling can bring it up to the middle too. */}
+                {typewriter && unit !== "manuscript" && <div aria-hidden="true" className="h-[40svh]" />}
+              </MentionLayer>
+              {!(focusMode && panelDocked) && <WritePanel />}
+            </div>
+            <HistoryDialog />
+            <AddToWorldDialog bookId={bookId} showEntry={showWorldEntry} />
+            <AiSettingsDialog />
+            <CustomToolsDialog />
+            <ReadAloudBar />
+            <DockedTools />
+          </div>
+        </WritePlaceContext.Provider>
+      </WriteBasicsContext.Provider>
     </WriteContext.Provider>
   )
 }
 
 function WriteContent() {
-  const { plan, unit, chapterId } = useWrite()
+  const { plan, unit } = useWrite()
+  const { chapterId } = useWritePlace()
   if (unit === "manuscript") return <Manuscript />
   const chapter = plan.chapterById.get(chapterId)
   if (!chapter) return <MissingChapter />

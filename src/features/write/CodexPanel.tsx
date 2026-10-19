@@ -22,7 +22,7 @@ import {
   type ChapterLinkRow,
 } from "./codexPanelData"
 import { useChapterMentions } from "./useChapterMentions"
-import { useWrite } from "./writeContext"
+import { useWrite, useWritePlace } from "./writeContext"
 
 const HEADER = "sticky top-0 z-10 flex h-12 shrink-0 items-center gap-1 border-b bg-surface/95 px-4 backdrop-blur"
 const FOCUS_RING = "rounded-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -59,7 +59,8 @@ const entriesText = (count: number) => `${formatCount(count)} ${count === 1 ? "e
  * time to read. Editing them stays on the World screen.
  */
 export function CodexPanel({ onClose }: { onClose: () => void }) {
-  const { bookId, plan, chapterId, matcher, codexEntryId, setCodexEntryId } = useWrite()
+  const { bookId, plan, matcher, codexEntryId, setCodexEntryId } = useWrite()
+  const { chapterId } = useWritePlace()
   const codex = useCodex(bookId)
   const chapter = plan.chapterById.get(chapterId)
   const sceneIds = useMemo(() => chapter?.scenes.map((scene) => scene.id) ?? [], [chapter])

@@ -15,15 +15,10 @@ import { toast } from "sonner"
 import { rememberBook, useCurrentBook } from "@/app/books"
 import { announce, attempt, offerUndo } from "@/app/feedback"
 import { PlaceholderScreen } from "@/app/PlaceholderScreens"
+import { DeferredMenu } from "@/components/DeferredMenu"
 import { DraftTextarea } from "@/components/DraftField"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { useAfterMenu } from "@/components/useAfterMenu"
 import { codexPath, useCodex, type Codex } from "@/features/codex/codexData"
@@ -403,8 +398,8 @@ function NoteMenu({
 }) {
   const menu = useAfterMenu()
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <DeferredMenu
+      trigger={
         <Button
           variant="ghost"
           size="icon-sm"
@@ -414,7 +409,8 @@ function NoteMenu({
         >
           <EllipsisIcon />
         </Button>
-      </DropdownMenuTrigger>
+      }
+    >
       <DropdownMenuContent align="end" className="w-64" onCloseAutoFocus={menu.onCloseAutoFocus}>
         {list === "filed" && (
           <DropdownMenuItem onSelect={() => menu.after(() => actions.moveBack(note))} data-inbox-move-back="">
@@ -439,6 +435,6 @@ function NoteMenu({
           Delete note
         </DropdownMenuItem>
       </DropdownMenuContent>
-    </DropdownMenu>
+    </DeferredMenu>
   )
 }

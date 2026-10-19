@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { DictateButton } from "@/features/dictation/DictateButton"
 import { DictationBadge } from "@/features/dictation/DictationBadge"
-import { stopReading } from "@/features/write/readAloud"
+import { stopReadingAloud } from "@/features/write/readAloudStop"
 import { isComposing } from "@/lib/keys"
 import { useMediaQuery } from "@/lib/useMediaQuery"
 import { cn } from "@/lib/utils"
@@ -128,7 +128,7 @@ export function NoteComposer({
         data-note-text={targetId}
       />
       <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
-        <DictateButton target={target} onStart={() => stopReading()} />
+        <DictateButton target={target} onStart={stopReadingAloud} />
         <DictationBadge />
         <div className="ml-auto flex items-center gap-3">
           {enterAdds && (

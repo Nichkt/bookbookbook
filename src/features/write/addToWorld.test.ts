@@ -6,15 +6,13 @@ import {
   aliasSuggestions,
   defaultTypeId,
   entryNamed,
-  isCapitalized,
-  looksLikeName,
   namesAnEntry,
   openAddToWorldWith,
   offersToAdd,
   selectedName,
-  tidyName,
   useAddToWorld,
 } from "./addToWorld"
+import { isCapitalized, looksLikeName, tidyName } from "./names"
 
 const matcher = buildMentionMatcher([
   { id: "mara", name: "Mara Quill", aliases: ["Mara"] },

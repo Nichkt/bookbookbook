@@ -2,15 +2,14 @@ import { MoonIcon } from "lucide-react"
 import { useMemo, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode } from "react"
 import { Link } from "react-router"
 import { attempt } from "@/app/feedback"
+import { DeferredMenu } from "@/components/DeferredMenu"
 import { buttonVariants } from "@/components/ui/button"
 import {
-  DropdownMenu,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import type { MentionCounts } from "@/features/codex/appearances"
 import { useAppearances } from "@/features/codex/useAppearances"
@@ -406,8 +405,8 @@ function CharacterCell({ row, index, chapter, gridRow, tabIndex }: CellProps) {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <DeferredMenu
+      trigger={
         <button
           type="button"
           data-grid-row={gridRow}
@@ -419,7 +418,8 @@ function CharacterCell({ row, index, chapter, gridRow, tabIndex }: CellProps) {
         >
           <Mark mark={mark} color={entry.color} />
         </button>
-      </DropdownMenuTrigger>
+      }
+    >
       <DropdownMenuContent align="center" className="w-64">
         <DropdownMenuLabel className="font-normal">
           <span className="font-semibold text-ink">{entry.name}</span> in chapter {chapter.number}
@@ -442,7 +442,7 @@ function CharacterCell({ row, index, chapter, gridRow, tabIndex }: CellProps) {
           </p>
         )}
       </DropdownMenuContent>
-    </DropdownMenu>
+    </DeferredMenu>
   )
 }
 

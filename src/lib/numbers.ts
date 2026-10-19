@@ -1,6 +1,18 @@
+const formats = new Map<string | undefined, Intl.NumberFormat>()
+
+/** One formatter per locale: making one is slow, and a Board of 100 cards shows hundreds of counts. */
+function numberFormat(locale?: string) {
+  let format = formats.get(locale)
+  if (!format) {
+    format = new Intl.NumberFormat(locale)
+    formats.set(locale, format)
+  }
+  return format
+}
+
 /** The locale's digit-group separator: "," in English, "." in German, a narrow space in French. */
 function groupSeparator(locale?: string) {
-  return new Intl.NumberFormat(locale).formatToParts(10_000).find((part) => part.type === "group")?.value ?? ""
+  return numberFormat(locale).formatToParts(10_000).find((part) => part.type === "group")?.value ?? ""
 }
 
 /**
@@ -15,7 +27,7 @@ export function parseCount(text: string, locale?: string): number | null {
   return Number.isFinite(value) && value > 0 ? value : null
 }
 
-export const formatCount = (value: number, locale?: string) => value.toLocaleString(locale)
+export const formatCount = (value: number, locale?: string) => numberFormat(locale).format(value)
 
 /** The text as formatCount shows it, when it reads as a count; anything else as it is. */
 export function tidyCount(text: string, locale?: string) {

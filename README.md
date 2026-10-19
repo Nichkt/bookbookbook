@@ -49,6 +49,13 @@ a folder as it changes (Chrome and Edge).
   color is black or white, whichever stands out more, and what a screen reader calls a button or link now starts
   with the words on it.
 
+**M8, Long books** (DESIGN.md §17, "Built in M8: performance"):
+- **Quick with a whole novel in it:** with 160,000 words, typing shows at once, a chapter opens in under a tenth of a
+  second, and the Manuscript, the whole book on one page, scrolls smoothly, as dragging cards on the Board does.
+- **Starts sooner:** each page downloads when it's first needed, or in the background once the app is open, so
+  opening bookbookbook downloads about 40% less.
+- **Measure it yourself:** `npm run perf` times all this against the design's budgets. See [Performance](#performance).
+
 **M11, Inbox and dictation** (DESIGN.md §10, "Built in M11"):
 - **Inbox:** the Inbox tab catches ideas as they come, typed or dictated, to sort into the book later. **File…** adds
   a note to a chapter's notes, moments or summary, or to a World entry's notes, and **Add to World** makes it an
@@ -248,6 +255,7 @@ site's data (DevTools → Application → Storage → Clear site data) and reloa
 | `npm run lint` | oxlint |
 | `npm test` | Unit tests (Vitest) |
 | `npm run test:e2e` | End-to-end tests (Playwright) |
+| `npm run perf` | Times the app with a book of 161,741 words, against the performance budgets |
 | `npm run icons` | Draws the app's icons in `public/` from `public/favicon.svg`, in Chrome |
 
 ### Trying it offline
@@ -410,6 +418,14 @@ They cover:
 Use `npx playwright test --ui` to debug, and `--project=chrome` or `--project=pwa` for the dev server's tests or the
 offline ones alone. A failed test keeps a trace in `test-results/`; open it with `npx playwright show-trace <path>`.
 
+### Performance
+
+`npm run perf` builds the app, serves the build on port 4175, and in Chrome imports a made-up book of 161,741 words
+(100 chapters, 246 scenes). Then it times typing in a chapter, opening chapters, scrolling and typing in the
+Manuscript, dragging a card on the Board and opening the home screen, and adds up the JavaScript the home screen needs.
+It prints each beside its budget in DESIGN.md §17, where the last results are. `npm run perf -- 4` slows the CPU
+fourfold, as on a low-end laptop. A run takes about three minutes.
+
 ## Phone keyboards
 
 Android keyboards compose words before committing them, and that's where ProseMirror editors break. `/lab/ime` is a
@@ -438,10 +454,10 @@ one replaces the live doc's prose with a copy in a single edit, so it's saved, a
 ```text
 src/
   ai/             providers, requests and streamed answers, what a run sends, the tools and your own, cards and runs
-  app/            shell, routes, startup and error screens, theme, toasts and announcements, the service worker and
-                  updates, installing, dev hooks
+  app/            shell, routes and each page's own download, startup and error screens, theme, toasts and
+                  announcements, the service worker and updates, installing, dev hooks
   backup/         backup status, folder backups, and when backups run
-  components/     fields that save as you type; ui/ holds the shadcn components
+  components/     fields that save as you type, menus for long lists; ui/ holds the shadcn components
   db/             PowerSync schema, queries, sample book and seeding, ordering, undo, Trash, prefs, the scene store,
                   writing stats, scene versions
   editor/         TipTap scene editor, its extensions, open scene docs, the active editor, codex name matching
@@ -459,7 +475,8 @@ src/
   speech/         speech recognition: the engine, dictation sessions, voice commands and their settings
   test/           in-memory SQLite and book builders for unit tests
   yjs/            SceneDocProvider, the scene store interface, Yjs helpers
-e2e/              Playwright tests, and preview.ts, which builds and serves the app for the offline tests
+e2e/              Playwright tests; preview.ts, which builds and serves the app for the offline tests; and perf.ts,
+                  which times it with a long book (`npm run perf`)
 docs/             design doc and the phone keyboard test
 prototype/        the clickable design prototype
 public/           favicon and the app's icons; theme-init.js sets the theme and title bar color before first paint

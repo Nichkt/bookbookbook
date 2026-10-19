@@ -13,7 +13,7 @@ import { CodexPanel } from "./CodexPanel"
 import { matchToReturnTo } from "./findActions"
 import { FindPanel } from "./FindPanel"
 import { panelHeading } from "./writeActions"
-import { useWrite, type PanelPage } from "./writeContext"
+import { useWrite, useWritePlace, type PanelPage } from "./writeContext"
 
 /** The toolbar controls that open the panel, which focus goes back to when it closes. */
 const OPENER = "[data-write-panel-return]"
@@ -40,7 +40,8 @@ function returnFocus(page: PanelPage, opener: Editor | null, soon: boolean) {
  * rising from the bottom on phones.
  */
 export function WritePanel() {
-  const { db, bookId, book, plan, focusItem, chapterId, panelDocked, panel, setPanel, setPanelOpener } = useWrite()
+  const { db, bookId, book, plan, focusItem, panelDocked, panel, setPanel, setPanelOpener } = useWrite()
+  const { chapterId } = useWritePlace()
   const structures = useBookStructures(book.template_key)
   const details = useMemo<ChapterDetailsValue>(
     () => ({ db, bookId, plan, structures, focusItem, place: "write" }),

@@ -173,6 +173,11 @@ export function buildPlan(
   beatRows: readonly Readonly<PlanBeatRow>[],
   linkRows: readonly Readonly<PlanLinkRow>[],
   entryRows: readonly Readonly<PlanEntryRow>[],
+  /**
+   * The plan this one follows. A chapter that hasn't changed keeps its object from it, so what shows a chapter can
+   * skip drawing again when another one changes, as one does each time a word count is saved.
+   */
+  previous?: Plan,
 ): Plan {
   const entries = new Map<string, PlanEntry>()
   for (const row of entryRows) {
@@ -204,7 +209,7 @@ export function buildPlan(
       const scenes = scenesByChapter.get(row.id) ?? []
       const labelList = parseStringList(row.labels)
       for (const label of labelList) if (!labels.has(label.toLowerCase())) labels.set(label.toLowerCase(), label)
-      const chapter: PlanChapter = {
+      const built: PlanChapter = {
         ...row,
         number: chapters.length + 1,
         groupKey: key,
@@ -217,6 +222,8 @@ export function buildPlan(
         labelList,
         time: parseStoryTime(row.story_time),
       }
+      const before = previous?.chapterById.get(row.id)
+      const chapter = before && sameChapter(before, built) ? before : built
       chapters.push(chapter)
       return chapter
     })
@@ -242,6 +249,22 @@ export function buildPlan(
   }
 }
 
+/**
+ * Whether two builds of a chapter hold the same: the row's fields, and the lists item for item (rows that haven't
+ * changed are the same objects, as the queries are KEYED).
+ */
+function sameChapter(before: PlanChapter, after: PlanChapter): boolean {
+  const keys = Object.keys(after) as (keyof PlanChapter)[]
+  if (keys.length !== Object.keys(before).length) return false
+  return keys.every((key) => {
+    const a = before[key]
+    const b = after[key]
+    // Read from story_time, which is compared with the other fields.
+    if (a === b || key === "time") return true
+    return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((item, i) => item === b[i])
+  })
+}
+
 /** The plan read once, outside React. */
 export async function readPlan(db: Tx, bookId: string): Promise<Plan> {
   const [acts, chapters, scenes, beats, links, entries] = await Promise.all([
@@ -255,6 +278,12 @@ export async function readPlan(db: Tx, bookId: string): Promise<Plan> {
   return buildPlan(acts, chapters, scenes, beats, links, entries)
 }
 
+/**
+ * The plan last built for each book, for the next to keep what hasn't changed. Only ever a hint: anything kept is
+ * equal to what would have been built.
+ */
+const lastPlans = new Map<string, Plan>()
+
 export function usePlan(bookId: string): { plan: Plan; isLoading: boolean } {
   const acts = useQuery<PlanActRow>(ACTS_SQL, [bookId], KEYED)
   const chapters = useQuery<PlanChapterRow>(CHAPTERS_SQL, [bookId], KEYED)
@@ -262,10 +291,19 @@ export function usePlan(bookId: string): { plan: Plan; isLoading: boolean } {
   const beats = useQuery<PlanBeatRow>(BEATS_SQL, [bookId], KEYED)
   const links = useQuery<PlanLinkRow>(LINKS_SQL, [bookId], KEYED)
   const entries = useQuery<PlanEntryRow>(ENTRIES_SQL, [bookId], KEYED)
-  const plan = useMemo(
-    () => buildPlan(acts.data, chapters.data, scenes.data, beats.data, links.data, entries.data),
-    [acts.data, chapters.data, scenes.data, beats.data, links.data, entries.data],
-  )
+  const plan = useMemo(() => {
+    const built = buildPlan(
+      acts.data,
+      chapters.data,
+      scenes.data,
+      beats.data,
+      links.data,
+      entries.data,
+      lastPlans.get(bookId),
+    )
+    lastPlans.set(bookId, built)
+    return built
+  }, [bookId, acts.data, chapters.data, scenes.data, beats.data, links.data, entries.data])
   const isLoading = [acts, chapters, scenes, beats, links, entries].some((query) => query.isLoading)
   return { plan, isLoading }
 }

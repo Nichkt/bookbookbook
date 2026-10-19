@@ -23,15 +23,14 @@ import {
 } from "react"
 import { Link } from "react-router"
 import { announce, attempt } from "@/app/feedback"
+import { DeferredMenu } from "@/components/DeferredMenu"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
-  DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
-  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -786,14 +785,13 @@ interface RowMenuProps {
 function RowMenu({ rowKey, label, onCloseAutoFocus, children }: RowMenuProps) {
   const nav = useOutlineNav()
   return (
-    <DropdownMenu
+    <DeferredMenu
       open={nav.menuFor === rowKey}
       onOpenChange={(open) => {
         if (open) nav.setMenuFor(rowKey)
         else if (nav.menuFor === rowKey) nav.setMenuFor(null)
       }}
-    >
-      <DropdownMenuTrigger asChild>
+      trigger={
         <Button
           variant="ghost"
           size="icon-sm"
@@ -803,11 +801,12 @@ function RowMenu({ rowKey, label, onCloseAutoFocus, children }: RowMenuProps) {
         >
           <EllipsisIcon />
         </Button>
-      </DropdownMenuTrigger>
+      }
+    >
       <DropdownMenuContent align="end" className="w-64" onCloseAutoFocus={onCloseAutoFocus}>
         {children}
       </DropdownMenuContent>
-    </DropdownMenu>
+    </DeferredMenu>
   )
 }
 

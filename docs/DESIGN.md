@@ -1487,6 +1487,60 @@ LanguageTool or the browser spellchecker. RTL later.
 - **Still to do:** axe can't tell whether a screen reader's account of a page makes sense, so a pass with NVDA and
   VoiceOver remains.
 
+### Built in M8: performance on a long book
+- **How it's measured.** `npm run perf` (`e2e/perf.ts`) builds the app for production, serves the build, and in Chrome
+  imports a made-up book of 161,741 words: 100 chapters in three parts, 246 scenes. It types at the end of a chapter
+  at a quick typist's pace, opens eight chapters from all over the book from the navigator, scrolls down the
+  Manuscript, all 100 chapters on one page, types there and waits while it saves, drags a card across the Board, and
+  opens the home screen. The JavaScript the home screen needs is added up from the build's manifest.
+  `npm run perf -- 4` slows the CPU fourfold, as on a low-end laptop.
+- **What counts.** A key's time runs from the press to the paint that shows it, so it takes in the wait for the
+  screen's next frame, up to 16.7 ms at 60 Hz. The median is held to the budget: a key typically shows in the next
+  frame. A chapter's time runs from the click to the paint that shows its first scene, and the slowest of the eight is
+  held to it. 60 fps means 95% of the gaps between frames within 18 ms, a 60 Hz frame and the timer's jitter.
+- **Results.** The budgets are held on a desktop computer (an Intel Core i7-13700F, in Chrome). Slowed fourfold, the
+  figures show what a slower one would feel. Misses are in bold.
+
+| Measure | Budget | Desktop | Slowed fourfold |
+|---|---|---|---|
+| Keystroke to paint, a chapter open: median, 95% | < 16 ms | 3.3, 16.3 ms | 14.1, 22 ms |
+| Open a chapter: median, slowest | < 150 ms | 55, 80 ms | 222, **373 ms** |
+| Scroll the Manuscript: 95% of frames, slowest | 60 fps | 17.0, 17.1 ms; none late | 17.0, 83 ms; 15 of 552 late |
+| Type in the Manuscript: median, 95%; slowest frame, typing and saving | < 16 ms | 9.3, 17.8 ms; 17.2 ms | **17.3**, 24 ms; 67 ms |
+| Drag a card on the Board: 95% of frames, slowest | 60 fps | 17.0, 33 ms | 17.0, 184 ms |
+| Open the Board, 100 cards | | 85 ms | 517 ms |
+| Open the home screen | | 236 ms | 736 ms |
+| Import the book: reading, writing | | 0.2 s, 4.8 s | 0.9 s, 6.3 s |
+| JavaScript to the home screen, gzipped | < 250 KB | **366 KB**, 181 KB of it for the splash | the same |
+
+- **What made long books quick**, each found by profiling the long book:
+  - As the plan updates, a chapter that hasn't changed keeps its object. So the Board's and Corkboard's cards and the
+    Manuscript's chapters, each drawn again only when what it's given changes, sit still when another chapter
+    changes, as one does each time a word count is saved. A drag on the Board still draws every card again, but no
+    longer what's on them.
+  - Write's state comes in three parts: where in the book the writer is, which changes all the while the Manuscript
+    scrolls; what each chapter and scene on the page needs, which hardly ever changes; and the rest. Before, each word
+    count saved after a pause drew the whole Manuscript again.
+  - Numbers are formatted by one formatter for each language, made once, rather than a new one for each number. A
+    Board of 100 cards shows hundreds.
+  - The Manuscript's chapters far from view skip layout and paint (`content-visibility`), each keeping a height worked
+    out from its words, so the scroll bar holds still.
+  - Menus in long lists are only a button until first opened (`DeferredMenu`): the Manuscript's scene menus, the
+    Outline's rows, the Matrix's cells, Import's preview and the Inbox's notes. Each Radix menu on the page listens to
+    every key pressed, open or not, so hundreds of them made typing slow.
+  - Each of a book's pages, Plan, Write, World and the Inbox, is a download of its own (`src/app/screens.ts`). The one
+    the app opens on comes alongside the shell, and the rest once the app is idle, so moving to one doesn't wait. The
+    editor and the AI tools come with Write. Quick note and the Inbox no longer bring the editor with them. The
+    JavaScript to the home screen came down from about 640 KB to 366 KB.
+- **Missed:**
+  - The shell's 250 KB (decision 35). PowerSync's client and React DOM, 173 KB between them, are needed before any
+    page can show, and the splash alone is 181 KB. After the first visit the service worker has it all on the device,
+    and the desktop app planned for M12 would read it from disk, so the cost is a first visit on a slow
+    connection. The dialogs (help, Search, Import, Export), about 40 KB, are next to load only when opened.
+  - On a computer four times slower, opening a chapter takes 220 to 370 ms, and typing in the Manuscript runs just
+    over a frame, with a 67 ms frame as it saves. Picking up a card on the Board stalls for up to 184 ms, as dnd-kit
+    draws every card again; a Board that draws only the cards in view would fix it. All three are left for later.
+
 ## 17a. Glossary and tours
 
 *Built after M7.* A new writer shouldn't need the trade's words, or a manual, to use the app. Every page has two
@@ -1597,9 +1651,13 @@ words as "also called".
 - Installable PWA.
 - Tested on Chrome, Edge, Safari and Firefox (desktop), iOS Safari, and Android Chrome with Gboard and Samsung
   Keyboard.
-- A 150k-word sample book meets the performance budgets.
+- A 150k-word sample book meets the performance budgets. *(Measured with `npm run perf`, §17: met on a desktop
+  computer, but for the shell's size, decision 35.)*
 - Keyboard + axe audit passes. *(The axe audit is built and passes, §17.)*
-- The project format is versioned, with migrations guaranteed from Beta onward.
+- The project format is versioned, with migrations guaranteed from Beta onward. *(Backups carry a format version,
+  1 since M7, and one from a newer app is turned away (§13). The database on the device only ever gains columns,
+  which PowerSync stores without a migration. From Beta, a change that older backups can't take raises the version,
+  and Restore goes on reading every earlier one.)*
 
 **Immediate next steps:**
 1. Name clearance for "bookbookbook" (trademark, domain, app stores).
@@ -1614,7 +1672,8 @@ words as "also called".
    voice memos, the in-browser models, cloud transcription and the AI helpers (§10, "Built in M11"). So are the home
    screen, the chapter pop-out, plain labels, World, the glossary and the page tours (§4, §6, §7, §17a), and from
    M8, Search, the command palette (§4), the app opening offline, installing and asking to be installed (§11),
-   the tools above the keyboard and bottom sheets (§16), and the accessibility audit (§17).
+   the tools above the keyboard and bottom sheets (§16), and the accessibility audit and performance on a long
+   book (§17).
 
 ---
 
@@ -1692,3 +1751,4 @@ words as "also called".
 | 32 | M8 install prompts | A notice on the home screen alone, above the books, saying why: Chrome's and Edge's offer held for Install, which opens the browser's own dialog, and Safari's steps where no offer comes, on an iPhone or iPad in any browser and in Safari 17 or later on a Mac, as Safari may clear a website's data after a week away but not an installed app's; an app added from Safari keeps its own books, so the notice says to back up and restore those begun in the browser; Not now and Got it are for good on the device, a dismissed browser dialog only for the visit; Search and the glossary keep a way to install, and the Backups dialog offers it when the browser won't promise to keep the books; nothing's offered in the installed app; no tour step, as the notice comes and goes | Details in §11, "Built in M8" |
 | 33 | M8 tools above the keyboard and bottom sheets | On a touch screen, with a scene's text in focus and an on-screen keyboard up, a bar on the keyboard's top edge: Add to World for a new name, at the start, then Undo, Redo, Bold, Italic, Dictate and Done; taps leave focus in the text; the keyboard found by the visual viewport shrinking 150 px or more from the window's tallest at that width, never while pinched; the tab bar goes and toasts rise above the bar; the bar's height is ProseMirror's scroll threshold and margin at the bottom, so the caret stays above it; focus mode hides it; on phones Write's panel rises from the bottom below the header, with a handle that closes it dragged a quarter down or flicked; not yet tried on a real device | Details in §16, "Built in M8" |
 | 34 | M8 accessibility audit | axe-core at 73 stops on walks through every page, panel, menu and dialog, on a computer and a phone; WCAG 2.2 A and AA and axe's best practices in the light theme, and the color rules alone in sepia and dark, as the themes change only colors; reduced motion, so nothing's caught mid-fade, and legacy mode, which runs axe in the page without opening a blank page each time, as the app has no frames; any finding fails; fixed: muted text darker (lighter in dark), black or white text on an entry's color, accessible names that start with the words shown, names for every popover, 24 px rows in What the AI sees, and Dictate ready before its settings load; focus mode's faded paragraphs left out of contrast, the paragraph being written held to it; a screen reader pass still to do | Details in §17, "Built in M8" |
+| 35 | M8 performance on a long book | `npm run perf` builds the app, imports a made-up book of 161,741 words in Chrome, and times typing, opening chapters, scrolling and typing in the Manuscript, a drag on the Board and opening the home screen; the budgets are held on a desktop computer, met there but for the shell's size, and a run on a CPU slowed fourfold shows what a slower one feels; unchanged chapters keep their objects as the plan updates, Write's state is split three ways, numbers share a formatter, the Manuscript's far chapters skip layout and paint, menus in long lists mount when first opened, and each of a book's pages is its own download, the one opened on fetched with the shell and the rest when idle; the shell's 250 KB is missed at 366 KB, as PowerSync and React DOM take 173 KB of it and nothing shows without them, and it stays the target, the service worker making it a cost of the first visit alone; slowed fourfold, opening a chapter and typing in the Manuscript miss, and picking up a card stalls, left for later | Details in §17, "Built in M8" |

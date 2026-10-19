@@ -15,16 +15,11 @@ import { memo, useId, useLayoutEffect, useMemo, useRef, useState, type FormEvent
 import { useNavigate } from "react-router"
 import { toast } from "sonner"
 import { rememberBook } from "@/app/books"
+import { DeferredMenu } from "@/components/DeferredMenu"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DialogClose, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -436,8 +431,8 @@ const ChapterRow = memo(function ChapterRow({ chapter, number, above, below, act
           {chapterMeta(chapter)}
         </p>
       </div>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+      <DeferredMenu
+        trigger={
           <Button
             type="button"
             variant="ghost"
@@ -448,7 +443,8 @@ const ChapterRow = memo(function ChapterRow({ chapter, number, above, below, act
           >
             <EllipsisIcon />
           </Button>
-        </DropdownMenuTrigger>
+        }
+      >
         <DropdownMenuContent align="end" className="w-60" onCloseAutoFocus={menu.onCloseAutoFocus}>
           <DropdownMenuItem
             disabled={above === null}
@@ -481,7 +477,7 @@ const ChapterRow = memo(function ChapterRow({ chapter, number, above, below, act
             {chapter.leftOut ? "Put back" : "Leave out"}
           </DropdownMenuItem>
         </DropdownMenuContent>
-      </DropdownMenu>
+      </DeferredMenu>
     </li>
   )
 })

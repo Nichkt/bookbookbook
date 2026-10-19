@@ -9,6 +9,7 @@ import { readingRange, showReading, type ReadingRange } from "@/editor/extension
 import type { Plan } from "@/features/plan/planData"
 import { byData } from "@/lib/focus"
 import { stopDictation } from "@/speech/dictation"
+import { setReadAloudStop } from "./readAloudStop"
 import { chapterOfScene, type WriteUnit } from "./writeContext"
 
 /*
@@ -331,6 +332,8 @@ export function stopReading(toText = false): boolean {
   if (range && (toText || inBar)) placeCaret(current.editor, range.from)
   return true
 }
+
+setReadAloudStop(() => stopReading())
 
 /** Stops reading once the editor it's in has left the page, unless it's on its way to the next scene's. */
 export function stopIfGone() {
