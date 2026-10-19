@@ -18,10 +18,16 @@ tauri = { version = "2.12.4", features = [] }
 tauri-plugin-opener = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-window-state = "2"
+# For tauri::generate_context!, which writes the plugins' settings in tauri.conf.json into the app with it.
+serde_json = "1"
 
 # WebView2 itself, to allow the microphone and backup folders without its own prompt (src/lib.rs).
 [target.'cfg(windows)'.dependencies]
 webview2-com = "0.39"
+
+# Updates from GitHub's releases (src/app/updates.ts). Desktops only, as the plugin is.
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-updater = "2"
 
 # A smaller app: https://v2.tauri.app/concept/size/
 [profile.release]

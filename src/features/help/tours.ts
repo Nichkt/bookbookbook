@@ -100,6 +100,13 @@ const HOME: TourDefinition = {
       term: "trash",
     },
     {
+      target: "home-updates",
+      title: "Get the newest version",
+      body: "Check for updates looks for a new version of bookbookbook, and installs it when you say. Your books stay as they are.",
+      term: "install",
+      when: () => desktop,
+    },
+    {
       target: "search",
       title: "Find anything",
       body: (context) =>

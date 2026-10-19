@@ -8,8 +8,10 @@ takes after NovelCrafter, the writing side after Sudowrite.
 
 ## Download for Windows
 
-For Windows 10 and 11, 64-bit: **[download the installer][installer]**, bookbookbook 0.1.1, about 5 MB. Newer
-versions, when there are some, are on the [releases page](https://github.com/Nichkt/bookbookbook/releases/latest).
+For Windows 10 and 11, 64-bit: **[download the installer][installer]**, bookbookbook 0.1.2, about 6 MB. After that,
+**Check for updates**, on the home screen, installs each newer version; they're all on the
+[releases page](https://github.com/Nichkt/bookbookbook/releases) too. Versions before 0.1.2 have no Check for updates,
+so install this one over yours, which keeps your books.
 1. Your browser may say the file isn't commonly downloaded, as it's new: keep it.
 2. Open it. As the installer isn't signed yet, Windows SmartScreen warns about it: click More info, then Run anyway.
 3. Click Next on each page, then Finish, with Run bookbookbook ticked. It installs for you alone, so it needs no
@@ -20,7 +22,7 @@ Your books stay on this computer, so keep backups, with Backups on the home scre
 this one keeps them, and so does uninstalling, in Settings → Apps, unless you tick Delete the application data. To
 build the app yourself, see [The Windows app](#the-windows-app).
 
-[installer]: https://github.com/Nichkt/bookbookbook/releases/download/v0.1.1/bookbookbook_0.1.1_x64-setup.exe
+[installer]: https://github.com/Nichkt/bookbookbook/releases/download/v0.1.2/bookbookbook_0.1.2_x64-setup.exe
 
 ## Status: home, Plan, World, Write, writing aids, AI, Inbox, dictation, search, help, import, export, backups, offline, Windows app
 
@@ -28,9 +30,21 @@ Milestones 0 to 8 and 11 from DESIGN.md §19 are built, and M12's Windows app, p
 tour of every page. M8 still wants tests on real Android phones and a pass with screen readers, which take a person.
 Macs, iPhones and iPads are set aside for now.
 Everything stays on the device, except what an AI tool reads when you run it, which goes only to the AI you chose, and
-your voice when you dictate online, which goes to the browser's maker (Microsoft's, in the Windows app).
+your voice when you dictate online, which goes to the browser's maker (Microsoft's, in the Windows app). The Windows
+app asks GitHub for its newest version only when you click Check for updates.
 There are no accounts or sync yet, so keep backups: Backups… in the book menu downloads one, or backs every book up to
 a folder as it changes (Chrome, Edge and the Windows app).
+
+**After M12, updates in the Windows app** (DESIGN.md §11, "Built after M12"; see [The Windows app](#the-windows-app)):
+- **Check for updates**, on the home screen, in the book menu or in Search, asks GitHub for the newest version and
+  says what's new in it. It looks only when you ask.
+- **Update now** downloads it, then saves your writing, closes bookbookbook, installs the new version and opens it
+  again where the window was. Your books and settings stay as they are.
+- **It waits for you:** close Updates while it downloads and carry on writing. Once it's downloaded, a message offers
+  Install now, or Later, and Updates offers it too.
+- **Only the real thing:** each release's installer is signed with bookbookbook's own key, and the app installs only
+  an installer signed with it, for the version announced. Anything else is refused, and nothing changes. When
+  something goes wrong, Updates says what, and links to every version on GitHub.
 
 **After M12, adding a chapter** (DESIGN.md §6, "Built after M12"):
 - **Add a chapter:** a big button after the last chapter of each act on the Board, or of the book when it has no
@@ -344,10 +358,25 @@ The first build compiles Tauri, which takes several minutes; after that, about o
   `npm run tauri dev` has the sample book, as the dev server does, and keeps it apart, as it's another address.
 - **Uninstalling** (Settings → Apps, or `uninstall.exe`, `/S` for silently) keeps the books, unless Delete the
   application data is ticked.
-- **Releasing:** raise `version` in `package.json`, which the app and its installer take theirs from, and run
-  `npm run tauri build`. Then `gh release create v<version> <the installer>` makes a release on GitHub with the
-  installer attached, and the link in [Download for Windows](#download-for-windows) wants changing to it, as the
-  installer's name has the version in it.
+- **Releasing:** raise `version` in `package.json`, which the app and its installer take theirs from. Build with the
+  updater's private key (below), which signs the installer, in a `.sig` file beside it. In PowerShell:
+  `$env:TAURI_SIGNING_PRIVATE_KEY = "$env:USERPROFILE\.tauri\bookbookbook.key"`, then `npx tauri build --ci` (`--ci`
+  as the key has no password). Write what's new in a text file and run `npm run update-manifest -- --notes <it>`,
+  which writes `latest.json` beside the installer. Then
+  `gh release create v<version> <the installer> <its latest.json> --latest --notes-file <it>` makes the release on
+  GitHub with both attached: installed apps find the new version from the latest release's `latest.json`. The link
+  in [Download for Windows](#download-for-windows) wants changing to the new installer, as its name has the version in
+  it.
+- **Updates** (`src/app/updates.ts`, `src/features/updates/`) use Tauri's
+  [updater plugin](https://v2.tauri.app/plugin/updater/). Check for updates reads `latest.json` from the latest
+  release (`plugins.updater` in `src-tauri/tauri.conf.json`), which names the newest version, its installer and the
+  installer's signature. Update now downloads the installer and checks the signature with the public key in
+  `tauri.conf.json`, and that it was signed for that version (`requireSignedVersion`). Then the app saves the
+  writing, does the closing work and saves the window's place (`before_update` in `src-tauri/src/lib.rs`), and runs
+  the installer in passive mode, which closes the app, installs the new version and opens it.
+- **The updater's private key**, `%USERPROFILE%\.tauri\bookbookbook.key`, signs every release and is in no
+  repository. Keep a copy somewhere safe: without it, installed apps can take no more updates, and everyone would
+  have to install a version with a new public key by hand.
 - **What the desktop build changes** (`src/app/desktop.ts`, true in Vite's `desktop` mode): no service worker or
   offers to install; PowerSync without the shared worker that lets tabs share the database, which WebView2 keeps past
   a reload, so the reload never finished opening the library; and the wording, which says "this computer". There's one
@@ -362,13 +391,21 @@ The first build compiles Tauri, which takes several minutes; after that, about o
 - **Dictation** is online only, on Microsoft's speech service: WebView2 can't recognize speech on the computer yet.
 - **Ollama** answers only `localhost` pages as it comes, so it needs `OLLAMA_ORIGINS=http://tauri.localhost`, as AI
   settings says.
-- **Not yet:** the OS keychain for AI keys, backups written by the app rather than WebView2, updates (install a new
-  version over the old one; the books stay) and a signed installer.
+- **Not yet:** the OS keychain for AI keys, backups written by the app rather than WebView2, and an installer signed
+  for Windows, so SmartScreen stops warning about it.
 
 To look into the built app with DevTools or Playwright, start it with the environment variable
 `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9333` and connect to that port. While it's connected,
 Playwright keeps the page "visible" even with the window minimized (its focus emulation), so disconnect it to test
 leaving.
+
+To try updating without a release, make a throwaway key (`npx tauri signer generate`) and a config file for
+`npx tauri build --config <file>` that makes a separate app, with its own data: another `productName`,
+`mainBinaryName` and `identifier`, the throwaway key's `pubkey`, and `plugins.updater.endpoints` set to
+`http://127.0.0.1:8765/latest.json`, with `"dangerousInsecureTransportProtocol": true`. Build it twice, with two
+versions and `TAURI_SIGNING_PRIVATE_KEY` set to the throwaway key, install the first, and serve the second's
+installer and `latest.json` (`npm run update-manifest -- --installer <it> --url <its address on the server>`) from
+port 8765. Delete the test app's builds from `src-tauri/target/release/` after, and uninstall it.
 
 ## Setting up the AI tools
 
@@ -413,6 +450,8 @@ in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). 
 - installing: which devices and browsers are given Safari's steps to add the app;
 - the Windows app: the folder's permission asked for again at the first click or key press, backups shown as on
   until then and as paused if it fails, closing waiting for a last backup, and dictation's messages for Windows;
+- updates in the Windows app: checking, downloading and how much has come, saving before installing, waiting when
+  Updates is closed, failures and trying again, and what Updates says and offers at each step;
 - the on-screen keyboard: finding its top edge from the visual viewport, whether or not it shrinks the window too,
   as the page scrolls under it, and not mistaking the browser's own bars or a pinch for one;
 - writing aids: find and replace (searching a paragraph at a time, whole words, patterns and their replacements,
@@ -558,7 +597,8 @@ one replaces the live doc's prose with a copy in a single edit, so it's saved, a
 src/
   ai/             providers, requests and streamed answers, what a run sends, the tools and your own, cards and runs
   app/            shell, routes and each page's own download, startup and error screens, theme, toasts and
-                  announcements, the service worker and updates, installing, the desktop build, dev hooks
+                  announcements, the service worker and updates, installing, the desktop build and its updates, dev
+                  hooks
   backup/         backup status, folder backups, and when backups run
   components/     fields that save as you type, menus for long lists; ui/ holds the shadcn components
   db/             PowerSync schema, queries, sample book and seeding, ordering, undo, Trash, prefs, the scene store,
@@ -571,7 +611,8 @@ src/
                   install notice), help/ (glossary, tours, "?" buttons), books/ (book dialogs and style), export/
                   (Export and Restore dialogs), import/ (Import dialog and its preview), backup/ (the reminder and the
                   Backups dialog), codex/ (the World screen, entry pages, Appears in), inbox/ (the Inbox, filing and
-                  Quick note), dictation/ (Dictate, its setup and the Listening pill), lab/ (IME lab)
+                  Quick note), dictation/ (Dictate, its setup and the Listening pill), updates/ (the Windows app's
+                  Updates dialog), lab/ (IME lab)
   import/         reading Word, Markdown and plain text, splitting into acts, chapters and scenes, writing the book
   lib/            small helpers (ids, word counts, numbers, keys, focus, colors, plain text as rich text, where the
                   on-screen keyboard is)
@@ -583,7 +624,8 @@ e2e/              Playwright tests; preview.ts, which builds and serves the app 
 docs/             design doc and the phone keyboard test
 prototype/        the clickable design prototype
 public/           favicon and the app's icons; theme-init.js sets the theme and title bar color before first paint
-scripts/          icons.ts draws the web app's and the Windows app's icons from the favicon (`npm run icons`)
+scripts/          icons.ts draws the web app's and the Windows app's icons from the favicon (`npm run icons`);
+                  update-manifest.ts writes a release's latest.json (`npm run update-manifest`)
 src-tauri/        the Windows app: its window, installer and icons (tauri.conf.json), and its Rust side (src/lib.rs)
 ```
 

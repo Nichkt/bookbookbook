@@ -3,6 +3,7 @@ import { Trash2Icon } from "lucide-react"
 import { useState, type FormEvent } from "react"
 import { useNavigate } from "react-router"
 import { rememberBook } from "@/app/books"
+import { desktop } from "@/app/desktop"
 import { attempt, offerUndo } from "@/app/feedback"
 import { Button } from "@/components/ui/button"
 import {
@@ -35,6 +36,7 @@ import { TermHint } from "@/features/help/TermHint"
 import { ImportForm } from "@/features/import/ImportForm"
 import { BUILTIN_STRUCTURES } from "@/features/plan/structures"
 import { useCustomStructures } from "@/features/plan/useStructures"
+import { UpdatesDialog } from "@/features/updates/UpdatesDialog"
 import { formatCount, parseCount, tidyCount } from "@/lib/numbers"
 import {
   AUDIENCE_OPTIONS,
@@ -58,7 +60,7 @@ const onOpenChange = (open: boolean) => {
 
 /**
  * New book, Book settings, Export, Restore, Import, Trash and Backups, opened from the header's book menu
- * (DESIGN.md §4, §12, §13).
+ * (DESIGN.md §4, §12, §13), and Updates, in the desktop app (§11).
  */
 export function BookDialogs({ book }: { book: BookListRow | undefined }) {
   const dialog = useBookDialogs((state) => state.dialog)
@@ -114,6 +116,16 @@ export function BookDialogs({ book }: { book: BookListRow | undefined }) {
           <BackupsDialog book={book} />
         </DialogContent>
       </Dialog>
+      {desktop && (
+        <Dialog open={dialog === "updates"} onOpenChange={onOpenChange}>
+          <DialogContent
+            className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-md"
+            onCloseAutoFocus={returnFocusOnClose}
+          >
+            <UpdatesDialog />
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   )
 }

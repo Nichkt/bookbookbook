@@ -1,12 +1,21 @@
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vitest/config'
 
+// The app's version, as tauri.conf.json gives it to the desktop app too: Updates shows it (src/app/updates.ts).
+const { version } = JSON.parse(readFileSync(path.resolve(import.meta.dirname, 'package.json'), 'utf8')) as {
+  version: string
+}
+
 // https://vite.dev/config/. `--mode desktop` builds the desktop app's copy (src/app/desktop.ts) into dist-desktop/, and
 // `--mode e2e` the end-to-end tests' copy, which has the sample book (src/db/powersync.ts), into dist-e2e/.
 export default defineConfig(({ mode }) => ({
+  define: {
+    __APP_VERSION__: JSON.stringify(version),
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -65,6 +74,9 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     outDir: mode === 'desktop' ? 'dist-desktop' : mode === 'e2e' ? 'dist-e2e' : 'dist',
+    // Tauri's API is the desktop app's: src/app/updates.ts loads it only there. Left out of the web app, as Rolldown
+    // would still make its unused files, and the service worker keep them.
+    rolldownOptions: mode === 'desktop' ? {} : { external: [/^@tauri-apps\//] },
   },
   server: {
     // Nothing the app's pages load: the desktop app's Rust side, with its thousands of build files (Tauri's own

@@ -21,6 +21,8 @@ test("opens on the home screen, and reopens a book where it was left", async ({ 
   await expect(card(page, "The Salt Ledger")).toContainText("12 chapters · Not opened yet")
   // The book menu is for the book that's open.
   await expect(page.getByRole("button", { name: /^Book: / })).toHaveCount(0)
+  // The web app updates itself; the desktop app has a button for it (src/app/updates.ts).
+  await expect(page.getByRole("button", { name: "Check for updates" })).toHaveCount(0)
 
   // A book with words in it opens at its first chapter.
   await page.getByRole("link", { name: "The Salt Ledger" }).click()

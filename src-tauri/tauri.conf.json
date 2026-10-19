@@ -35,6 +35,7 @@
     "targets": [
       "nsis"
     ],
+    "createUpdaterArtifacts": true,
     "publisher": "bookbookbook",
     "category": "Productivity",
     "shortDescription": "Plan your novel chapter by chapter, then write each chapter with your plan beside the page.",
@@ -47,6 +48,18 @@
     "windows": {
       "nsis": {
         "installMode": "currentUser"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDE2MUFGRjhFNEVDN0IyNUMKUldSY3NzZE9qdjhhRnFOSkVDTmRqdjFRWHd5K3lTZFpPREs4U25sdnp5RkJkci96blZrQm9hTmcK",
+      "endpoints": [
+        "https://github.com/Nichkt/bookbookbook/releases/latest/download/latest.json"
+      ],
+      "requireSignedVersion": true,
+      "windows": {
+        "installMode": "passive"
       }
     }
   }

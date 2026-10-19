@@ -731,12 +731,13 @@ export const GLOSSARY: GlossaryTerm[] = [
     id: "install",
     term: desktop ? "The Windows app" : "Installing the app",
     aka: desktop
-      ? ["Install", "Installing the app", "Uninstall", "Offline"]
+      ? ["Install", "Installing the app", "Update", "Updates", "New version", "Uninstall", "Offline"]
       : ["Install", "Add to Home Screen", "Add to Dock", "Offline", "PWA"],
     group: "app",
     body: desktop
       ? [
-          "bookbookbook is installed on this computer as a Windows app, and opens from the Start menu. It works without the internet, apart from dictation and the AI tools that run online.",
+          "bookbookbook is installed on this computer as a Windows app, and opens from the Start menu. It works without the internet, apart from dictation, the AI tools that run online, and checking for updates.",
+          "For a new version, choose Check for updates, on the home screen or in the book menu. bookbookbook asks GitHub, where its versions come out, whether there's a newer one, and shows what's new in it. Update now downloads it, saves your work, and closes bookbookbook while it installs; it opens again by itself, with your books as they were. It only looks when you ask.",
           "Its books are its own, apart from any in bookbookbook in a browser: to take a book from one to the other, back it up in one, then restore the backup in the other.",
           "Uninstall it in Settings, under Apps. Your books stay on the computer, unless you tick Delete the application data, which deletes them for good, so back them up first.",
         ]

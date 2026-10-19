@@ -26,5 +26,6 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*.test.ts", "src/test"]
+  // The tests, and the build-time constants (vite.config.ts's define) that the code they import uses.
+  "include": ["src/**/*.test.ts", "src/test", "src/env.d.ts"]
 }

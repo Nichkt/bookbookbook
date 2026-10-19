@@ -6,12 +6,14 @@ import {
   FileUpIcon,
   LibraryBigIcon,
   PlusIcon,
+  RefreshCwIcon,
   SettingsIcon,
   Trash2Icon,
 } from "lucide-react"
 import { useRef } from "react"
 import { useLocation, useNavigate } from "react-router"
 import { rememberBook } from "@/app/books"
+import { desktop } from "@/app/desktop"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -30,8 +32,9 @@ import { openBookDialog, type BookDialog } from "./dialogStore"
 const SCREEN_RE = /^\/b\/[^/]+\/(plan|write|world|inbox)\b/
 
 /**
- * The header's book switcher, with All books (the home screen), New book, Restore, Import, Book settings, Export, Backups and Trash
- * (DESIGN.md §4, §12, §13). Backups shows when the open book was last backed up.
+ * The header's book switcher, with All books (the home screen), New book, Restore, Import, Book settings, Export,
+ * Backups and Trash (DESIGN.md §4, §12, §13), and in the desktop app Check for updates (§11). Backups shows when the
+ * open book was last backed up.
  */
 export function BookMenu({ book, books }: { book: BookListRow | undefined; books: readonly BookListRow[] }) {
   const navigate = useNavigate()
@@ -125,6 +128,15 @@ export function BookMenu({ book, books }: { book: BookListRow | undefined; books
           <Trash2Icon />
           Trash…
         </DropdownMenuItem>
+        {desktop && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => open("updates")}>
+              <RefreshCwIcon />
+              Check for updates…
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )

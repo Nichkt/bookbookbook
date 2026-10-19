@@ -38,8 +38,11 @@ pub fn run() {
       tauri::WindowEvent::CloseRequested { api, .. } if finish_before_closing(window) => api.prevent_close(),
       _ => {}
     })
-    .invoke_handler(tauri::generate_handler![close_now])
+    .invoke_handler(tauri::generate_handler![close_now, before_update])
     .setup(|app| {
+      // New versions from GitHub's releases, when the writer asks for them (src/app/updates.ts).
+      #[cfg(desktop)]
+      app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
       let config = app
         .config()
         .app
@@ -161,6 +164,16 @@ fn finish_before_closing(window: &tauri::Window) -> bool {
 #[tauri::command]
 async fn close_now(window: tauri::Window) {
   let _ = window.destroy();
+}
+
+/// An update's installer is about to start, and the app to end at once (src/app/updates.ts), with no Exit for the
+/// window-state plugin to save the window's place and size on. So it's saved now, and the new version opens there.
+#[tauri::command]
+fn before_update(app: tauri::AppHandle) {
+  use tauri_plugin_window_state::{AppHandleExt, StateFlags};
+  if let Err(error) = app.save_window_state(StateFlags::default()) {
+    eprintln!("[bookbookbook] couldn't save the window's place before updating: {error}");
+  }
 }
 
 /// Web pages and email addresses only: anything else, a file above all, could run a program.

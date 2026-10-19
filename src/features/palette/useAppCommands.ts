@@ -14,6 +14,7 @@ import {
   LibraryBigIcon,
   PenLineIcon,
   PlusIcon,
+  RefreshCwIcon,
   SettingsIcon,
   SignpostIcon,
   StickyNotePlusIcon,
@@ -23,6 +24,7 @@ import {
 import { useMemo } from "react"
 import { useLocation, useNavigate, type Location, type NavigateFunction } from "react-router"
 import { rememberBook, type BookScreen } from "@/app/books"
+import { desktop } from "@/app/desktop"
 import { announce } from "@/app/feedback"
 import { promptInstall, useInstallWay } from "@/app/install"
 import { THEME_ICONS, THEME_LABELS, THEMES, useTheme } from "@/app/theme"
@@ -45,8 +47,8 @@ import { screenHandler } from "./paletteStore"
 
 /*
  * The command palette's own commands (DESIGN.md §4 "Command palette"): the pages, the books and what the book menu
- * does, installing the app, help and the theme everywhere; in a book, its chapters, scenes and World entries too. The
- * showing screen adds its own with usePaletteSource.
+ * does, installing the app, or in the desktop app checking for updates, help and the theme everywhere; in a book, its
+ * chapters, scenes and World entries too. The showing screen adds its own with usePaletteSource.
  */
 
 type BookPage = BookScreen | "inbox"
@@ -217,6 +219,16 @@ export function useAppCommands(book: BookListRow | undefined, books: readonly Bo
           if (installWay === "offer") void promptInstall()
           else openGlossary("install", from)
         },
+      })
+    }
+    if (desktop) {
+      commands.push({
+        id: "app:updates",
+        label: "Check for updates…",
+        group: "Books",
+        icon: RefreshCwIcon,
+        keywords: ["update", "new version", "upgrade", "latest", "release", "download", "github"],
+        run: (from) => openBookDialog("updates", from),
       })
     }
 

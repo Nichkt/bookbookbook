@@ -129,9 +129,10 @@ locally" status, account chip ("Guest · Local only" before sign-up).
   yet"). They're in order of when each was last opened here, or made if it never was, newest first.
 - The whole card is the link, so it's one big target; its title is the link's name. Visits are kept per device in
   `localStorage` (`bbb.bookVisits`), as the last screen and when, and only Plan, Write and World count as visits.
-- **New book**, **Import a manuscript**, **Restore from backup**, **Backups** and **Trash** sit above the list. With
-  no books the screen says so ("No books yet") and offers the same five. A real install opens on this: only the dev
-  server and the end-to-end tests fill an empty library with the sample book (decision 37).
+- **New book**, **Import a manuscript**, **Restore from backup**, **Backups** and **Trash** sit above the list, and
+  in the Windows app **Check for updates** (§11, "Built after M12"). With no books the screen says so ("No books
+  yet") and offers the same. A real install opens on this: only the dev server and the end-to-end tests fill an
+  empty library with the sample book (decision 37).
 - Inside a book the header shows the book menu, which starts with **All books**; on the home screen it doesn't, since
   there's no book open. Backups from home covers folder backups and the browser's storage, with no "This book".
 - An address that isn't a page says so and links to your books.
@@ -1023,7 +1024,7 @@ flowchart LR
 | Backend | Supabase: Auth, Postgres + Row Level Security, Storage, Edge Functions (AI proxy, credits, Stripe webhooks, email backups) |
 | UI state | Zustand for ephemeral UI; PowerSync live queries for data |
 | Workers | Comlink-wrapped workers for mentions, search, prose checks, Harper, speech models |
-| Desktop | Tauri 2, on Windows (built in M12, below): the web app in WebView2, with an installer. Native file backups, the OS keychain for API keys and updates to come |
+| Desktop | Tauri 2, on Windows (built in M12, below): the web app in WebView2, with an installer, and updates from GitHub (after M12, below). Native file backups and the OS keychain for API keys to come |
 | Quality | Vitest, Playwright (incl. offline and multi-tab), axe-core, error reporting with content scrubbing |
 
 ### How sync works
@@ -1137,7 +1138,7 @@ flowchart LR
   error, the glossary ("The Windows app") and the home tour say "this computer" or "Windows" where the web app says
   "this browser". The Backups dialog's last part, This computer, says how much room the books take, and that
   uninstalling keeps them unless Delete the application data is ticked.
-- **The installer**, about 5 MB, is NSIS's, for the user running it, so needs no administrator, and fetches WebView2
+- **The installer**, about 6 MB, is NSIS's, for the user running it, so needs no administrator, and fetches WebView2
   if it's missing. Its last page opens the app and puts it on the desktop, both ticked to begin with. It's unsigned,
   so SmartScreen warns about it. `npm run icons` draws the app's icons too. Each version's installer is a release on
   GitHub, which the README's Download for Windows links to (decision 39).
@@ -1146,8 +1147,43 @@ flowchart LR
   Windows: installing, from the GitHub release through each of its pages, and silently; the empty library; the
   folder's permission across relaunches; backups on minimizing and closing; closing with the page stuck, and twice;
   and uninstalling. The end-to-end tests run in Chrome, not in the app.
-- **Not yet:** the OS keychain for AI keys, backups written by the app rather than WebView2, updates from inside the
-  app, a signed installer, and speech recognition on the computer (whisper.cpp, §10).
+- **Not yet:** the OS keychain for AI keys, backups written by the app rather than WebView2, an installer signed for
+  Windows, so SmartScreen stops warning, and speech recognition on the computer (whisper.cpp, §10). Updates from
+  inside the app came after M12 (below).
+
+### Built after M12: Updates in the Windows app
+- **Asked for, never on its own.** **Check for updates**, on the home screen, in the book menu and in Search, opens
+  Updates, which asks GitHub for the newest version as it opens. The app never looks by itself, so nothing leaves the
+  computer unless the writer asks (decision 41). The web app updates itself, as before ("Built in M8"), and has no
+  such button; its build leaves Tauri's API out (`vite.config.ts`).
+- **Tauri's updater** (`tauri-plugin-updater`). Each release on GitHub has a `latest.json` beside its installer,
+  with the version, what's new, and the installer's address and signature. The app reads the one in the latest
+  release (`plugins.updater` in `src-tauri/tauri.conf.json`). `npm run update-manifest` writes it from a signed build
+  (`scripts/update-manifest.ts`).
+- **Only what was signed.** A release's installer is signed with a private key kept off GitHub, whose public half is
+  in `tauri.conf.json`. Downloading checks the signature, and that it was signed for the version `latest.json` names
+  (`requireSignedVersion`), so neither a changed installer nor an older one passed off as new gets in: Updates says
+  it didn't download properly, and nothing changes. Were the key lost, installed apps could take no more updates;
+  each would need a version with a new key installed by hand.
+- **Updates, the dialog** (`src/features/updates/`), says in a sentence where it's got to, with one button whose job
+  changes as the steps go by, so focus stays put: Checking…, Check again, Update now, Downloading…, Install now,
+  Installing… and Try again. It shows what's new in the version found and how much has downloaded, and when
+  something goes wrong, what, with All versions on GitHub. Opening it again after a failure looks again, in case the
+  release has changed.
+- **Saving first.** Installing ends the app at once: the installer runs in passive mode, then opens the new version.
+  So the app first does what closing the window would: it saves the editor's last words, their word counts and
+  versions, does the closing work, like a last backup, for ten seconds at most, and saves the window's place
+  (`before_update` in `src-tauri/src/lib.rs`), for the new version to open where the old one was. The books and
+  settings stay where they are.
+- **It waits for the writer.** Updates can be closed while it downloads. If it's closed when the download is done,
+  nothing installs mid-sentence: a message offers Install now, or Later, and Updates offers it when opened.
+- **Tested:** unit tests for checking, downloading, saving before installing, waiting, failures and trying again
+  (`src/app/updates.test.ts`), and for what Updates says and offers at each step
+  (`src/features/updates/steps.test.ts`). By hand, on Windows, with a separate test app, a throwaway key and a local
+  server (README, "The Windows app"): updating from the book menu and Search; the new version opening where the
+  window was, with a sentence typed just before it kept; closing Updates while it downloaded, then installing from
+  the message; no connection; and an installer signed for another version than the one announced, refused, with
+  nothing changed.
 
 ---
 
@@ -1652,7 +1688,8 @@ words as "also called".
   the glossary, and focus goes back to the button that opened it.
 
 **Tours**
-- One per page: Home (10 steps), Plan (14 on the Board), Write (15), World (7) and Inbox (7).
+- One per page: Home (10 steps, and 11 in the Windows app, with Check for updates), Plan (14 on the Board), Write
+  (15), World (7) and Inbox (7).
   A step can belong to some views only, so each Plan view skips the steps about what it doesn't show: the ribbon,
   acts and chapter cards, the Display menu, the Matrix or the Timeline. The Matrix and Timeline have 10.
 - **The card** is a modal dialog with "Step N of M", Back, Next (Done on the last) and an X. ← and → move between
@@ -1684,6 +1721,8 @@ words as "also called".
 - **Input hardening:** the ProseMirror schema drops unknown markup. Imports never go through HTML: Word's XML is
   read by a parser that expands no entities and limits nesting, within size limits, and only the editor's own blocks
   and marks come through.
+- **Updates:** the Windows app installs only an installer signed with the project's private key, for the version its
+  release names (§11, "Built after M12"). The key is kept off GitHub and out of the repository.
 - **Telemetry:**
   - Opt-in, cookie-less analytics.
   - Error reports scrub content: no prose, codex text, prompts or outputs ever leave the device.
@@ -1753,8 +1792,9 @@ words as "also called".
    screen, the chapter pop-out, plain labels, World, the glossary and the page tours (§4, §6, §7, §17a), and from
    M8, Search, the command palette (§4), the app opening offline, installing and asking to be installed (§11),
    the tools above the keyboard and bottom sheets (§16), and the accessibility audit and performance on a long
-   book (§17). So is M12's Windows app (§11, "Built in M12"), without the OS keychain, native backups and updates.
-5. Signing the Windows app's installer, so SmartScreen stops warning about it, and updates from inside the app.
+   book (§17). So is M12's Windows app (§11, "Built in M12"), without the OS keychain and native backups, and after it,
+   its updates (§11, "Built after M12").
+5. Signing the Windows app's installer, so SmartScreen stops warning about it.
 
 ---
 
@@ -1839,3 +1879,4 @@ words as "also called".
 | 38 | The Windows app | Tauri 2 around the web app, built in Vite's `desktop` mode and shown in WebView2: one window; its books apart from a browser's, under the identifier `io.github.nichkt.bookbookbook`, which never changes; links out of it open in the browser; the microphone and the backup folder allowed by the app, without WebView2's prompts; the folder's permission, which WebView2 forgets on closing, asked for again at the first click or key press; minimizing and closing count as leaving, and closing waits up to ten seconds for a last backup; an NSIS installer for the user running it, unsigned for now; the OS keychain, native backups, updates and signing left for later | Set by the project's owner after M8; §11, "Built in M12" |
 | 39 | Publishing | The code is public on GitHub, at github.com/Nichkt/bookbookbook; each version of the Windows app is a release there, its installer attached, and the README's Download for Windows links to the newest; no license is chosen yet (§21) | Set by the project's owner after M12; §11, "Built in M12" |
 | 40 | Adding a chapter | A big Add a chapter after each act's last chapter, or the book's when it has no acts, on the Board, Corkboard and Outline, replacing the Board's small "+" per act; on the Board it pops the new chapter out, headed "New chapter N"; every pop-out on the Plan has a bar along its bottom with Back to planning and Write this chapter, and Save for a new chapter; only Save and Write this chapter keep a new chapter, and any other way back leaves it out, deleted if still blank, else moved to the Trash with Undo | Asked for by the project's owner after M12, who wanted Save and Back to planning; what's left out, and how, settled in building it; §6, "Built after M12" |
+| 41 | Updates in the Windows app | Tauri's updater, from the latest release on GitHub, which has the installer and a `latest.json` naming the version; installers signed with a key kept off GitHub, and installed only if signed for the version announced; looked for only when the writer asks, from Check for updates on the home screen, in the book menu or Search, never at startup, so nothing leaves the computer unasked; installing saves the writing, the closing work and the window's place first, then runs the installer in passive mode, which closes the app and opens the new version; a version that finishes downloading with Updates closed waits for Install now; the web app goes on updating itself | Asked for by the project's owner after M12, who wanted an update button that installs the latest release from GitHub; asking first, the signing and the waiting settled in building it; §11, "Built after M12" |

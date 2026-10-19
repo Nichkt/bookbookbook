@@ -1,8 +1,9 @@
 import { useQuery } from "@powersync/react"
-import { ArchiveIcon, ArchiveRestoreIcon, FileUpIcon, PlusIcon, Trash2Icon } from "lucide-react"
+import { ArchiveIcon, ArchiveRestoreIcon, FileUpIcon, PlusIcon, RefreshCwIcon, Trash2Icon } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router"
 import { bookVisits, type BookVisit } from "@/app/books"
+import { desktop } from "@/app/desktop"
 import { Button } from "@/components/ui/button"
 import { WordProgress } from "@/components/WordProgress"
 import { LIBRARY_SQL, type LibraryRow } from "@/db/queries"
@@ -84,6 +85,12 @@ function LibraryActions({ className }: { className?: string }) {
         <Trash2Icon />
         Trash
       </Button>
+      {desktop && (
+        <Button variant="ghost" data-tour="home-updates" onClick={open("updates")}>
+          <RefreshCwIcon />
+          Check for updates
+        </Button>
+      )}
     </div>
   )
 }

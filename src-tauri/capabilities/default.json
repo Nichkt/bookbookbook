@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "What the app's own pages may ask of Tauri: to check for, download and install an update (src/app/updates.ts), and to let go of one they won't install. The app's own commands, like close_now, need no permission.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "updater:default",
+    "core:resources:allow-close"
+  ]
+}
