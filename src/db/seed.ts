@@ -14,7 +14,10 @@ const richText = (text: string) =>
 
 const storyTime = (text: string) => serializeStoryTime(storyTimeFromText(text))
 
-/** Seeds the sample book on first run. One transaction, so two tabs opening at once can't both seed. */
+/**
+ * Seeds the sample book into an empty library, in development and the end-to-end tests (src/db/powersync.ts). One
+ * transaction, so two tabs opening at once can't both seed.
+ */
 export async function seedIfEmpty(db: Db): Promise<boolean> {
   return db.writeTransaction(async (tx) => {
     const { n } = await tx.get<{ n: number }>("SELECT count(*) AS n FROM books")

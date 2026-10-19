@@ -65,7 +65,7 @@ const HOME: TourDefinition = {
     {
       target: "home-books",
       title: "Your books",
-      body: "Click a book to open it where you left off. The bar under each one shows how close it is to its word count target.",
+      body: "Your books are listed here. Click one to open it where you left off. The bar under each one shows how close it is to its word count target.",
       term: "word-count-target",
     },
     {

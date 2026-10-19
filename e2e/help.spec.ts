@@ -178,6 +178,22 @@ test.describe("How to use this", () => {
     await expect(howToUse(page)).toBeFocused()
   })
 
+  test("in an empty library, as a real install starts, Your books points at where they'll be", async ({ page }) => {
+    await openFirstChapter(page)
+    await page.getByRole("button", { name: "Book: The Salt Ledger" }).click()
+    await page.getByRole("menuitem", { name: "Book settings…" }).click()
+    await page.getByRole("dialog", { name: "Book settings" }).getByRole("button", { name: "Move to Trash" }).click()
+    await expect(page.getByRole("heading", { level: 1, name: "No books yet" })).toBeVisible()
+
+    await howToUse(page).click()
+    const card = tourCard(page)
+    await card.getByRole("button", { name: "Next" }).click()
+    await expect(card).toContainText("How to use the home screen · Step 2 of 10")
+    await expect(page.getByRole("dialog", { name: "Your books" })).toBeVisible()
+    await expectSpotlightOn(page, tourTarget(page, "home-books"))
+    await expect(tourTarget(page, "home-books")).toContainText("No books yet")
+  })
+
   test("the Inbox tour points at each part of it, then at Quick note", async ({ page }) => {
     await openScreen(page, "Inbox")
     await howToUse(page).click()

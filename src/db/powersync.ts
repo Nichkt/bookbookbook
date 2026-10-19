@@ -12,16 +12,22 @@ export const db = new PowerSyncDatabase({
   database: { dbFilename: "bookbookbook.db" },
 })
 
+/**
+ * The sample book fills an empty library in development and in the end-to-end tests' build (e2e/preview.ts) only. A
+ * real install, on the web or the desktop, starts with no books, and its build leaves the sample out.
+ */
+const SAMPLE_BOOK = import.meta.env.DEV || import.meta.env.MODE === "e2e"
+
 let opening: Promise<void> | undefined
 
 /**
- * Opens the database, seeds the sample book on first run and empties expired Trash. Rejects with the reason if
- * storage is unusable.
+ * Opens the database, seeds the sample book where that's wanted (above) and empties expired Trash. Rejects with the
+ * reason if storage is unusable.
  */
 export function openDatabase(): Promise<void> {
   opening ??= (async () => {
     await db.init()
-    await seedIfEmpty(db)
+    if (SAMPLE_BOOK) await seedIfEmpty(db)
     // Housekeeping: a failure here shouldn't keep the writer out of their book.
     await purgeExpiredTrash(db).catch((error) => console.error("[db] purgeExpiredTrash", error))
   })()

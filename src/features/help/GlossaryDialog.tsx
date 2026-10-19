@@ -69,7 +69,10 @@ function GlossaryBody() {
     <>
       <DialogHeader className="gap-1 border-b p-4">
         <DialogTitle className="pr-8 text-lg">Glossary</DialogTitle>
-        <DialogDescription>What the words in bookbookbook mean, in plain English.</DialogDescription>
+        <DialogDescription>
+          What the words in bookbookbook mean, in plain English. The examples come from The Salt Ledger, a made-up
+          mystery novel.
+        </DialogDescription>
         <div className="relative mt-2">
           <SearchIcon
             aria-hidden="true"

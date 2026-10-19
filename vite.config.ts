@@ -4,8 +4,9 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vitest/config'
 
-// https://vite.dev/config/
-export default defineConfig({
+// https://vite.dev/config/. `--mode e2e` builds the end-to-end tests' copy, which has the sample book
+// (src/db/powersync.ts), into dist-e2e/.
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     tailwindcss(),
@@ -60,8 +61,11 @@ export default defineConfig({
   worker: {
     format: 'es',
   },
+  build: {
+    outDir: mode === 'e2e' ? 'dist-e2e' : 'dist',
+  },
   test: {
     include: ['src/**/*.test.ts'],
     environment: 'node',
   },
-})
+}))

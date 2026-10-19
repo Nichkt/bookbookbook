@@ -1,6 +1,7 @@
 /*
  * The glossary (DESIGN.md §17a): every word the app uses that a new writer might not know, in plain English, with an
- * example from the sample book where one helps. Ids are stable: TermHint buttons and tours link to them.
+ * example from The Salt Ledger, the made-up novel that is also the sample book in development, where one helps. Ids
+ * are stable: TermHint buttons and tours link to them.
  */
 
 export type GlossaryGroup = "story" | "chapter" | "world" | "app" | "ai"
@@ -15,7 +16,7 @@ export interface GlossaryTerm {
   body: string[]
   /** Short items shown as a list after the paragraphs. */
   items?: string[]
-  /** From the sample book, The Salt Ledger. */
+  /** From The Salt Ledger (src/db/sampleBook.ts), which the glossary's description introduces. */
   example?: string
   /** Ids of terms worth reading next. */
   related?: string[]

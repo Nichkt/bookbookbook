@@ -130,7 +130,8 @@ locally" status, account chip ("Guest · Local only" before sign-up).
 - The whole card is the link, so it's one big target; its title is the link's name. Visits are kept per device in
   `localStorage` (`bbb.bookVisits`), as the last screen and when, and only Plan, Write and World count as visits.
 - **New book**, **Import a manuscript**, **Restore from backup**, **Backups** and **Trash** sit above the list. With
-  no books the screen says so ("No books yet") and offers the same five.
+  no books the screen says so ("No books yet") and offers the same five. A real install opens on this: only the dev
+  server and the end-to-end tests fill an empty library with the sample book (decision 37).
 - Inside a book the header shows the book menu, which starts with **All books**; on the home screen it doesn't, since
   there's no book open. Backups from home covers folder backups and the browser's storage, with no "This book".
 - An address that isn't a page says so and links to your books.
@@ -1560,7 +1561,9 @@ words as "also called".
   and replace, pattern, read aloud and Add to World), M4 the eleven about the AI tools and a book's style, M11 the
   four about dictation and the Inbox (filing a note, dictation, voice commands, and on this device or online), and M8
   Search (the command palette), installing the app and the tools above the keyboard.
-- Each is a few sentences of plain English, an example from the sample book where one helps, and "See also" links.
+- Each is a few sentences of plain English, an example from *The Salt Ledger* where one helps, and "See also" links.
+  That's the made-up mystery of the sample book, which a real install doesn't have (decision 37), so the glossary
+  says where its examples come from.
   **Scene** says what starts a new one: a jump in place, time or point of view. **Moment** explains beats: one thing
   that happens, the smallest piece of a story; a few make a scene, and a few scenes a chapter.
 - **Search** matches every word typed against each term's names, other names and text, names first, ignoring case
@@ -1640,7 +1643,7 @@ words as "also called".
 | M5 | Planner II | L | Matrix, Timeline, Corkboard, templates (scaffold + overlay), Snowflake-style wizard |
 | M6 | Writing aids | M | Focus, typewriter, sprint, find & replace, comments, prose checks, Harper, read aloud, read-through, @-mentions, codex quick-create |
 | M7 | Import / export / backups | M | DOCX/MD/paste import with split preview, DOCX (manuscript format)/MD/zip export, folder backup, persistence UX |
-| M8 | Mobile, a11y, onboarding → **Beta** | L | Bottom sheets, keyboard-docked tools, device testing, axe audit, sample book, install prompts |
+| M8 | Mobile, a11y, onboarding → **Beta** | L | Bottom sheets, keyboard-docked tools, device testing, axe audit, sample book (for development and tests, decision 37), install prompts |
 | M9 | Accounts & sync | XL | Supabase Auth, sync rules, guest → account migration, compaction, cloud history, multi-device tests |
 | M10 | Hosted AI & billing | L | AI proxy, credit ledger (reserve/settle), Stripe Billing + Tax, usage page, plan gating |
 | M11 | Speech-to-text | M | Engine abstraction, Web Speech on-device, in-browser models, cloud opt-in, Inbox, voice commands |
@@ -1753,3 +1756,4 @@ words as "also called".
 | 34 | M8 accessibility audit | axe-core at 73 stops on walks through every page, panel, menu and dialog, on a computer and a phone; WCAG 2.2 A and AA and axe's best practices in the light theme, and the color rules alone in sepia and dark, as the themes change only colors; reduced motion, so nothing's caught mid-fade, and legacy mode, which runs axe in the page without opening a blank page each time, as the app has no frames; any finding fails; fixed: muted text darker (lighter in dark), black or white text on an entry's color, accessible names that start with the words shown, names for every popover, 24 px rows in What the AI sees, and Dictate ready before its settings load; focus mode's faded paragraphs left out of contrast, the paragraph being written held to it; a screen reader pass still to do | Details in §17, "Built in M8" |
 | 35 | M8 performance on a long book | `npm run perf` builds the app, imports a made-up book of 161,741 words in Chrome, and times typing, opening chapters, scrolling and typing in the Manuscript, a drag on the Board and opening the home screen; the budgets are held on a desktop computer, met there but for the shell's size, and a run on a CPU slowed fourfold shows what a slower one feels; unchanged chapters keep their objects as the plan updates, Write's state is split three ways, numbers share a formatter, the Manuscript's far chapters skip layout and paint, menus in long lists mount when first opened, and each of a book's pages is its own download, the one opened on fetched with the shell and the rest when idle; the shell's 250 KB is missed at 366 KB, as PowerSync and React DOM take 173 KB of it and nothing shows without them, and it stays the target, the service worker making it a cost of the first visit alone; slowed fourfold, opening a chapter and typing in the Manuscript miss, and picking up a card stalls, left for later | Details in §17, "Built in M8" |
 | 36 | Platforms for now | Windows and Android: Chrome, Edge and Firefox on Windows, the desktop app on Windows (M12), and Chrome on Android with Gboard and Samsung Keyboard; Macs, iPhones and iPads are set aside, neither tested nor designed for, though what's built for Safari stays: its install steps, Apple's speech recognition and the handling of its keyboard | Set by the project's owner after M8; §19 |
+| 37 | No sample book in a real install | A real install, on the web or the desktop, starts with no books, on "No books yet"; the sample book, *The Salt Ledger*, fills an empty library only on the dev server and in the end-to-end tests' build (`--mode e2e`, to `dist-e2e/`), and other builds leave it out; the glossary keeps its examples from it and says where they come from; the home tour's Your books step points at the empty library too | Set by the project's owner after M8; §4, §17a |

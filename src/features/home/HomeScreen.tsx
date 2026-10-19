@@ -24,10 +24,13 @@ export function HomeScreen() {
   if (books.length === 0) {
     return (
       <section className="mx-auto w-full max-w-2xl px-6 py-16">
-        <h1 className="font-heading text-3xl font-semibold">No books yet</h1>
-        <p className="mt-4 text-ink-2">
-          Start one, import a manuscript, or restore one from a backup. A book you deleted may still be in the Trash.
-        </p>
+        {/* Where the books will be, for the home screen's tour. */}
+        <div data-tour="home-books">
+          <h1 className="font-heading text-3xl font-semibold">No books yet</h1>
+          <p className="mt-4 text-ink-2">
+            Start one, import a manuscript, or restore one from a backup. A book you deleted may still be in the Trash.
+          </p>
+        </div>
         <LibraryActions className="mt-6" />
         <InstallNotice hasBooks={false} className="mt-10" />
       </section>

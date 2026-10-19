@@ -145,9 +145,9 @@ a folder as it changes (Chrome and Edge).
 - **Plain labels:** Word count target, Point of view, What characters are present, Moments (beats), Story points
   (plot threads) and Structure moment.
 - **World:** the Codex is now called World throughout the app. Old `/codex/` links still work.
-- **Glossary:** the header's Glossary button explains every term in plain English, with examples from the sample
-  book. Search finds the trade's words too ("beat", "POV", "codex"). The "?" beside each of a chapter's fields opens
-  its entry.
+- **Glossary:** the header's Glossary button explains every term in plain English, with examples from *The Salt
+  Ledger*, a made-up mystery novel. Search finds the trade's words too ("beat", "POV", "codex"). The "?" beside each
+  of a chapter's fields opens its entry.
 - **How to use this:** a click-through tour of the page you're on (Home, Plan, Write, World or the Inbox) that lights
   up each part in turn. ← and → step through it, and Escape ends it. Phones have both in a Help menu.
 
@@ -225,7 +225,9 @@ a folder as it changes (Chrome and Edge).
 - **World name underlines** that hold still while a phone keyboard is mid-word (see [Phone keyboards](#phone-keyboards)).
 - **Themes:** light, sepia and dark, built on design tokens (DESIGN.md §15).
 
-The sample book, *The Salt Ledger*, is created on first run.
+A real install starts with no books. Only the dev server and the end-to-end tests fill an empty library with the
+sample book, *The Salt Ledger*: a made-up mystery in twelve chapters, the first four written. `npm run build` leaves
+it out.
 
 ## Requirements
 
@@ -243,15 +245,16 @@ npm run dev
 ```
 
 Open <http://localhost:5173>. The app starts on your books; new to it? Press **How to use this** in the header on
-any page for a tour, or **Glossary** for what the words mean. To start over with a fresh sample book, clear the
-site's data (DevTools → Application → Storage → Clear site data) and reload.
+any page for a tour, or **Glossary** for what the words mean. The dev server fills an empty library with the sample
+book; to start over with a fresh one, clear the site's data (DevTools → Application → Storage → Clear site data) and
+reload.
 
 | Command | What it does |
 |---|---|
 | `npm run dev` | Dev server at <http://localhost:5173> |
 | `npm run dev:lan` | The same, reachable from other devices on your network (phone testing) |
 | `npm run build` | Type-checks, then builds to `dist/` |
-| `npm run preview` | Serves the build at <http://localhost:4173> |
+| `npm run preview` | Serves the build at <http://localhost:4173>, which starts with no books, as a real install does |
 | `npm run typecheck` | `tsc -b` over the app, tests and configs |
 | `npm run lint` | oxlint |
 | `npm test` | Unit tests (Vitest) |
@@ -300,7 +303,7 @@ in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). 
 - the mention highlighter, codex name matching, word counts, number entry in any locale and the Yjs helpers;
 - the plan's edits (create, move, fold, split, trash) and their exact undo;
 - ordering keys, story time, the Board's drop targets and the Outline's keyboard paths;
-- books, codex entries, the sample book and the Trash;
+- books, codex entries, the sample book (and the builds that leave it out) and the Trash;
 - World (the codex): entries and types (fields, aliases, trash and their exact undo), search, the screen's layout
   and list rules, Appears in, and the World panel's chapter list (its order, roles and counts);
 - word counts and the day's writing stats, scene versions (saving, pruning, restoring) and how History compares them;
@@ -336,8 +339,9 @@ in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). 
   terms a step lower, sections by their best match), and a page's commands taking the place of the app's.
 
 **End-to-end tests** (`e2e/`) run in your installed Chrome against a dev server on port 5174, which Playwright starts
-(or reuses if it's already running). The offline tests need a build instead: `e2e/preview.ts` builds one afresh and
-serves it on port 4174. Every test gets a fresh browser profile, so each one starts from the sample book.
+(or reuses if it's already running). The offline tests need a build instead: `e2e/preview.ts` builds one afresh, in
+the `e2e` mode that keeps the sample book, to `dist-e2e/`, and serves it on port 4174. Every test gets a fresh
+browser profile, so each one starts from the sample book.
 They cover:
 - startup;
 - typing and reloading;
@@ -388,7 +392,8 @@ They cover:
 - the home screen (`home.spec.ts`): reopening a book where it was left, a new book listed first, Backups from home,
   and a page that doesn't exist;
 - help (`help.spec.ts`): glossary search by old names, See also, the "?" beside a field, every page's tour walked to
-  Done, the Plan tour opening a chapter's pop-out and closing it, a term explained mid-tour, and leaving the page;
+  Done, the Plan tour opening a chapter's pop-out and closing it, a term explained mid-tour, the home tour in an empty
+  library, and leaving the page;
 - Search (`palette.spec.ts`): Ctrl+K over the text and back with the cursor where it was, opening it again as it
   fades away, a chapter and an entry on Write, the Plan's pop-out, views and a scene, an entry on World and Back,
   focus mode, a theme and Book settings, Ctrl+K left to the glossary, an AI tool picked and Continue run, a book and

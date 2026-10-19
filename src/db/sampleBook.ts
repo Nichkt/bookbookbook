@@ -1,9 +1,10 @@
 import type { CodexTypeKey } from "./codexTypes"
 
 /*
- * The sample book from the prototype (prototype/data.js), seeded on first run so the app opens on a real outline:
- * twelve chapters in three acts, with prose in the first four. Plot threads, events and the theme are codex entries
- * like the characters; prose mentions of them aren't tracked (see NO_AUTO_MENTION_TYPES).
+ * The sample book from the prototype (prototype/data.js), seeded into an empty library in development and the
+ * end-to-end tests, never in a real install (src/db/powersync.ts), so they open on a real outline: twelve chapters in
+ * three acts, with prose in the first four. Plot threads, events and the theme are codex entries like the characters;
+ * prose mentions of them aren't tracked (see NO_AUTO_MENTION_TYPES).
  */
 
 export interface SampleScene {
