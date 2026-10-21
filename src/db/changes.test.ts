@@ -31,7 +31,7 @@ test("revert undoes updates, deletes and inserts exactly", async () => {
     await changes.captureIds(tx, "acts", ["a"])
     await tx.execute("DELETE FROM acts WHERE id = 'b'")
     await updateRow(tx, "acts", "c", { title: null })
-    changes.created("acts", "d")
+    changes.created(tx, "acts", "d")
     await insertRow(tx, "acts", { id: "d", book_id: "book", title: "New", position: "a3" })
   })
   expect(changes.isEmpty).toBe(false)
@@ -45,7 +45,7 @@ test("revert tolerates rows that changed again since", async () => {
   await db.writeTransaction(async (tx) => {
     await changes.captureIds(tx, "acts", ["a"])
     await tx.execute("DELETE FROM acts WHERE id = 'a'")
-    changes.created("acts", "d")
+    changes.created(tx, "acts", "d")
     await insertRow(tx, "acts", { id: "d", book_id: "book", title: "New", position: "a3" })
   })
   // Another device already removed the created row.

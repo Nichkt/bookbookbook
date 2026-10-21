@@ -5,6 +5,7 @@ import { insertRow, updateRow, type Db, type Tx } from "@/db/tx"
 import { DEFAULT_CHAPTER_TARGET, newChapterRow } from "@/features/plan/mutations"
 import { canonicalStructureKey, scaffoldStructure, type StoryStructure } from "@/features/plan/structures"
 import { newId } from "@/lib/id"
+import { skipHistory } from "@/undo/recorder"
 
 export const DEFAULT_BOOK_TARGET = 80_000
 
@@ -22,6 +23,8 @@ export interface NewBook {
  */
 export async function createBook(db: Db, input: NewBook): Promise<{ bookId: string; chapterId: string }> {
   return db.writeTransaction(async (tx) => {
+    // A new book's history starts empty.
+    skipHistory(tx)
     const title = input.title.trim() || "Untitled book"
     const universeId = newId()
     const bookId = newId()

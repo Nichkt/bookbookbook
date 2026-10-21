@@ -15,6 +15,11 @@ export interface SceneDocProviderOptions {
   onError?: (error: unknown) => void
   /** Called after each local edit, e.g. to request persistent storage once. */
   onLocalUpdate?: () => void
+  /**
+   * Called when the doc comes to hold edits no stored row has, because a write failed (true), and once a compaction
+   * has stored them after all (false).
+   */
+  onUnsavedChange?: (unsaved: boolean) => void
 }
 
 /**
@@ -29,8 +34,8 @@ export class SceneDocProvider {
   readonly loaded: Promise<void>
 
   private readonly store: SceneStore
-  private readonly options: Required<Omit<SceneDocProviderOptions, "onLocalUpdate">> &
-    Pick<SceneDocProviderOptions, "onLocalUpdate">
+  private readonly options: Required<Omit<SceneDocProviderOptions, "onLocalUpdate" | "onUnsavedChange">> &
+    Pick<SceneDocProviderOptions, "onLocalUpdate" | "onUnsavedChange">
   /** Row ids already in the doc: applied from storage or written by this provider. */
   private readonly seen = new Set<string>()
   /** Stored rows whose content is in the doc, so a compaction snapshot may replace them. */
@@ -42,6 +47,8 @@ export class SceneDocProvider {
   private writing: Promise<void> | null = null
   /** A write failed, so the doc holds edits no row has. The next compaction stores them. */
   private unsaved = false
+  /** `unsaved` as onUnsavedChange last reported it. */
+  private reportedUnsaved = false
   private pulling: Promise<void> | null = null
   private pullAgain = false
   private compacting: Promise<void> | null = null
@@ -68,6 +75,11 @@ export class SceneDocProvider {
   /** Stored update rows a compaction would fold away. */
   get pendingRows(): number {
     return this.coveredUpdates
+  }
+
+  /** Whether the doc holds edits that failed to save, which the next compaction stores. */
+  get hasUnsaved(): boolean {
+    return this.unsaved
   }
 
   /** Applies stored rows the doc hasn't seen. One read at a time; a change during a read triggers one more. */
@@ -185,9 +197,16 @@ export class SceneDocProvider {
         if (!this.closed) this.cover(id, "update")
       } catch (error) {
         this.unsaved = true
+        this.reportUnsaved()
         this.options.onError(error)
       }
     }
+  }
+
+  private reportUnsaved() {
+    if (this.unsaved === this.reportedUnsaved) return
+    this.reportedUnsaved = this.unsaved
+    this.options.onUnsavedChange?.(this.unsaved)
   }
 
   private cover(id: string, kind: StoredRow["kind"]) {
@@ -230,5 +249,6 @@ export class SceneDocProvider {
     }
     for (const id of replaces) this.uncover(id)
     this.cover(snapshot.id, "snapshot")
+    this.reportUnsaved()
   }
 }

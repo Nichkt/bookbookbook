@@ -5,6 +5,8 @@ export interface DevHooks {
   db: {
     getAll<T>(sql: string, parameters?: unknown[]): Promise<T[]>
     execute(sql: string, parameters?: unknown[]): Promise<unknown>
+    /** Runs `hold` with the database to itself: the app's writes wait until it resolves. */
+    writeLock<T>(hold: () => Promise<T>): Promise<T>
   }
   openScenes(): string[]
   flushAll(): Promise<void>

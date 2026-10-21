@@ -84,8 +84,8 @@ test.describe("Glossary", () => {
 test.describe("How to use this", () => {
   const TOURS = [
     { name: "home screen", title: "How to use the home screen", steps: 10, open: openHome },
-    { name: "Plan", title: "How to use the Plan", steps: 14, open: (page: Page) => openScreen(page, "Plan") },
-    { name: "Write", title: "How to use Write", steps: 15, open: openFirstChapter },
+    { name: "Plan", title: "How to use the Plan", steps: 16, open: (page: Page) => openScreen(page, "Plan") },
+    { name: "Write", title: "How to use Write", steps: 16, open: openFirstChapter },
     { name: "World", title: "How to use World", steps: 7, open: (page: Page) => openScreen(page, "World") },
     { name: "Inbox", title: "How to use the Inbox", steps: 7, open: (page: Page) => openScreen(page, "Inbox") },
   ]
@@ -113,7 +113,7 @@ test.describe("How to use this", () => {
     const opener = howToUse(page)
     await opener.click()
     const card = tourCard(page)
-    const at = (step: number) => expect(card).toContainText(`How to use the Plan · Step ${step} of 14`)
+    const at = (step: number) => expect(card).toContainText(`How to use the Plan · Step ${step} of 16`)
     const back = card.getByRole("button", { name: "Back" })
     const next = card.getByRole("button", { name: "Next" })
 
@@ -215,10 +215,10 @@ test.describe("How to use this", () => {
     await howToUse(page).click()
     const card = tourCard(page)
     for (let step = 1; step <= 5; step++) {
-      await expect(card).toContainText(`How to use Write · Step ${step} of 15`)
+      await expect(card).toContainText(`How to use Write · Step ${step} of 16`)
       await card.getByRole("button", { name: "Next" }).click()
     }
-    await expect(card).toContainText("Step 6 of 15")
+    await expect(card).toContainText("Step 6 of 16")
     await expect(page.getByRole("dialog", { name: "Dictate" })).toBeVisible()
     await expectSpotlightOn(page, tourTarget(page, "dictate"))
     await expect(tourTarget(page, "dictate")).toHaveAttribute("data-dictate", "prose")
@@ -229,13 +229,13 @@ test.describe("How to use this", () => {
     await expect(term(page, "Voice commands")).toContainText("“Scratch that” takes back what you said last.")
     await page.keyboard.press("Escape")
     await expect(explain).toBeFocused()
-    await expect(card).toContainText("Step 6 of 15")
+    await expect(card).toContainText("Step 6 of 16")
   })
 
   test("leaving the page ends its tour", async ({ page }) => {
     await openFirstChapter(page)
     await howToUse(page).click()
-    await expect(tourCard(page)).toContainText("Step 1 of 15")
+    await expect(tourCard(page)).toContainText("Step 1 of 16")
     await page.goBack()
     await expect(page.getByRole("heading", { level: 1, name: "Your books" })).toBeVisible()
     await expect(tourCard(page)).toHaveCount(0)

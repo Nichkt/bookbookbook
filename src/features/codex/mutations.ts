@@ -84,10 +84,10 @@ export async function insertCodexEntry(
   let typeId = type?.id
   if (!typeId) {
     typeId = await insertCodexType(tx, universeId, input.typeKey)
-    changes?.created("codex_types", typeId)
+    changes?.created(tx, "codex_types", typeId)
   }
   const id = await insertEntry(tx, { universeId, typeId, name: input.name, color: input.color, fields: input.fields })
-  changes?.created("codex_entries", id)
+  changes?.created(tx, "codex_entries", id)
   return id
 }
 

@@ -7,6 +7,7 @@ import { DEFAULT_BOOK_TARGET } from "@/features/books/mutations"
 import { newChapterRow, newSceneRow } from "@/features/plan/mutations"
 import { newId } from "@/lib/id"
 import { countWords } from "@/lib/words"
+import { skipHistory } from "@/undo/recorder"
 import { bytesToBase64 } from "@/yjs/base64"
 import { proseText } from "@/yjs/prose"
 import { docFromState } from "@/yjs/versions"
@@ -74,6 +75,7 @@ export async function importBook(db: Db, input: ImportInput, now = new Date()): 
   const chapterKeys = generateNKeysBetween(null, null, chapters.length)
 
   return db.writeTransaction(async (tx) => {
+    skipHistory(tx)
     const title = await unusedTitle(tx, input.title.trim() || "Untitled book", "imported")
     await insertRow(tx, "universes", { id: universeId, name: title })
     await insertRow(tx, "books", {

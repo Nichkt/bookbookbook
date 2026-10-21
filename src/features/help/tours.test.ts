@@ -75,6 +75,8 @@ describe("stepsFor", () => {
       "plan-add",
       "plan-display",
       "plan-filter",
+      "save-status",
+      "undo",
       undefined,
     ])
     expect(planTargets("corkboard")).toEqual(expect.arrayContaining(["plan-ribbon", "plan-add-chapter"]))

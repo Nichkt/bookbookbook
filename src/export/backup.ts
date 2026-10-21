@@ -6,6 +6,7 @@ import { insertRow, type Db, type SqlValue } from "@/db/tx"
 import { newId } from "@/lib/id"
 import { unzipLimited } from "@/lib/unzip"
 import { countWords } from "@/lib/words"
+import { skipHistory } from "@/undo/recorder"
 import { base64ToBytes, bytesToBase64 } from "@/yjs/base64"
 import { proseText } from "@/yjs/prose"
 import { contentState, docFromState, isEmptyContent } from "@/yjs/versions"
@@ -282,6 +283,7 @@ export async function restoreBackup(db: Db, zip: Uint8Array, now = new Date()): 
   const bookId = newId()
 
   return db.writeTransaction(async (tx) => {
+    skipHistory(tx)
     const bookTitle = typeof book.title === "string" && book.title.trim() ? book.title.trim() : "Untitled book"
     const title = await unusedTitle(tx, bookTitle, "restored")
     const universeName = typeof universe.name === "string" && universe.name.trim() ? universe.name : title

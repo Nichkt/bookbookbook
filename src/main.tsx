@@ -17,14 +17,17 @@ async function start() {
   void registerServiceWorker()
   listenForInstall()
   // Fetch the app while the database opens.
-  const app = import("@/app/router")
+  const app = Promise.all([import("@/app/router"), import("@/undo/undoHistory"), import("@/app/saveStatus")])
   preloadScreenAt(location.pathname)
   // If the database fails first, nothing awaits this; `await app` below still throws.
   app.catch(() => undefined)
   try {
     await openDatabase()
     if (import.meta.env.DEV) (await import("@/app/devHooks")).installDevHooks()
-    const { router } = await app
+    const [{ router }, { installUndo }, saving] = await app
+    // From here on Undo records the writer's edits, and the header tells whether they've saved (DESIGN.md §12).
+    installUndo(db, { writeStarted: saving.writeStarted, writeEnded: saving.writeEnded })
+    saving.saveOnLeaving()
     // The splash stays up until the first screen's chunk is in, rather than giving way to a blank page.
     if (!router.state.initialized) {
       await new Promise<void>((resolve) => {

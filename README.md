@@ -8,7 +8,7 @@ takes after NovelCrafter, the writing side after Sudowrite.
 
 ## Download for Windows
 
-For Windows 10 and 11, 64-bit: **[download the installer][installer]**, bookbookbook 0.1.2, about 6 MB. After that,
+For Windows 10 and 11, 64-bit: **[download the installer][installer]**, bookbookbook 0.1.3, about 6 MB. After that,
 **Check for updates**, on the home screen, installs each newer version; they're all on the
 [releases page](https://github.com/Nichkt/bookbookbook/releases) too. Versions before 0.1.2 have no Check for updates,
 so install this one over yours, which keeps your books.
@@ -22,9 +22,9 @@ Your books stay on this computer, so keep backups, with Backups on the home scre
 this one keeps them, and so does uninstalling, in Settings → Apps, unless you tick Delete the application data. To
 build the app yourself, see [The Windows app](#the-windows-app).
 
-[installer]: https://github.com/Nichkt/bookbookbook/releases/download/v0.1.2/bookbookbook_0.1.2_x64-setup.exe
+[installer]: https://github.com/Nichkt/bookbookbook/releases/download/v0.1.3/bookbookbook_0.1.3_x64-setup.exe
 
-## Status: home, Plan, World, Write, writing aids, AI, Inbox, dictation, search, help, import, export, backups, offline, Windows app
+## Status: home, Plan, World, Write, writing aids, AI, Inbox, dictation, search, undo, help, import, export, backups, offline, Windows app
 
 Milestones 0 to 8 and 11 from DESIGN.md §19 are built, and M12's Windows app, plus a home screen, a glossary and a
 tour of every page. M8 still wants tests on real Android phones and a pass with screen readers, which take a person.
@@ -34,6 +34,19 @@ your voice when you dictate online, which goes to the browser's maker (Microsoft
 app asks GitHub for its newest version only when you click Check for updates.
 There are no accounts or sync yet, so keep backups: Backups… in the book menu downloads one, or backs every book up to
 a folder as it changes (Chrome, Edge and the Windows app).
+
+**After M12, saving and Undo** (DESIGN.md §12, "Built after M12"):
+- **Saves as you go:** everything you type or change is saved by itself, so there's no Save button to remember. The
+  top of the page says **Saved**, or **Saving…** for a moment, and if a save ever fails, **Not saved**, with Try
+  again. Click it to read more. On a phone, it shows only when something isn't saved.
+- **Nothing left behind:** what you're typing in a field is saved as you click away, switch tabs or close
+  bookbookbook. Closing a browser tab before it's saved asks first, and the Windows app waits for it.
+- **Undo and Redo**, at the top of every page of a book, take back your last change and bring it back, wherever you
+  made it: a chapter moved, a status changed, an entry deleted, a note filed, or what you just typed in a scene.
+  **Ctrl+Z** and **Ctrl+Y** do the same (⌘Z and ⌘⇧Z on a Mac), except in text you're typing, where they undo and redo
+  your typing there, as usual. Search has them too, saying what they'd do. On a phone, Redo is in Search.
+- **Only your change:** Undo leaves alone anything that's changed since, and says so. Each book keeps its last 100
+  changes until you close the app, and History keeps earlier versions of each scene's text.
 
 **After M12, updates in the Windows app** (DESIGN.md §11, "Built after M12"; see [The Windows app](#the-windows-app)):
 - **Check for updates**, on the home screen, in the book menu or in Search, asks GitHub for the newest version and
@@ -470,7 +483,10 @@ in-memory SQLite with the app's schema (`node:sqlite`; helpers in `src/test/`). 
 - help: every glossary term's links and search (old names and word order included), every tour step's copy on touch
   and narrow screens and in each Plan view, and where a tour card goes beside, over or without what it points at;
 - Search: how what's typed ranks commands (labels over keywords, a word's start over letters inside it, glossary
-  terms a step lower, sections by their best match), and a page's commands taking the place of the app's.
+  terms a step lower, sections by their best match), and a page's commands taking the place of the app's;
+- Undo and Redo: recording each change's rows from the database, naming it, putting back only what hasn't changed
+  since, one history per book across pages and scenes' typing, a field's typing as one step, the toasts, the keys,
+  and what the header says about saving.
 
 **End-to-end tests** (`e2e/`) run in your installed Chrome against a dev server on port 5174, which Playwright starts
 (or reuses if it's already running). The offline tests need a build instead: `e2e/preview.ts` builds one afresh, in
@@ -534,6 +550,9 @@ They cover:
   fades away, a chapter and an entry on Write, the Plan's pop-out, views and a scene, an entry on World and Back,
   focus mode, a theme and Book settings, Ctrl+K left to the glossary, an AI tool picked and Continue run, a book and
   a term from the home screen, and a phone;
+- Undo and saving (`undo.spec.ts`): the header's Undo and Redo, Ctrl+Z and Ctrl+Y in text and out, a field's typing
+  undone as one step, a change on another page, the Trash with its toast's Redo, typing in a scene with the cursor
+  kept in it, Search, the save status and a tab closed before it's saved, and a phone;
 - offline and installing (`pwa.spec.ts`, on the build): opening offline at every page once opened, with the
   browser's cache cleared; Chrome's install checks, the manifest and the icons; a new version waiting through Later
   and a reload, then Reload keeping the last words typed; and Reload moving every open tab to it. Each test gets a
@@ -597,8 +616,8 @@ one replaces the live doc's prose with a copy in a single edit, so it's saved, a
 src/
   ai/             providers, requests and streamed answers, what a run sends, the tools and your own, cards and runs
   app/            shell, routes and each page's own download, startup and error screens, theme, toasts and
-                  announcements, the service worker and updates, installing, the desktop build and its updates, dev
-                  hooks
+                  announcements, the save status and Undo's buttons and keys, the service worker and updates,
+                  installing, the desktop build and its updates, dev hooks
   backup/         backup status, folder backups, and when backups run
   components/     fields that save as you type, menus for long lists; ui/ holds the shadcn components
   db/             PowerSync schema, queries, sample book and seeding, ordering, undo, Trash, prefs, the scene store,
@@ -618,6 +637,7 @@ src/
                   on-screen keyboard is)
   speech/         speech recognition: the engine, dictation sessions, voice commands and their settings
   test/           in-memory SQLite and book builders for unit tests
+  undo/           Undo and Redo: recording the database's writes, naming and undoing them, each book's history
   yjs/            SceneDocProvider, the scene store interface, Yjs helpers
 e2e/              Playwright tests; preview.ts, which builds and serves the app for the offline tests; and perf.ts,
                   which times it with a long book (`npm run perf`)

@@ -1,3 +1,4 @@
+import { recordingOf, type Recording } from "@/undo/recorder"
 import { insertRow, updateRow, type SqlValue, type Tx } from "./tx"
 
 type Row = { id: string } & Record<string, SqlValue>
@@ -9,8 +10,19 @@ type Row = { id: string } & Record<string, SqlValue>
 export class ChangeSet {
   /** table → id → the row before the edit, or null if the edit created it. */
   private readonly originals = new Map<string, Map<string, Row | null>>()
+  /** The recordings of the transactions it captured in; undefined for one not recorded. */
+  private readonly recordings = new Set<Recording | undefined>()
 
-  private rows(table: string) {
+  /**
+   * The edit as Undo recorded it (src/undo/), when one recording has all of it: its toast's Undo then goes through
+   * the same history.
+   */
+  get recording(): Recording | undefined {
+    return this.recordings.size === 1 ? [...this.recordings][0] : undefined
+  }
+
+  private rows(table: string, tx: Tx) {
+    this.recordings.add(recordingOf(tx))
     let rows = this.originals.get(table)
     if (!rows) this.originals.set(table, (rows = new Map()))
     return rows
@@ -18,7 +30,7 @@ export class ChangeSet {
 
   /** Remembers the current state of the rows matching `where`. A row captured twice keeps its first state. */
   async capture(tx: Tx, table: string, where: string, parameters: SqlValue[] = []) {
-    const rows = this.rows(table)
+    const rows = this.rows(table, tx)
     for (const row of await tx.getAll<Row>(`SELECT * FROM ${table} WHERE ${where}`, parameters)) {
       if (!rows.has(row.id)) rows.set(row.id, { ...row })
     }
@@ -30,13 +42,18 @@ export class ChangeSet {
   }
 
   /** Notes a row the edit created. */
-  created(table: string, id: string) {
-    const rows = this.rows(table)
+  created(tx: Tx, table: string, id: string) {
+    const rows = this.rows(table, tx)
     if (!rows.has(id)) rows.set(id, null)
   }
 
   get isEmpty() {
     return [...this.originals.values()].every((rows) => rows.size === 0)
+  }
+
+  /** The tables it has rows of. */
+  get tables(): string[] {
+    return [...this.originals].filter(([, rows]) => rows.size > 0).map(([table]) => table)
   }
 
   /** Puts every captured row back as it was. */

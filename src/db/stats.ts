@@ -1,4 +1,5 @@
 import { newId } from "@/lib/id"
+import { skipHistory } from "@/undo/recorder"
 import { insertRow, type Db, type Tx } from "./tx"
 
 /*
@@ -45,6 +46,8 @@ export async function recordWordCount(
   aiWords = 0,
 ) {
   await db.writeTransaction(async (tx) => {
+    // Counts the app keeps by itself: Undo leaves them be.
+    skipHistory(tx)
     const scene = await tx.getOptional<{
       word_count: number | null
       ai_word_count: number | null

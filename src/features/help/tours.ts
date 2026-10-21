@@ -1,4 +1,5 @@
 import { desktop } from "@/app/desktop"
+import { REDO_KEYS, UNDO_KEYS } from "@/app/undoShortcuts"
 import { shortcutLabel } from "@/lib/keys"
 import type { TourId } from "./helpStore"
 
@@ -243,6 +244,24 @@ const PLAN: TourDefinition = {
       term: "story-point",
     },
     {
+      target: "save-status",
+      title: "Saved",
+      body: (context) =>
+        context.narrow
+          ? "There's no Save button to remember: everything saves by itself as you go. If saving ever goes wrong, the top of the page says so, with a way to try again."
+          : "There's no Save button to remember: everything saves by itself as you go, and this says so. If saving ever goes wrong, it says that here too, with a way to try again.",
+      term: "saving",
+    },
+    {
+      target: "undo",
+      title: "Undo and Redo",
+      body: (context) =>
+        `Changed something by mistake? Undo takes back your last change, wherever in the book you made it. Redo, beside it or in Search, brings it back.${
+          context.coarse ? "" : ` From the keyboard, they're ${shortcutLabel(UNDO_KEYS)} and ${shortcutLabel(REDO_KEYS)}.`
+        }`,
+      term: "undo",
+    },
+    {
       title: "That's the Plan",
       body: "When a chapter's ready, write it on the Write page. If a word here puzzles you, the Glossary is in the top bar.",
     },
@@ -290,6 +309,15 @@ const WRITE: TourDefinition = {
       body: (context) =>
         `${press(context)} Dictate and speak, and your words are typed where your cursor is. Say “period” or “new paragraph” as you go, “scratch that” to take back what you said last, and “stop listening” to stop.${context.coarse ? "" : ` ${shortcutLabel("Mod+Shift+M")} starts and stops it too.`}`,
       term: "voice-commands",
+    },
+    {
+      target: "undo",
+      title: "Undo",
+      body: (context) =>
+        `Undo takes back your latest change, typing and all, and Redo brings it back.${
+          context.coarse ? "" : ` In your text, ${shortcutLabel(UNDO_KEYS)} and ${shortcutLabel(REDO_KEYS)} do the same.`
+        }`,
+      term: "undo",
     },
     {
       target: "write-history",

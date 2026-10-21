@@ -6,6 +6,7 @@ import { purgeChapters } from "@/db/trash"
 import { insertRow, updateRow, type Db, type SqlValue, type Tx } from "@/db/tx"
 import { newId } from "@/lib/id"
 import { parseStringList, uniqueStrings } from "@/lib/json"
+import { retractEdit } from "@/undo/recorder"
 
 /*
  * Planner edits (DESIGN.md §6). Each runs in one transaction. Structural ones (fold, split, delete) return the
@@ -251,6 +252,8 @@ export async function discardNewChapter(db: Db, id: string): Promise<DiscardedCh
     const chapter = await getChapter(tx, id)
     if (!chapter || chapter.deleted_at) return { outcome: "none" }
     if (await isUntouched(tx, chapter)) {
+      // Adding it and this come to nothing, so neither stays for Undo.
+      retractEdit(tx)
       await purgeChapters(tx, [id])
       return { outcome: "deleted" }
     }
@@ -419,7 +422,7 @@ export async function appendBeatsIn(tx: Tx, chapterId: string, texts: readonly s
       done: 0,
       template_beat_key: null,
     })
-    changes.created("beats", id)
+    changes.created(tx, "beats", id)
   }
 }
 
@@ -680,7 +683,7 @@ export async function splitActAt(
     if (!current) {
       current = { id: newId(), book_id: bookId, title: "", position: generateKeyBetween(null, null) }
       await insertRow(tx, "acts", current)
-      changes.created("acts", current.id)
+      changes.created(tx, "acts", current.id)
       await changes.capture(tx, "chapters", "book_id = ?", [bookId])
       await tx.execute("UPDATE chapters SET act_id = ? WHERE book_id = ?", [current.id, bookId])
       acts.push(current)
@@ -689,7 +692,7 @@ export async function splitActAt(
     await writeKeys(tx, "acts", rekeyed, changes)
     const actId = newId()
     await insertRow(tx, "acts", { id: actId, book_id: bookId, title: "", position: keys[0] })
-    changes.created("acts", actId)
+    changes.created(tx, "acts", actId)
     const moving = spot.group.chapters.slice(spot.index)
     await changes.captureIds(
       tx,
@@ -762,7 +765,7 @@ export async function mergeChapterIntoPrevious(
     for (const [index, item] of incoming.entries()) {
       const values = { ...item.values, chapter_id: a.id, position: keys[index] }
       if (item.isNew) {
-        changes.created("scenes", item.id)
+        changes.created(tx, "scenes", item.id)
         await insertRow(tx, "scenes", newSceneRow({ id: item.id, ...values }))
       } else {
         await updateRow(tx, "scenes", item.id, values)
@@ -888,7 +891,7 @@ export async function splitChapterAt(
       location_entry_id: chapter.location_entry_id,
       story_time: scene.story_time,
     })
-    changes.created("chapters", newChapter.id)
+    changes.created(tx, "chapters", newChapter.id)
     await insertRow(tx, "chapters", newChapter)
     await updateRow(tx, "chapters", chapter.id, { word_target: keptTarget })
     for (const row of moved) await updateRow(tx, "scenes", row.id, { chapter_id: newChapter.id })
@@ -900,7 +903,7 @@ export async function splitChapterAt(
     )
     for (const link of links) {
       const id = newId()
-      changes.created("entity_links", id)
+      changes.created(tx, "entity_links", id)
       await insertRow(tx, "entity_links", { ...link, id, chapter_id: newChapter.id })
     }
 

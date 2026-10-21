@@ -14,11 +14,13 @@ import {
   LibraryBigIcon,
   PenLineIcon,
   PlusIcon,
+  Redo2Icon,
   RefreshCwIcon,
   SettingsIcon,
   SignpostIcon,
   StickyNotePlusIcon,
   Trash2Icon,
+  Undo2Icon,
   type LucideIcon,
 } from "lucide-react"
 import { useMemo } from "react"
@@ -28,6 +30,7 @@ import { desktop } from "@/app/desktop"
 import { announce } from "@/app/feedback"
 import { promptInstall, useInstallWay } from "@/app/install"
 import { THEME_ICONS, THEME_LABELS, THEMES, useTheme } from "@/app/theme"
+import { REDO_KEYS, UNDO_KEYS } from "@/app/undoShortcuts"
 import type { BookListRow } from "@/db/queries"
 import { openBookDialog } from "@/features/books/dialogStore"
 import { codexPath, useCodex } from "@/features/codex/codexData"
@@ -42,6 +45,7 @@ import { usePlan } from "@/features/plan/planData"
 import { chapterTitle } from "@/features/plan/status"
 import { VIEW_ICONS } from "@/features/plan/viewIcons"
 import { writePath } from "@/features/write/writeContext"
+import { redo, undo, useUndoLabels } from "@/undo/undoHistory"
 import type { PaletteCommand } from "./commands"
 import { screenHandler } from "./paletteStore"
 
@@ -79,6 +83,8 @@ export function useAppCommands(book: BookListRow | undefined, books: readonly Bo
   const theme = useTheme((state) => state.theme)
   const setTheme = useTheme((state) => state.setTheme)
   const installWay = useInstallWay()
+  const undoLabel = useUndoLabels((state) => state.undo)
+  const redoLabel = useUndoLabels((state) => state.redo)
 
   return useMemo(() => {
     const inBook = book?.id ?? null
@@ -87,14 +93,38 @@ export function useAppCommands(book: BookListRow | undefined, books: readonly Bo
     const commands: PaletteCommand[] = []
 
     if (inBook) {
-      commands.push({
-        id: "app:quick-note",
-        label: "Quick note…",
-        group: "Actions",
-        icon: StickyNotePlusIcon,
-        keywords: ["inbox", "idea", "jot down", "note"],
-        run: (from) => openQuickNote(from),
-      })
+      commands.push(
+        {
+          id: "app:quick-note",
+          label: "Quick note…",
+          group: "Actions",
+          icon: StickyNotePlusIcon,
+          keywords: ["inbox", "idea", "jot down", "note"],
+          run: (from) => openQuickNote(from),
+        },
+        {
+          id: "app:undo",
+          label: "Undo",
+          group: "Actions",
+          icon: Undo2Icon,
+          hint: undoLabel ?? "Nothing to undo",
+          keys: UNDO_KEYS,
+          keywords: ["take back", "mistake", "revert", "go back"],
+          disabled: !undoLabel,
+          run: () => void undo(),
+        },
+        {
+          id: "app:redo",
+          label: "Redo",
+          group: "Actions",
+          icon: Redo2Icon,
+          hint: redoLabel ?? "Nothing to redo",
+          keys: REDO_KEYS,
+          keywords: ["do again", "bring back"],
+          disabled: !redoLabel,
+          run: () => void redo(),
+        },
+      )
     }
 
     if (location.pathname !== "/") {
@@ -279,7 +309,7 @@ export function useAppCommands(book: BookListRow | undefined, books: readonly Bo
       })
     }
     return commands
-  }, [book, books, location, navigate, theme, setTheme, installWay])
+  }, [book, books, location, navigate, theme, setTheme, installWay, undoLabel, redoLabel])
 }
 
 /** The Plan's views: on the Plan, the open chapter and filters stay as they were, as the toolbar's links keep them. */

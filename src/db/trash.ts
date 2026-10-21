@@ -1,3 +1,4 @@
+import { skipHistory } from "@/undo/recorder"
 import type { Db, Tx } from "./tx"
 
 /** Days an item stays in the Trash before it's deleted for good (DESIGN.md §12). */
@@ -131,6 +132,7 @@ export async function purgeBook(tx: Tx, id: string) {
 export async function purgeExpiredTrash(db: Db, now = new Date()) {
   const cutoff = new Date(now.getTime() - TRASH_DAYS * DAY_MS).toISOString()
   await db.writeTransaction(async (tx) => {
+    skipHistory(tx)
     const expired = async (table: string) =>
       (
         await tx.getAll<{ id: string }>(`SELECT id FROM ${table} WHERE deleted_at IS NOT NULL AND deleted_at < ?`, [
@@ -150,6 +152,8 @@ export async function purgeExpiredTrash(db: Db, now = new Date()) {
  */
 export async function emptyTrash(db: Db, bookId: string) {
   await db.writeTransaction(async (tx) => {
+    // Deleted for good: Undo can't bring back what went with it, like the text.
+    skipHistory(tx)
     const ids = async (sql: string, parameters: string[] = []) =>
       (await tx.getAll<{ id: string }>(sql, parameters)).map((row) => row.id)
     await purgeScenes(
@@ -178,6 +182,7 @@ export type TrashKind = "book" | "chapter" | "scene" | "entry"
 /** Deletes one Trash item for good. */
 export async function purgeItem(db: Db, kind: TrashKind, id: string) {
   await db.writeTransaction(async (tx) => {
+    skipHistory(tx)
     if (kind === "book") await purgeBook(tx, id)
     else if (kind === "chapter") await purgeChapters(tx, [id])
     else if (kind === "entry") await purgeEntries(tx, [id])

@@ -1,5 +1,7 @@
 import { EditorContent, useEditor, type Editor } from "@tiptap/react"
+import { yUndoPluginKey } from "@tiptap/y-tiptap"
 import { useEffect, type ReactNode } from "react"
+import type { UndoManager } from "yjs"
 import { cn } from "@/lib/utils"
 import type { SceneDocProvider } from "@/yjs/SceneDocProvider"
 import { editorFocused, registerEditor, unregisterEditor } from "./activeEditor"
@@ -50,7 +52,7 @@ export function SceneEditor({
   }, [editor, label])
 
   useEffect(() => {
-    registerEditor(editor, provider.sceneId)
+    registerEditor(editor, provider.sceneId, undoManagerOf(editor))
     const onFocus = () => editorFocused(editor)
     editor.on("focus", onFocus)
     return () => {
@@ -77,3 +79,9 @@ const editorAttributes = (label: string) => ({
   "aria-label": label,
   spellcheck: "true",
 })
+
+/** The editor's undo history of its typing, from Yjs. */
+function undoManagerOf(editor: Editor): UndoManager | undefined {
+  if (editor.isDestroyed) return undefined
+  return (yUndoPluginKey.getState(editor.state) as { undoManager?: UndoManager } | undefined)?.undoManager
+}

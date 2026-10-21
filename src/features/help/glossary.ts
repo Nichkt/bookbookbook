@@ -685,6 +685,33 @@ export const GLOSSARY: GlossaryTerm[] = [
     related: ["dictation"],
   },
   {
+    id: "saving",
+    term: "Saving",
+    aka: ["Save", "Saved", "Autosave", "Not saved"],
+    group: "app",
+    body: [
+      `There's no need to save: bookbookbook saves every change by itself as you make it, ${desktop ? "on this computer" : "in this browser"}. Typing is saved as soon as you pause, and when you leave the box you're typing in.`,
+      "At the top of the page, Saved says your work is. If saving ever takes a moment, it says Saving…, and if something goes wrong, Not saved: click it to try again. On a phone, it only shows up then.",
+      desktop
+        ? "Closing bookbookbook waits until the last of your typing is saved."
+        : "Closing the tab before the last of your typing is saved asks you first.",
+    ],
+    related: ["undo", "version", "backup"],
+  },
+  {
+    id: "undo",
+    term: "Undo and Redo",
+    aka: ["Undo", "Redo", "Ctrl+Z", "Ctrl+Y", "Take back"],
+    group: "app",
+    body: [
+      "Undo takes back your last change to the book, wherever you made it: a chapter renamed or moved, an entry deleted, or the typing in a scene. Use it again to go further back. Redo brings back what Undo took back, until you change something else.",
+      "Both are at the top of every page of a book, and in Search; on a phone, Redo is only in Search. From the keyboard, Undo is Ctrl+Z and Redo is Ctrl+Y (⌘Z and ⌘⇧Z on a Mac). In a box you're typing in, Ctrl+Z takes back the typing there, as usual.",
+      "Undo remembers the last 100 changes to each book until bookbookbook closes, and the typing in a scene while its chapter is open on the Write page. For older text, a scene's History has earlier versions, and anything deleted waits in the Trash for 30 days.",
+    ],
+    example: "Moved “Storm Warning” to the Trash by mistake? Undo puts it back where it was, and Redo moves it again.",
+    related: ["saving", "version", "trash"],
+  },
+  {
     id: "version",
     term: "Version",
     aka: ["Snapshot", "History"],

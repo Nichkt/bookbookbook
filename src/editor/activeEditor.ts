@@ -1,4 +1,5 @@
 import type { Editor } from "@tiptap/react"
+import type { UndoManager } from "yjs"
 import { create } from "zustand"
 
 /*
@@ -9,6 +10,8 @@ import { create } from "zustand"
 export interface MountedEditor {
   editor: Editor
   sceneId: string
+  /** Its typing's undo history, which the app's Undo works through too (src/undo/undoHistory.ts). */
+  undoManager?: UndoManager
 }
 
 interface EditorsState {
@@ -19,8 +22,8 @@ interface EditorsState {
 
 export const useEditors = create<EditorsState>(() => ({ mounted: [], focused: null }))
 
-export function registerEditor(editor: Editor, sceneId: string) {
-  useEditors.setState((state) => ({ mounted: [...state.mounted, { editor, sceneId }] }))
+export function registerEditor(editor: Editor, sceneId: string, undoManager?: UndoManager) {
+  useEditors.setState((state) => ({ mounted: [...state.mounted, { editor, sceneId, undoManager }] }))
 }
 
 export function unregisterEditor(editor: Editor) {

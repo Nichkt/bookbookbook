@@ -1,4 +1,6 @@
 import * as Y from "yjs"
+import { beforeClosing, desktop } from "@/app/desktop"
+import { markFailed, markSaved } from "@/app/saveStatus"
 import { db } from "@/db/powersync"
 import { createPowerSyncSceneStore } from "@/db/powersyncSceneStore"
 import { deviceId, localDay, recordWordCount } from "@/db/stats"
@@ -105,7 +107,11 @@ export function acquireSceneDoc(sceneId: string): SceneDocProvider {
   }
   store ??= createPowerSyncSceneStore(db)
   const scene = { refs: 1 } as OpenScene
-  scene.provider = new SceneDocProvider(store, sceneId, { onLocalUpdate: () => onLocalEdit(sceneId, scene) })
+  scene.provider = new SceneDocProvider(store, sceneId, {
+    onLocalUpdate: () => onLocalEdit(sceneId, scene),
+    // The header says the text isn't saved until a compaction stores it (DESIGN.md §12).
+    onUnsavedChange: (unsaved) => (unsaved ? markFailed : markSaved)(`scene:${sceneId}`),
+  })
   void scene.provider.loaded.then(() => {
     // Unless something was already edited before the load finished.
     if (scene.baseline === undefined) scene.baseline = Y.encodeStateAsUpdateV2(scene.provider.doc)
@@ -125,6 +131,11 @@ export function releaseSceneDoc(sceneId: string) {
       if (scene.versionTimer !== undefined) await saveAutoVersion(sceneId, scene).catch(logError("version"))
       if (scene.wordsTimer !== undefined) await saveWordCount(sceneId, scene)
       await scene.provider.destroy()
+      // Closed with text that never saved: nothing can try again now, but the header still says so.
+      if (scene.provider.hasUnsaved) {
+        markFailed("edit")
+        markSaved(`scene:${sceneId}`)
+      }
     })().catch(logError("close"))
   }, RELEASE_DELAY_MS)
 }
@@ -158,6 +169,11 @@ export async function flushSceneDocs() {
   await Promise.all(openSceneDocs().map((provider) => provider.flush()))
 }
 
+/** Tries again to store text whose writes failed, by compacting it into a snapshot. */
+export async function retryUnsavedText() {
+  await Promise.all(openSceneDocs().map((provider) => (provider.hasUnsaved ? provider.compact() : provider.flush())))
+}
+
 /** Saves pending word counts now, rather than once typing pauses, e.g. before a backup reads them. */
 export async function saveWordCounts() {
   await Promise.all(
@@ -185,4 +201,6 @@ if (typeof window !== "undefined") {
       if (scene.versionTimer !== undefined) saveAutoVersion(sceneId, scene).catch(() => undefined)
     }
   })
+  // The desktop app's window waits as it closes for the last edits to be written (DESIGN.md §12).
+  if (desktop) beforeClosing(() => Promise.all([flushSceneDocs(), settleSceneDocs()]))
 }

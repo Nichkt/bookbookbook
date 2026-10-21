@@ -1,5 +1,6 @@
 import { generateKeyBetween } from "fractional-indexing"
 import { newId } from "@/lib/id"
+import { skipHistory } from "@/undo/recorder"
 import { NO_AUTO_MENTION_TYPES } from "./codexTypes"
 import type { ChapterStatus } from "./schema"
 import { insertRow, type Db, type Tx } from "./tx"
@@ -128,6 +129,8 @@ export const MENTION_ENTRIES_SQL = `
  */
 export async function ensureScene(db: Db, chapterId: string): Promise<void> {
   await db.writeTransaction(async (tx) => {
+    // The app's doing, not the writer's: nothing to undo.
+    skipHistory(tx)
     const existing = await tx.getOptional(
       "SELECT id FROM scenes WHERE chapter_id = ? AND deleted_at IS NULL LIMIT 1",
       [chapterId],

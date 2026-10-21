@@ -324,7 +324,7 @@ export async function applyWizard(db: Db, bookId: string, plan: WizardPlan): Pro
           word_target: wordTarget,
         }),
       )
-      changes.created("chapters", id)
+      changes.created(tx, "chapters", id)
     }
 
     if (bookActs.length === 0 && kept > 0) {
@@ -341,7 +341,7 @@ export async function applyWizard(db: Db, bookId: string, plan: WizardPlan): Pro
     for (const [index, act] of acts.entries()) {
       const actId = newId()
       await insertRow(tx, "acts", { id: actId, book_id: bookId, title: act.title, position: actKeys[index] })
-      changes.created("acts", actId)
+      changes.created(tx, "acts", actId)
       if (index === 0 && firstNewAct) {
         // A book has acts for all its chapters or none: the first act takes those in the Trash.
         await changes.capture(tx, "chapters", "book_id = ? AND act_id IS NULL", [bookId])

@@ -1198,6 +1198,7 @@ flowchart LR
 | 5. Cloud sync + history *(Studio)* | Server copy + 30+ days of snapshots | Continuous |
 | 6. Weekly email backup *(v1.x, opt-in)* | Email with an **expiring link** to an encrypted zip, never an attachment | Weekly |
 | 7. Trash | Deleted books, chapters, scenes and entries | Restorable for 30 days |
+| 8. Undo and Redo | The last 100 changes to each book, on any page, and the typing in each open scene (built after M12) | While the app is open |
 
 - **Open project format (`.bookbookbook.zip`, built in M7):**
   - `book.json`: the book's rows (structure, codex, links, writing stats, named versions' details, Inbox notes),
@@ -1214,6 +1215,50 @@ flowchart LR
 - **Encryption:** TLS in transit, provider encryption at rest (Postgres, Storage). **E2EE later**: client-side
   encryption of rows and Yjs updates. Trade-offs: no server-side compaction, search or email backups, and hosted AI
   still needs plaintext per request.
+
+### Built after M12: Saving, Undo and Redo
+- **Saving was already automatic**, and still is: a field's typing is written after a 0.4 s pause and as it loses
+  focus (`useDraft`), a scene's text as it's typed, and every other change at once. There's still no Save button to
+  remember (decision 42). What was missing was being told so, and a way back from a mistake.
+- **The header says whether it's saved** (`src/app/SaveIndicator.tsx`, `saveStatus.ts`) on every page of a book:
+  **Saved**; **Saving…** once a save has taken 0.4 s, and then for 0.6 s at least, so quick saves don't flicker; and
+  **Not saved** when a write fails, until one works. Clicking it says so in a sentence, with when it last saved, how
+  Undo, Redo and History help, and Backups…, and when something failed, Try again, which writes the fields' typing
+  and the scenes' unsaved text again. Phones show it only when something isn't saved, for room.
+- **Leaving.** A field's typing still waiting is written when the tab is hidden or closed, before Undo or Redo, and
+  as the Windows app's window closes, which waits for it as it does for the editor's last words, ten seconds at most.
+  A browser tab closed with a field's typing unwritten, or a save failed, asks first.
+- **Undo and Redo** (`src/undo/`): one history per book of the writer's changes, whichever page they were made on.
+  They're in the header beside Saved, in Search, saying what they'd do ("Undo: Changed the status of “The Archive”"),
+  and on Ctrl+Z and Ctrl+Y or Ctrl+Shift+Z (⌘Z and ⌘⇧Z on a Mac). In text, the keys are the text's own, so in a title
+  being typed they take back its letters. Phones have Redo in Search, for room. The header's buttons leave the caret
+  in a scene's text, to go on writing.
+  - **Recorded from the database.** Every write the app makes goes through the one database, so wrapping its two
+    write methods (`recorder.ts`) sees each change's rows as they were before it and after: in the plan, the World,
+    the Inbox and the book's settings, with nothing for each feature to remember. Columns the app keeps up to date by
+    itself, like word counts, aren't put back. The app's own writes (a new book, a chapter's first scene, the day's
+    stats, imports, restores, deleting from the Trash for good) aren't the writer's changes, so aren't recorded. A
+    change that also writes what Undo can't put back, like the writer's own structures or AI tools, isn't offered at
+    all, rather than half undone.
+  - **Named from the rows** (`describe.ts`): "Renamed “The Archive”", "Moved chapter 3 to the Trash", "Filed a
+    note". A field's typing saves in pieces as the writer pauses, and pieces 4 s apart or less undo as one.
+  - **Typing in a scene** keeps its editor's own undo, from Yjs, which tells this tab's typing from another's, for as
+    long as the scene is open. Undo takes back whichever came last, the typing or another change, and says which:
+    "Undone: Typing in “Ferry wake”". New typing, like any new change, ends what could be redone.
+  - **Only what's still as it was left.** Undoing puts back each column the change touched, unless it has changed
+    since; rows it made go, or to the Trash if something now hangs off them or they've been edited; rows it deleted
+    come back (`steps.ts`). When some of it had changed, the toast says "Some of it had changed since, so that part
+    stayed as it is."
+  - **Toasts.** Undo and Redo say what they did in a toast with the other's button, which updates in place rather
+    than piling up, and goes once its button would no longer do what it says. The Undo toasts the app already had,
+    for deleting, filing, merging and the rest, join the history, so Redo can bring back what they undid.
+  - **Kept in memory**, the last 100 changes of each book, while the app is open. Older text is in each scene's
+    History, and whole books in backups.
+- **Tested:** unit tests for the recorder, the steps, the history and its toasts, the keys and the save status
+  (`src/undo/*.test.ts`, `src/app/saveStatus.test.ts`, `src/app/undoShortcuts.test.ts`), and end to end
+  (`e2e/undo.spec.ts`): the header's buttons, Ctrl+Z in text and out, a field's typing as one step, a change on
+  another page, the Trash and its toast's Redo, typing in a scene, Search, the save status with a tab closed before
+  saving, and a phone.
 
 ## 13. Import and export
 
@@ -1663,17 +1708,18 @@ menu. Labels say what a thing is for in the first place (§6, "Plain labels"), a
 words as "also called".
 
 **Glossary**
-- 73 terms in five groups: *Story basics* (act, chapter, scene, moment, structure moment, story structure, premise,
+- 75 terms in five groups: *Story basics* (act, chapter, scene, moment, structure moment, story structure, premise,
   synopsis, flashback, point of view, tense, story point, theme, show don't tell, draft, manuscript), *Planning a
   chapter* (each field of a chapter's details), *Your world* (World, entries, entry types, aliases, mentions, AI
   context, and the kinds of entry that need explaining), *Pages and tools* (home, Search, Plan, Board, Corkboard,
-  Outline, Matrix, Timeline, structure ribbon, Write and its writing aids, Inbox, filing a note, dictation, versions,
-  backups, export, import, Trash, installing the app, the tools above the keyboard) and *AI tools* (AI tools, model,
-  API key, local model, token, context, AI-written, your own tools, style guide). M5 added the eight about structures
-  and its views, M6 the nine about writing aids (focus mode, typewriter scrolling, daily goal, streak, sprint, find
-  and replace, pattern, read aloud and Add to World), M4 the eleven about the AI tools and a book's style, M11 the
-  four about dictation and the Inbox (filing a note, dictation, voice commands, and on this device or online), and M8
-  Search (the command palette), installing the app and the tools above the keyboard.
+  Outline, Matrix, Timeline, structure ribbon, Write and its writing aids, Inbox, filing a note, dictation, saving,
+  Undo and Redo, versions, backups, export, import, Trash, installing the app, the tools above the keyboard) and *AI
+  tools* (AI tools, model, API key, local model, token, context, AI-written, your own tools, style guide). M5 added
+  the eight about structures and its views, M6 the nine about writing aids (focus mode, typewriter scrolling, daily
+  goal, streak, sprint, find and replace, pattern, read aloud and Add to World), M4 the eleven about the AI tools and
+  a book's style, M11 the four about dictation and the Inbox (filing a note, dictation, voice commands, and on this
+  device or online), M8 Search (the command palette), installing the app and the tools above the keyboard, and
+  saving and Undo came after M12 (§12).
 - Each is a few sentences of plain English, an example from *The Salt Ledger* where one helps, and "See also" links.
   That's the made-up mystery of the sample book, which a real install doesn't have (decision 37), so the glossary
   says where its examples come from.
@@ -1688,10 +1734,10 @@ words as "also called".
   the glossary, and focus goes back to the button that opened it.
 
 **Tours**
-- One per page: Home (10 steps, and 11 in the Windows app, with Check for updates), Plan (14 on the Board), Write
-  (15), World (7) and Inbox (7).
+- One per page: Home (10 steps, and 11 in the Windows app, with Check for updates), Plan (16 on the Board), Write
+  (16), World (7) and Inbox (7). The Plan's last steps, and one of Write's, are about saving and Undo (§12).
   A step can belong to some views only, so each Plan view skips the steps about what it doesn't show: the ribbon,
-  acts and chapter cards, the Display menu, the Matrix or the Timeline. The Matrix and Timeline have 10.
+  acts and chapter cards, the Display menu, the Matrix or the Timeline. The Matrix and Timeline have 12.
 - **The card** is a modal dialog with "Step N of M", Back, Next (Done on the last) and an X. ← and → move between
   steps. The page dims around a spotlight on what the step is about, which keeps clear of the sticky bars and follows
   the page as it scrolls. The card sits beside the spotlight, over it when nothing beside fits, or centered for a step
@@ -1880,3 +1926,4 @@ words as "also called".
 | 39 | Publishing | The code is public on GitHub, at github.com/Nichkt/bookbookbook; each version of the Windows app is a release there, its installer attached, and the README's Download for Windows links to the newest; no license is chosen yet (§21) | Set by the project's owner after M12; §11, "Built in M12" |
 | 40 | Adding a chapter | A big Add a chapter after each act's last chapter, or the book's when it has no acts, on the Board, Corkboard and Outline, replacing the Board's small "+" per act; on the Board it pops the new chapter out, headed "New chapter N"; every pop-out on the Plan has a bar along its bottom with Back to planning and Write this chapter, and Save for a new chapter; only Save and Write this chapter keep a new chapter, and any other way back leaves it out, deleted if still blank, else moved to the Trash with Undo | Asked for by the project's owner after M12, who wanted Save and Back to planning; what's left out, and how, settled in building it; §6, "Built after M12" |
 | 41 | Updates in the Windows app | Tauri's updater, from the latest release on GitHub, which has the installer and a `latest.json` naming the version; installers signed with a key kept off GitHub, and installed only if signed for the version announced; looked for only when the writer asks, from Check for updates on the home screen, in the book menu or Search, never at startup, so nothing leaves the computer unasked; installing saves the writing, the closing work and the window's place first, then runs the installer in passive mode, which closes the app and opens the new version; a version that finishes downloading with Updates closed waits for Install now; the web app goes on updating itself | Asked for by the project's owner after M12, who wanted an update button that installs the latest release from GitHub; asking first, the signing and the waiting settled in building it; §11, "Built after M12" |
+| 42 | Saving, Undo and Redo | Everything goes on saving by itself, with no Save button, and the header says so: Saved, Saving… once a save takes 0.4 s, or Not saved with Try again, which is all phones show; a field's typing is written when the tab is hidden or closed, before Undo and as the Windows app closes, and closing a browser tab with it unwritten asks first; one history of Undo and Redo per book, across its pages, recorded from the database's writes rather than by each feature, 100 changes per book, in memory only; a scene's typing keeps its editor's own undo, and Undo takes whichever came last; Ctrl+Z, and Ctrl+Y or Ctrl+Shift+Z (⌘Z and ⌘⇧Z on a Mac), outside text, where the keys stay the text's own; undoing puts back only what hasn't changed since; Undo's and Redo's toasts update in place, and the app's other Undo toasts join the history | Asked for by the project's owner after M12, who wanted autosave and undo; the history's reach, keeping it in memory, and the keys settled in building it; §12, "Built after M12" |

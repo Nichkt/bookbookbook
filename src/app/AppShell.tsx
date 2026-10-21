@@ -1,6 +1,6 @@
 import { usePowerSync } from "@powersync/react"
 import { BookOpenIcon } from "lucide-react"
-import { useEffect } from "react"
+import { useEffect, useLayoutEffect } from "react"
 import { Link, NavLink, Outlet, useParams } from "react-router"
 import { startBackups } from "@/backup/scheduler"
 import { Toaster } from "@/components/ui/sonner"
@@ -18,9 +18,13 @@ import { CommandPalette, PaletteButton } from "@/features/palette/CommandPalette
 import { useFocusMode } from "@/features/write/focusMode"
 import { startSprintTimer } from "@/features/write/sprint"
 import { cn } from "@/lib/utils"
+import { setUndoContext } from "@/undo/undoHistory"
 import { Announcer } from "./Announcer"
 import { useCurrentBook } from "./books"
+import { SaveIndicator } from "./SaveIndicator"
 import { ThemeSwitcher } from "./ThemeSwitcher"
+import { UndoButtons } from "./UndoButtons"
+import { useUndoShortcuts } from "./undoShortcuts"
 import { useAppUpdates } from "./useAppUpdates"
 
 // Above the phone tab bar, or the screen edge from md up (--toast-bottom in index.css).
@@ -91,6 +95,13 @@ export function AppShell() {
   useEffect(() => startBackups(db), [db])
   useEffect(() => startSprintTimer(db), [db])
   useAppUpdates()
+  // Undo records and takes back the open book's edits (§12): set before the book's screens' effects write anything.
+  const undoBook = inBook && book ? book.id : null
+  const undoUniverse = inBook && book ? book.universe_id : null
+  useLayoutEffect(() => {
+    setUndoContext(undoBook ? { bookId: undoBook, universeId: undoUniverse } : null)
+  }, [undoBook, undoUniverse])
+  useUndoShortcuts(undoBook !== null)
   return (
     <TooltipProvider>
       <div className="flex min-h-svh flex-col" data-focus-mode={focusMode ? "" : undefined}>
@@ -120,6 +131,12 @@ export function AppShell() {
             />
           )}
           <div className="ml-auto flex shrink-0 items-center gap-0 sm:gap-2">
+            {inBook && book && (
+              <>
+                <SaveIndicator />
+                <UndoButtons />
+              </>
+            )}
             <PaletteButton />
             {inBook && book && <QuickNoteButton />}
             <HelpButtons />
