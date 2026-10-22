@@ -237,7 +237,7 @@ export const GLOSSARY: GlossaryTerm[] = [
     term: "Summary",
     group: "chapter",
     body: [
-      "A few sentences on what happens in the chapter: what you'd tell a friend who asked. It shows on the chapter's card, and at the top of the chapter in Write.",
+      "A few sentences on what happens in the chapter: what you'd tell a friend who asked. It shows on the chapter's card, and at the top of the chapter in Write, where you can change it too.",
     ],
     example:
       "Chapter 1: “Mara Quill returns to Grayhaven for Thomas's funeral and finds the island smaller, sharper, and less willing to forgive absence.”",

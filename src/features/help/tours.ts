@@ -292,7 +292,8 @@ const WRITE: TourDefinition = {
     {
       target: "write-heading",
       title: "The chapter at a glance",
-      body: "Its number, status and title, the summary from your plan, and a bar showing how close it is to its word count target. Plan opens the chapter's plan.",
+      body: (context) =>
+        `Its number and status, and a bar showing how close it is to its word count target. ${context.coarse ? "Tap" : "Click"} the title or the summary to change it, and it changes in your plan too. Plan opens the chapter's plan.`,
     },
     {
       target: "write-editor",

@@ -708,6 +708,29 @@ aloud, and find and replace across the book. Details it settled:
   engine, its list and highlights, read aloud's sentences and mark, goals and streaks, today's words and Add to
   World's names.
 
+### Built after M12: the chapter's title and summary in Write
+- **Changed where they're read.** At the top of each chapter in Write, its title and the summary under it are fields
+  that look like the page's heading and the line under it, until the mouse rests on one or it has focus, when a
+  border shows. A click puts the cursor there. They're saved as the Plan's fields are, as typing pauses and on
+  leaving, to the chapter itself, so the navigator, the Plan and its pop-out follow (decision 43). On touch screens
+  each is at least 44 px tall.
+- **A title is one line.** A line break typed or pasted into it becomes a space, so what shows is what's saved, and
+  Enter goes on to the summary, except while an input method is still composing a word. The summary wraps to as many
+  lines as it needs. An empty title shows "Untitled chapter", in italics, and an empty summary "What happens in this
+  chapter?".
+- **Still a heading.** A heading only screen readers see keeps the chapter's title, an `h1` in the Chapter and Scene
+  views and an `h2` in the Manuscript, for moving through the page by heading and for arriving at a chapter, which
+  focuses it, as before. The fields are named for their chapter ("Title of chapter 3"), as the Manuscript shows many.
+- **Undo** takes back a change to either as one step, from the header or with Ctrl+Z outside text (§12, "Built after
+  M12").
+- **The Manuscript** still guesses 190 px for a chapter's header before it's drawn: measured, it's 178 px with a
+  summary of one line and 201 px with two, its margin included.
+- **Help.** The Write tour's step on the chapter's header says to click the title or the summary to change them, and
+  the glossary's Summary that it can be changed there.
+- **Tested** in `e2e/write.spec.ts`: a title typed with a line break pasted in, Enter going on to the summary, both
+  saved to the chapter and shown in the navigator and the hidden heading, Undo and Redo from the header, and the
+  Plan's pop-out showing them. The Manuscript's test finds the chapter in view by its title's field.
+
 ## 9. AI system
 
 ### Tools
@@ -1141,7 +1164,8 @@ flowchart LR
 - **The installer**, about 6 MB, is NSIS's, for the user running it, so needs no administrator, and fetches WebView2
   if it's missing. Its last page opens the app and puts it on the desktop, both ticked to begin with. It's unsigned,
   so SmartScreen warns about it. `npm run icons` draws the app's icons too. Each version's installer is a release on
-  GitHub, which the README's Download for Windows links to (decision 39).
+  GitHub, which the README's Download for Windows links to (decision 39). *After M12 it names its publisher, and the
+  build can sign it; see "Built after M12: the publisher, and signing".*
 - **Tested:** unit tests for asking again for the folder's permission and for closing
   (`src/backup/scheduler.test.ts`), and for dictation's messages (`src/speech/dictation.desktop.test.ts`). By hand, on
   Windows: installing, from the GitHub release through each of its pages, and silently; the empty library; the
@@ -1149,7 +1173,8 @@ flowchart LR
   and uninstalling. The end-to-end tests run in Chrome, not in the app.
 - **Not yet:** the OS keychain for AI keys, backups written by the app rather than WebView2, an installer signed for
   Windows, so SmartScreen stops warning, and speech recognition on the computer (whisper.cpp, §10). Updates from
-  inside the app came after M12 (below).
+  inside the app came after M12 (below), and so did a build ready to sign the installer, which waits for a
+  certificate.
 
 ### Built after M12: Updates in the Windows app
 - **Asked for, never on its own.** **Check for updates**, on the home screen, in the book menu and in Search, opens
@@ -1184,6 +1209,39 @@ flowchart LR
   window was, with a sentence typed just before it kept; closing Updates while it downloaded, then installing from
   the message; no connection; and an installer signed for another version than the one announced, refused, with
   nothing changed.
+
+### Built after M12: the publisher, and signing
+- **Whose app it is.** `bundle.publisher` and `bundle.copyright` in `src-tauri/tauri.conf.json` name Nicholas Ton
+  (decision 44). Settings → Apps shows the name as the app's publisher, and the file properties of the app and its
+  installer as their company and copyright; the installer's company comes from the hook below, as Tauri leaves it
+  out. What SmartScreen shows as the publisher comes only from a signature, by a code-signing certificate Windows
+  trusts, so until the installer is signed SmartScreen says "Unknown publisher", and warns.
+- **The folder carried over.** Tauri's installer remembers where the app was installed in the registry, under
+  `HKCU\Software\<publisher>\<product name>`, which was `Software\bookbookbook\bookbookbook` up to 0.1.3. So the
+  first installer under the new name would find nothing there. An update, in passive mode, would put a second copy
+  in the default folder, `%LOCALAPPDATA%\bookbookbook`, beside the one it was updating, and installing by hand
+  couldn't uninstall the old version first. `src-tauri/windows/installer-hooks.nsh` copies the folder to the new
+  place as the installer's window opens, after the installer has looked for a folder and before its page about the
+  version already installed (MUI's GUIINIT). A silent install, which has no window, does the same as it starts
+  installing, and removes the empty default folder it had made. A folder given with `/D=` stays as given. Once
+  installed, the old place is cleared, and so is `Software\bookbookbook` if nothing else is in it. The build stops
+  if the publisher or the product name changes and the hook's keys don't follow: its `BBB_PUBLISHER` names both the
+  key and the installer's company.
+- **Signing, ready but off.** `src-tauri/tauri.signing.conf.json`, added to a build with `--config`, has Tauri run
+  `scripts/sign-windows.ps1` on each file it signs: the app, the installer's plugins, the uninstaller and the
+  installer. The script signs with Azure Artifact Signing, which SmartScreen trusts, for $9.99 a month, open to
+  people in the US and Canada once Microsoft has checked who they are; or with a certificate in the computer's
+  store. It always adds a timestamp, so the signatures outlive the certificate, and asked to sign with neither set
+  up, it stops the build rather than leave a file unsigned. The updater's signature is made after, over the signed
+  installer. A newly signed app's first downloads may still be warned about until SmartScreen has seen enough of
+  them. The README's "Signing the Windows app" has the steps.
+- **Tested** by hand on Windows, with a separate test app built twice, the first with the old publisher and no
+  hooks, the second with the new publisher and the hooks, their keys renamed for it. The second installed over the
+  first, in a folder of its own, through its window, in passive mode as an update runs it, and silently: each time
+  in place, with no second copy, the folder in the new place and the old one gone, and Settings → Apps showing the
+  new version and publisher. A first silent install went to the default folder, and one with `/D=` where it said.
+  A test certificate in the store signed every file, with timestamps, and the updater's signature still matched.
+  Azure Artifact Signing is untested, for want of an account.
 
 ---
 
@@ -1840,7 +1898,8 @@ words as "also called".
    the tools above the keyboard and bottom sheets (§16), and the accessibility audit and performance on a long
    book (§17). So is M12's Windows app (§11, "Built in M12"), without the OS keychain and native backups, and after it,
    its updates (§11, "Built after M12").
-5. Signing the Windows app's installer, so SmartScreen stops warning about it.
+5. Signing the Windows app's installer, so SmartScreen names its publisher and stops warning about it. The build is
+   ready to sign it, and waits for a certificate (§11, "Built after M12: the publisher, and signing").
 
 ---
 
@@ -1927,3 +1986,5 @@ words as "also called".
 | 40 | Adding a chapter | A big Add a chapter after each act's last chapter, or the book's when it has no acts, on the Board, Corkboard and Outline, replacing the Board's small "+" per act; on the Board it pops the new chapter out, headed "New chapter N"; every pop-out on the Plan has a bar along its bottom with Back to planning and Write this chapter, and Save for a new chapter; only Save and Write this chapter keep a new chapter, and any other way back leaves it out, deleted if still blank, else moved to the Trash with Undo | Asked for by the project's owner after M12, who wanted Save and Back to planning; what's left out, and how, settled in building it; §6, "Built after M12" |
 | 41 | Updates in the Windows app | Tauri's updater, from the latest release on GitHub, which has the installer and a `latest.json` naming the version; installers signed with a key kept off GitHub, and installed only if signed for the version announced; looked for only when the writer asks, from Check for updates on the home screen, in the book menu or Search, never at startup, so nothing leaves the computer unasked; installing saves the writing, the closing work and the window's place first, then runs the installer in passive mode, which closes the app and opens the new version; a version that finishes downloading with Updates closed waits for Install now; the web app goes on updating itself | Asked for by the project's owner after M12, who wanted an update button that installs the latest release from GitHub; asking first, the signing and the waiting settled in building it; §11, "Built after M12" |
 | 42 | Saving, Undo and Redo | Everything goes on saving by itself, with no Save button, and the header says so: Saved, Saving… once a save takes 0.4 s, or Not saved with Try again, which is all phones show; a field's typing is written when the tab is hidden or closed, before Undo and as the Windows app closes, and closing a browser tab with it unwritten asks first; one history of Undo and Redo per book, across its pages, recorded from the database's writes rather than by each feature, 100 changes per book, in memory only; a scene's typing keeps its editor's own undo, and Undo takes whichever came last; Ctrl+Z, and Ctrl+Y or Ctrl+Shift+Z (⌘Z and ⌘⇧Z on a Mac), outside text, where the keys stay the text's own; undoing puts back only what hasn't changed since; Undo's and Redo's toasts update in place, and the app's other Undo toasts join the history | Asked for by the project's owner after M12, who wanted autosave and undo; the history's reach, keeping it in memory, and the keys settled in building it; §12, "Built after M12" |
+| 43 | The chapter's title and summary in Write | Fields at the top of each chapter in Write, looking like its heading and the line under it until the mouse rests on one or it has focus; saved to the chapter as the Plan's fields are, so the Plan follows; a title kept to one line, a line break becoming a space, and Enter going on to the summary; a heading only screen readers see keeping the title for moving by heading; a change undone as one step | Asked for by the project's owner after M12, who couldn't change them in Write; how they look and the one-line title settled in building it; §8, "Built after M12" |
+| 44 | The Windows app's publisher | Nicholas Ton as the publisher and copyright holder, in Settings → Apps and the file properties; the install folder carried over from the old publisher's place in the registry by an installer hook, through the installer's window, updates and silent installs; signing set up, with Azure Artifact Signing or a certificate in the computer's store, but off until there's a certificate, as only a signature makes SmartScreen name the publisher | Asked for by the project's owner after M12, after SmartScreen named the installer's publisher as unknown; carrying the folder over and how to sign settled in building it; §11, "Built after M12" |

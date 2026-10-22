@@ -36,7 +36,8 @@
       "nsis"
     ],
     "createUpdaterArtifacts": true,
-    "publisher": "bookbookbook",
+    "publisher": "Nicholas Ton",
+    "copyright": "Copyright © 2026 Nicholas Ton",
     "category": "Productivity",
     "shortDescription": "Plan your novel chapter by chapter, then write each chapter with your plan beside the page.",
     "icon": [
@@ -47,7 +48,8 @@
     ],
     "windows": {
       "nsis": {
-        "installMode": "currentUser"
+        "installMode": "currentUser",
+        "installerHooks": "windows/installer-hooks.nsh"
       }
     }
   },

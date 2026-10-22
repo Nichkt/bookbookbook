@@ -53,16 +53,19 @@ test("the Manuscript is the whole book, and the URL follows the chapter being re
   expect(await chapterTop(page, 3)).toBe(128)
   await expect(chapterLink(page, 3)).toHaveAttribute("aria-current", "page")
 
-  // Reading on into chapter 4 takes the URL, and the navigator, with it.
-  const lowTide = page.getByRole("heading", { level: 2, name: "Low Tide" })
-  const distance = await lowTide.evaluate((heading) => heading.getBoundingClientRect().top - 150)
+  // Reading on into chapter 4 takes the URL, and the navigator, with it. Its heading is for screen readers; its
+  // title field is what shows.
+  await expect(page.getByRole("heading", { level: 2, name: "Low Tide" })).toBeAttached()
+  const lowTide = page.getByRole("textbox", { name: "Title of chapter 4" })
+  await expect(lowTide).toHaveValue("Low Tide")
+  const distance = await lowTide.evaluate((title) => title.getBoundingClientRect().top - 150)
   await page.mouse.move(640, 400)
   await page.mouse.wheel(0, distance)
   await expect(chapterLink(page, 4)).toHaveAttribute("aria-current", "page")
   await expect(page).toHaveURL(new RegExp(`/write/${await chapterId(page, 4)}$`))
 
   await page.reload()
-  await expect(page.getByRole("heading", { level: 2, name: "Low Tide" })).toBeInViewport()
+  await expect(page.getByRole("textbox", { name: "Title of chapter 4" })).toBeInViewport()
 })
 
 
@@ -120,6 +123,49 @@ test("a scene gets a name, a new scene follows it, and Undo brings one back from
   await expect(text).toHaveCount(0)
   await toast(page, "Moved “The walk home” to the Trash").getByRole("button", { name: "Undo" }).click()
   await expect(page.getByRole("textbox", { name: "The walk home" })).toHaveText("Rain followed them up the hill.")
+})
+
+test("the chapter's title and summary are changed in place, in the plan too, and Undo takes them back", async ({
+  page,
+}) => {
+  await openFirstChapter(page)
+  await chapterLink(page, 3).click()
+  const title = page.getByRole("textbox", { name: "Title of chapter 3" })
+  const summary = page.getByRole("textbox", { name: "Summary of chapter 3" })
+  await expect(title).toHaveValue("The Drowned Bell")
+  const before = await summary.inputValue()
+  expect(before).toMatch(/^At the Drowned Bell, Mara tests the ledger/)
+  const id = await title.getAttribute("data-write-chapter-title")
+  const saved = async () =>
+    (await queryDb<{ title: string; summary: string }>(page, "SELECT title, summary FROM chapters WHERE id = ?", [id]))[0]
+
+  // A title is one line: a line break pasted in becomes a space, and Enter goes on to the summary.
+  await title.fill("The Drowned\nBell Tolls")
+  await expect(title).toHaveValue("The Drowned Bell Tolls")
+  await title.press("Enter")
+  await expect(summary).toBeFocused()
+  await summary.fill("Mara hears the bell from the harbour.")
+  await flushAll(page)
+  await expect.poll(saved).toEqual({ title: "The Drowned Bell Tolls", summary: "Mara hears the bell from the harbour." })
+  await expect(chapterLink(page, 3)).toContainText("The Drowned Bell Tolls")
+  await expect(page.getByRole("heading", { level: 1, name: "The Drowned Bell Tolls" })).toBeAttached()
+
+  const undo = page.getByRole("banner").getByRole("button", { name: "Undo", exact: true })
+  await expect(undo).toHaveAttribute("title", "Undo: Changed the summary of “The Drowned Bell Tolls” · Ctrl+Z")
+  await undo.click()
+  await expect(summary).toHaveValue(before)
+  await undo.click()
+  await expect(title).toHaveValue("The Drowned Bell")
+  await expect.poll(saved).toEqual({ title: "The Drowned Bell", summary: before })
+
+  const redo = page.getByRole("banner").getByRole("button", { name: "Redo", exact: true })
+  await redo.click()
+  await redo.click()
+  await expect(summary).toHaveValue("Mara hears the bell from the harbour.")
+  await page.getByRole("link", { name: "Plan chapter 3" }).click()
+  const popout = page.getByRole("dialog", { name: "Chapter 3: The Drowned Bell Tolls" })
+  await expect(popout.getByRole("textbox", { name: "Chapter title" })).toHaveValue("The Drowned Bell Tolls")
+  await expect(popout.getByRole("textbox", { name: "Summary" })).toHaveValue("Mara hears the bell from the harbour.")
 })
 
 test("History keeps versions: a named snapshot comes back with Restore, and Undo reverses that", async ({ page }) => {

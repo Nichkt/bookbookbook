@@ -2,20 +2,57 @@ import { ChevronLeftIcon, ChevronRightIcon, LayoutGridIcon, PlusIcon } from "luc
 import { useEffect } from "react"
 import { Link, useLocation, useNavigate } from "react-router"
 import { attempt } from "@/app/feedback"
+import { DraftTextarea } from "@/components/DraftField"
 import { Button, buttonVariants } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { useDraft } from "@/components/useDraft"
 import { WordProgress } from "@/components/WordProgress"
 import { whenEditor } from "@/editor/activeEditor"
-import { createScene } from "@/features/plan/mutations"
+import { createScene, updateChapter } from "@/features/plan/mutations"
 import type { PlanChapter, PlanSceneRow } from "@/features/plan/planData"
-import { chapterTitle, statusOf } from "@/features/plan/status"
+import { chapterTitle, statusOf, UNTITLED_CHAPTER } from "@/features/plan/status"
 import { byData, focusPending, focusSoon, nothingFocused } from "@/lib/focus"
+import { isComposing } from "@/lib/keys"
 import { cn } from "@/lib/utils"
 import { revealScene, useEnsureScene } from "./pageHooks"
 import { SceneBlock } from "./SceneBlock"
 import { sceneNeighbors, sceneToShow, stopPath, type SceneStop } from "./sequence"
 import { navState, useWrite, useWriteBasics, useWritePlace, writePath, type WriteNavState } from "./writeContext"
 
-/** A chapter's heading block: number, status, title, summary and words, with a way to its plan. */
+/** The chapter's title and summary: page text until hovered or edited, wrapping as they grow. */
+const FIELD =
+  "-mx-2 block min-h-0 w-[calc(100%+1rem)] resize-none border-transparent bg-transparent px-2 hover:border-input dark:bg-transparent pointer-coarse:min-h-11"
+
+/** The chapter's title, which wraps as a heading does. Enter goes on to the summary. */
+function ChapterTitle({ chapter }: { chapter: PlanChapter }) {
+  const { db } = useWriteBasics()
+  const draft = useDraft(chapter.title ?? "", (title) => updateChapter(db, chapter.id, { title }))
+  return (
+    <Textarea
+      data-write-chapter-title={chapter.id}
+      aria-label={`Title of chapter ${chapter.number}`}
+      placeholder={UNTITLED_CHAPTER}
+      rows={1}
+      value={draft.value}
+      // A title is one line: a line break pasted in becomes a space.
+      onChange={(event) => draft.onChange(event.target.value.replace(/\s*[\r\n]+\s*/g, " "))}
+      onFocus={draft.onFocus}
+      onBlur={draft.onBlur}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" || isComposing(event.nativeEvent)) return
+        event.preventDefault()
+        document.querySelector<HTMLElement>(byData("write-chapter-summary", chapter.id))?.focus()
+      }}
+      className={cn(
+        FIELD,
+        "mt-1.5 py-0.5 font-heading text-3xl leading-tight font-semibold text-ink md:text-3xl",
+        "placeholder:font-normal placeholder:italic",
+      )}
+    />
+  )
+}
+
+/** A chapter's heading block: number, status, title and summary to edit in place, and words, with a way to its plan. */
 export function ChapterHeader({
   chapter,
   level,
@@ -26,10 +63,9 @@ export function ChapterHeader({
   /** In the Scene view: which of the chapter's scenes is showing. */
   scene?: { index: number; count: number }
 }) {
-  const { bookId } = useWriteBasics()
+  const { bookId, db } = useWriteBasics()
   const status = statusOf(chapter.status)
   const Heading = level === 1 ? "h1" : "h2"
-  const summary = chapter.summary?.trim()
 
   return (
     <header data-tour="write-heading" data-focus-dim="" className="mb-10 font-sans">
@@ -62,17 +98,20 @@ export function ChapterHeader({
           Plan
         </Link>
       </div>
-      <Heading
-        tabIndex={-1}
-        data-write-heading={chapter.id}
-        className={cn(
-          "mt-2 mb-0 font-heading text-3xl leading-tight font-semibold text-ink outline-none",
-          !chapter.title?.trim() && "font-normal text-muted-foreground italic",
-        )}
-      >
+      {/* For moving through the page by heading, and for arriving at the chapter; the fields below are what show. */}
+      <Heading tabIndex={-1} data-write-heading={chapter.id} className="sr-only">
         {chapterTitle(chapter.title)}
       </Heading>
-      {summary && <p className="mt-3 text-sm leading-relaxed whitespace-pre-line text-muted-foreground">{summary}</p>}
+      <ChapterTitle chapter={chapter} />
+      <DraftTextarea
+        data-write-chapter-summary={chapter.id}
+        aria-label={`Summary of chapter ${chapter.number}`}
+        placeholder="What happens in this chapter?"
+        rows={1}
+        value={chapter.summary ?? ""}
+        onSave={(summary) => updateChapter(db, chapter.id, { summary })}
+        className={cn(FIELD, "mt-2 py-1 leading-relaxed text-muted-foreground placeholder:italic pointer-coarse:py-2.5")}
+      />
       <WordProgress
         words={chapter.words}
         target={chapter.word_target}

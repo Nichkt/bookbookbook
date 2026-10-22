@@ -8,12 +8,13 @@ takes after NovelCrafter, the writing side after Sudowrite.
 
 ## Download for Windows
 
-For Windows 10 and 11, 64-bit: **[download the installer][installer]**, bookbookbook 0.1.3, about 6 MB. After that,
+For Windows 10 and 11, 64-bit: **[download the installer][installer]**, bookbookbook 0.1.4, about 6 MB. After that,
 **Check for updates**, on the home screen, installs each newer version; they're all on the
 [releases page](https://github.com/Nichkt/bookbookbook/releases) too. Versions before 0.1.2 have no Check for updates,
 so install this one over yours, which keeps your books.
 1. Your browser may say the file isn't commonly downloaded, as it's new: keep it.
-2. Open it. As the installer isn't signed yet, Windows SmartScreen warns about it: click More info, then Run anyway.
+2. Open it. As the installer isn't signed yet, Windows SmartScreen warns about it, and calls its publisher unknown:
+   click More info, then Run anyway.
 3. Click Next on each page, then Finish, with Run bookbookbook ticked. It installs for you alone, so it needs no
    administrator.
 4. bookbookbook opens, on "No books yet". After that, it's in the Start menu and on the desktop.
@@ -22,7 +23,7 @@ Your books stay on this computer, so keep backups, with Backups on the home scre
 this one keeps them, and so does uninstalling, in Settings → Apps, unless you tick Delete the application data. To
 build the app yourself, see [The Windows app](#the-windows-app).
 
-[installer]: https://github.com/Nichkt/bookbookbook/releases/download/v0.1.3/bookbookbook_0.1.3_x64-setup.exe
+[installer]: https://github.com/Nichkt/bookbookbook/releases/download/v0.1.4/bookbookbook_0.1.4_x64-setup.exe
 
 ## Status: home, Plan, World, Write, writing aids, AI, Inbox, dictation, search, undo, help, import, export, backups, offline, Windows app
 
@@ -34,6 +35,19 @@ your voice when you dictate online, which goes to the browser's maker (Microsoft
 app asks GitHub for its newest version only when you click Check for updates.
 There are no accounts or sync yet, so keep backups: Backups… in the book menu downloads one, or backs every book up to
 a folder as it changes (Chrome, Edge and the Windows app).
+
+**After M12, the chapter's title and summary in Write** (DESIGN.md §8, "Built after M12"):
+- **Change them where you write:** at the top of each chapter in Write, click its title, or the summary under it,
+  and type. They're saved as you go, and your plan changes with them. Enter in the title goes on to the summary.
+- **Undo** takes back a change to either, as it does everywhere else.
+
+**After M12, the Windows app's publisher** (DESIGN.md §11, "Built after M12"; see
+[Signing the Windows app](#signing-the-windows-app)):
+- **Nicholas Ton** is the publisher in Settings → Apps, and in the file properties of the app and its installer.
+  SmartScreen still calls the publisher unknown until the installer is signed with a code-signing certificate, which
+  the build is ready for.
+- **Updates stay put:** installing 0.1.4 or later over an older version, from Check for updates, by hand or silently,
+  updates it in the folder it was installed in.
 
 **After M12, saving and Undo** (DESIGN.md §12, "Built after M12"):
 - **Saves as you go:** everything you type or change is saved by itself, so there's no Save button to remember. The
@@ -363,8 +377,17 @@ The first build compiles Tauri, which takes several minutes; after that, about o
 - **Installing:** the installer puts bookbookbook in `%LOCALAPPDATA%\bookbookbook`, with a Start menu shortcut, for
   the user running it, so no administrator is needed. Its last page has Run bookbookbook and Create desktop shortcut,
   both ticked. `/S` installs it silently, with the desktop shortcut unless `/NS` is added, and `/R` opens it after.
-  It isn't signed yet, so Windows SmartScreen warns about it: More info, then Run anyway. If WebView2 is missing, as
-  it can be on Windows 10, the installer fetches it.
+  If WebView2 is missing, as it can be on Windows 10, the installer fetches it.
+- **Its publisher**, Nicholas Ton (`bundle.publisher` and `bundle.copyright` in `src-tauri/tauri.conf.json`), shows
+  in Settings → Apps and in the file properties of the app and its installer. Only a signature makes SmartScreen
+  name it, and the installer isn't signed yet, so SmartScreen warns about it, with an unknown publisher: More info,
+  then Run anyway. See [Signing the Windows app](#signing-the-windows-app).
+- **Installing over an older version** updates it in its folder, which the installer finds in the registry, under
+  `HKCU\Software\<publisher>\bookbookbook`. Up to 0.1.3 the publisher was "bookbookbook", so
+  `src-tauri/windows/installer-hooks.nsh` carries the folder over to the new publisher's key, for the installer's
+  window, updates and `/S`, then deletes the old key. A folder given with `/D=` is kept. Change `bundle.publisher` or
+  `productName` and the build stops until the hook's keys are changed to match, `BBB_PUBLISHER` among them, which is
+  also the installer's company.
 - **Its books** are WebView2's, in `%LOCALAPPDATA%\io.github.nichkt.bookbookbook`, apart from any in a browser. So the
   identifier in `src-tauri/tauri.conf.json` must never change, or the app would open on an empty library. The
   window's place and size are kept in `%APPDATA%\io.github.nichkt.bookbookbook`. A real install starts with no books;
@@ -379,7 +402,7 @@ The first build compiles Tauri, which takes several minutes; after that, about o
   `gh release create v<version> <the installer> <its latest.json> --latest --notes-file <it>` makes the release on
   GitHub with both attached: installed apps find the new version from the latest release's `latest.json`. The link
   in [Download for Windows](#download-for-windows) wants changing to the new installer, as its name has the version in
-  it.
+  it. To sign the installer for Windows too, build as in [Signing the Windows app](#signing-the-windows-app).
 - **Updates** (`src/app/updates.ts`, `src/features/updates/`) use Tauri's
   [updater plugin](https://v2.tauri.app/plugin/updater/). Check for updates reads `latest.json` from the latest
   release (`plugins.updater` in `src-tauri/tauri.conf.json`), which names the newest version, its installer and the
@@ -404,8 +427,8 @@ The first build compiles Tauri, which takes several minutes; after that, about o
 - **Dictation** is online only, on Microsoft's speech service: WebView2 can't recognize speech on the computer yet.
 - **Ollama** answers only `localhost` pages as it comes, so it needs `OLLAMA_ORIGINS=http://tauri.localhost`, as AI
   settings says.
-- **Not yet:** the OS keychain for AI keys, backups written by the app rather than WebView2, and an installer signed
-  for Windows, so SmartScreen stops warning about it.
+- **Not yet:** the OS keychain for AI keys, backups written by the app rather than WebView2, and a code-signing
+  certificate, so SmartScreen names the publisher and stops warning; the build is ready for one (below).
 
 To look into the built app with DevTools or Playwright, start it with the environment variable
 `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9333` and connect to that port. While it's connected,
@@ -415,10 +438,46 @@ leaving.
 To try updating without a release, make a throwaway key (`npx tauri signer generate`) and a config file for
 `npx tauri build --config <file>` that makes a separate app, with its own data: another `productName`,
 `mainBinaryName` and `identifier`, the throwaway key's `pubkey`, and `plugins.updater.endpoints` set to
-`http://127.0.0.1:8765/latest.json`, with `"dangerousInsecureTransportProtocol": true`. Build it twice, with two
-versions and `TAURI_SIGNING_PRIVATE_KEY` set to the throwaway key, install the first, and serve the second's
-installer and `latest.json` (`npm run update-manifest -- --installer <it> --url <its address on the server>`) from
-port 8765. Delete the test app's builds from `src-tauri/target/release/` after, and uninstall it.
+`http://127.0.0.1:8765/latest.json`, with `"dangerousInsecureTransportProtocol": true`. Its `bundle.windows.nsis`
+wants `"installerHooks": null` too, as the hook's keys are bookbookbook's and the build stops for another
+`productName`. Build it twice, with two versions and `TAURI_SIGNING_PRIVATE_KEY` set to the throwaway key, install
+the first, and serve the second's installer and `latest.json`
+(`npm run update-manifest -- --installer <it> --url <its address on the server>`) from port 8765. Delete the test
+app's builds from `src-tauri/target/release/` after, and uninstall it.
+
+### Signing the Windows app
+
+SmartScreen names an installer's publisher, and in time stops warning about it, only if it's signed with a
+code-signing certificate Windows trusts; without one it says the publisher is unknown, whatever `bundle.publisher`
+says. A build that includes `src-tauri/tauri.signing.conf.json` runs `scripts/sign-windows.ps1` on each file it
+signs (the app, the installer's plugins, the uninstaller and the installer), with a timestamp, so the signatures
+outlive the certificate. Ordinary builds don't sign. For a person in the US or Canada, one way is Microsoft's
+[Azure Artifact Signing](https://learn.microsoft.com/azure/artifact-signing/quickstart), $9.99 a month (Basic):
+1. With an Azure subscription whose billing account is an individual's, in your legal name, register the
+   `Microsoft.CodeSigning` resource provider, then create an Artifact Signing account, an identity validation for
+   yourself (Microsoft checks your ID) and a Public Trust certificate profile. Give yourself the Artifact Signing
+   Certificate Profile Signer role on the account.
+2. Install Microsoft's client tools, which bring signtool, and the Azure CLI, and sign in:
+   `winget install -e --id Microsoft.Azure.ArtifactSigningClientTools`,
+   `winget install -e --id Microsoft.AzureCLI`, then `az login`.
+3. In PowerShell, name the account's endpoint (its region's, on the account's Overview), the account and the
+   certificate profile, then build with the updater's key, as for a release:
+   ```powershell
+   $env:BBB_SIGNING_ENDPOINT = "https://wus2.codesigning.azure.net"
+   $env:BBB_SIGNING_ACCOUNT = "<the account's name>"
+   $env:BBB_SIGNING_PROFILE = "<the certificate profile's name>"
+   $env:TAURI_SIGNING_PRIVATE_KEY = "$env:USERPROFILE\.tauri\bookbookbook.key"
+   npx tauri build --ci --config src-tauri/tauri.signing.conf.json
+   ```
+4. `Get-AuthenticodeSignature <the installer>` should say Valid, and its Properties → Digital Signatures name you.
+   Then `npm run update-manifest` and the release go on as usual: the updater's signature is made after Windows', so
+   it's of the signed installer.
+
+A code-signing certificate of your own in the Windows certificate store works too, a USB token's included: set
+`BBB_SIGNING_CERT` to its thumbprint instead. `BBB_SIGNING_TIMESTAMP` changes the timestamp server, and
+`BBB_SIGNING_DLIB` and `BBB_SIGNTOOL` point at the client tools if the script can't find them. Without any of these
+set, a signing build stops rather than leave a file unsigned. A new certificate's first downloads may still be
+warned about until SmartScreen has seen enough of them.
 
 ## Setting up the AI tools
 
@@ -510,8 +569,8 @@ They cover:
   Structure menu, a new book from a structure, planning step by step (and its Undo) in a new book and the sample,
   and Your structures: a copy, its file, adding one from a file, deleting with Undo, and focus throughout;
 - the Write screen (`write.spec.ts`): the three views and their addresses, a jump holding still while the
-  Manuscript settles, which scene the toolbar acts on, formatting, naming, adding and trashing scenes, History, Today
-  and the chapter plan;
+  Manuscript settles, which scene the toolbar acts on, formatting, naming, adding and trashing scenes, History, Today,
+  the chapter plan, and the chapter's title and summary changed at its top, in the plan too, with Undo;
 - writing aids (`writing-aids.spec.ts`): Add to World from the bubble and the ⋯ menus (names World has, phones),
   read aloud (from the cursor or a selection, speed and voice, where it stops, phones), focus mode, typewriter
   scrolling, goals and sprints (a sprint through a reload, phones), and find and replace (the whole book, Replace,
@@ -645,8 +704,10 @@ docs/             design doc and the phone keyboard test
 prototype/        the clickable design prototype
 public/           favicon and the app's icons; theme-init.js sets the theme and title bar color before first paint
 scripts/          icons.ts draws the web app's and the Windows app's icons from the favicon (`npm run icons`);
-                  update-manifest.ts writes a release's latest.json (`npm run update-manifest`)
-src-tauri/        the Windows app: its window, installer and icons (tauri.conf.json), and its Rust side (src/lib.rs)
+                  update-manifest.ts writes a release's latest.json (`npm run update-manifest`); sign-windows.ps1
+                  signs the Windows app's files in a signing build
+src-tauri/        the Windows app: its window, installer and icons (tauri.conf.json), the installer's hooks
+                  (windows/installer-hooks.nsh), signing (tauri.signing.conf.json), and its Rust side (src/lib.rs)
 ```
 
 ## Dev hooks
